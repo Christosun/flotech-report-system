@@ -2,7 +2,6 @@ from flask import Flask, send_from_directory
 from flask_cors import CORS
 from config import Config
 from extensions import db, jwt
-
 import os
 
 app = Flask(__name__)
@@ -31,10 +30,15 @@ app.register_blueprint(auth_bp, url_prefix='/api/auth')
 from routes.report import report_bp
 app.register_blueprint(report_bp, url_prefix='/api/report')
 
-# ✅ ADD THIS
+from routes.engineer import engineer_bp
+app.register_blueprint(engineer_bp, url_prefix='/api/engineer')
+
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+with app.app_context():
+    db.create_all()
 
 if __name__ == "__main__":
     app.run(debug=True)

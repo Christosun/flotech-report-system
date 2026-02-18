@@ -4,6 +4,7 @@ import Dashboard from "./pages/Dashboard";
 import Reports from "./pages/Reports";
 import CreateReport from "./pages/CreateReport";
 import ReportDetail from "./pages/ReportDetail";
+import Engineers from "./pages/Engineers";
 import Layout from "./components/Layout";
 
 function App() {
@@ -11,12 +12,12 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
-
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/reports/create" element={<CreateReport />} />
           <Route path="/reports/:id" element={<ReportDetail />} />
+          <Route path="/engineers" element={<Engineers />} />
         </Route>
       </Routes>
     </BrowserRouter>
