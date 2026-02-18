@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+instance/
+.env
+
+# Upload files
+uploads/
+
+# Node
+node_modules/
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vite
+.vite/
+
+# Logs
+*.log
