@@ -3,6 +3,32 @@ import { useParams, useNavigate } from "react-router-dom";
 import API from "../services/api";
 import toast from "react-hot-toast";
 
+// Safe image component yang tidak crash saat onError
+function ImageCard({ src }) {
+  const [failed, setFailed] = useState(false);
+
+  if (failed) {
+    return (
+      <div className="rounded-xl overflow-hidden border border-gray-100 h-28 bg-gray-50 flex flex-col items-center justify-center gap-1">
+        <span className="text-2xl">🖼️</span>
+        <p className="text-xs text-gray-400">No preview</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl overflow-hidden border border-gray-100 group">
+      <img
+        src={src}
+        alt="Report documentation"
+        className="w-full h-28 object-cover hover:scale-105 transition-transform duration-200 cursor-pointer"
+        onClick={() => window.open(src, "_blank")}
+        onError={() => setFailed(true)}
+      />
+    </div>
+  );
+}
+
 const TYPE_COLORS = {
   commissioning: { bg: "bg-blue-100", text: "text-blue-700", border: "border-blue-200" },
   investigation: { bg: "bg-purple-100", text: "text-purple-700", border: "border-purple-200" },
@@ -355,18 +381,14 @@ export default function ReportDetail() {
 
         {/* Image Grid */}
         {report.images?.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-2">
             {report.images.map((img) => {
-              const filename = img.file_path?.split("/").pop() || img.file_path?.split("\\").pop();
+              // Ambil hanya filename dari path (handle Windows & Unix path)
+              const rawPath = img.file_path || "";
+              const filename = rawPath.split(/[\/\\]/).pop();
+              const imgUrl = `http://127.0.0.1:5000/uploads/${filename}`;
               return (
-                <div key={img.id} className="rounded-xl overflow-hidden border border-gray-100 group relative">
-                  <img
-                    src={`${import.meta.env.VITE_API_BASE_URL?.replace("/api", "") || "http://localhost:5000"}/uploads/${filename}`}
-                    alt="Report"
-                    className="w-full h-28 object-cover"
-                    onError={e => { e.target.src = ""; e.target.parentElement.innerHTML = '<div class="h-28 bg-gray-100 flex items-center justify-center text-xs text-gray-400">No preview</div>'; }}
-                  />
-                </div>
+                <ImageCard key={img.id} src={imgUrl} />
               );
             })}
           </div>

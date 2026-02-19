@@ -133,7 +133,7 @@ def upload_images(report_id):
         filename = secure_filename(file.filename)
         file_path = os.path.join(current_app.config["UPLOAD_FOLDER"], filename)
         file.save(file_path)
-        image = ReportImage(report_id=report_id, file_path=file_path)
+        image = ReportImage(report_id=report_id, file_path=filename)
         db.session.add(image)
         saved_files.append(filename)
 
@@ -256,9 +256,23 @@ def generate_pdf(report_id):
 
     # ===== HEADER =====
     report_type_label = report.report_type.upper() if report.report_type else "FIELD"
+
+    # Try to load logo
+    logo_path = os.path.join(current_app.root_path, "assets", "logo.png")
+    logo_cell = None
+    if os.path.exists(logo_path):
+        try:
+            logo_cell = Image(logo_path, width=3.5*cm, height=2*cm)
+            logo_cell.hAlign = 'LEFT'
+        except Exception:
+            logo_cell = None
+
+    if logo_cell is None:
+        logo_cell = Paragraph("<b>FLOTECH</b>", ParagraphStyle('Logo', fontSize=24, fontName='Helvetica-Bold', textColor=primary_color))
+
     header_data = [
         [
-            Paragraph(f"<b>FLOTECH</b>", ParagraphStyle('Logo', fontSize=24, fontName='Helvetica-Bold', textColor=primary_color)),
+            logo_cell,
             Paragraph(f"<b>{report_type_label} REPORT</b>", ParagraphStyle('ReportType', fontSize=16, fontName='Helvetica-Bold', textColor=colors.white, alignment=2))
         ]
     ]
@@ -268,7 +282,6 @@ def generate_pdf(report_id):
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('PADDING', (0, 0), (0, 0), 8),
         ('PADDING', (1, 0), (1, 0), 12),
-        ('ROUNDEDCORNERS', (1, 0), (1, 0), [4, 4, 4, 4]),
     ]))
     elements.append(header_table)
     elements.append(Spacer(1, 0.3*cm))
@@ -443,7 +456,11 @@ def generate_pdf(report_id):
         row = []
         for i, img_obj in enumerate(report.images):
             try:
-                img_path = img_obj.file_path
+                upload_folder = current_app.config["UPLOAD_FOLDER"]
+                img_path = os.path.join(upload_folder, img_obj.file_path) if not os.path.isabs(img_obj.file_path) else img_obj.file_path
+                # Handle old records that stored full path
+                if not os.path.exists(img_path):
+                    img_path = img_obj.file_path
                 if os.path.exists(img_path):
                     img = Image(img_path, width=7.5*cm, height=5.5*cm)
                     img.hAlign = 'CENTER'
