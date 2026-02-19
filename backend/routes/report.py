@@ -43,7 +43,6 @@ def create_report():
         client_name=data.get("client_name"),
         project_name=data.get("project_name"),
         engineer_id=data.get("engineer_id"),
-        created_by=user_id,
         report_date=report_date,
         data_json=data.get("data_json", {})
     )

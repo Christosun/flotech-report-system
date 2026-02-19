@@ -46,7 +46,6 @@ class Report(db.Model):
     client_name = db.Column(db.String(150))
     project_name = db.Column(db.String(150))
     engineer_id = db.Column(db.Integer, db.ForeignKey("engineers.id"), nullable=True)
-    created_by = db.Column(db.Integer, db.ForeignKey("users.id"))
     report_date = db.Column(db.Date)
     status = db.Column(db.String(20), default="draft")
     data_json = db.Column(db.JSON)
