@@ -279,7 +279,7 @@ export default function Quotations() {
                   <div>
                     <label className={labelClass}>No. Quotation *</label>
                     <input value={form.quotation_number} onChange={e => setForm({...form, quotation_number: e.target.value})}
-                      placeholder="QT-2025-001" className={inputClass} />
+                      placeholder="SQ26010001" className={inputClass} />
                   </div>
                   <div>
                     <label className={labelClass}>Kategori Produk</label>

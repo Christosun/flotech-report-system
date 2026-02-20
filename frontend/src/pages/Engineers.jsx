@@ -276,7 +276,7 @@ export default function Engineers() {
                 </div>
                 <div>
                   <label className={labelClass}>Employee ID</label>
-                  <input value={form.employee_id} onChange={e => setForm({ ...form, employee_id: e.target.value })} placeholder="EMP-001" className={inputClass} />
+                  <input value={form.employee_id} onChange={e => setForm({ ...form, employee_id: e.target.value })} placeholder="FJKT-001" className={inputClass} />
                 </div>
                 <div>
                   <label className={labelClass}>Position / Title</label>
@@ -304,7 +304,7 @@ export default function Engineers() {
                 </div>
                 <div className="sm:col-span-2">
                   <label className={labelClass}>Certification</label>
-                  <input value={form.certification} onChange={e => setForm({ ...form, certification: e.target.value })} placeholder="e.g. ISA CCST, PMP, CompEx..." className={inputClass} />
+                  <input value={form.certification} onChange={e => setForm({ ...form, certification: e.target.value })} placeholder="" className={inputClass} />
                 </div>
               </div>
             </div>

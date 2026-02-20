@@ -49,7 +49,7 @@ export default function Sidebar({ open, onClose }) {
       `}>
 
         {/* Logo Area — logo only, no text */}
-        <div className="px-5 py-5 border-b border-white border-opacity-10 flex items-center justify-center min-h-[72px]">
+        <div className="px-5 py-5 border-b border-white border-opacity-10 flex items-left justify-left min-h-[72px]">
           <img
             src="/logo.png"
             alt="Flotech"
@@ -127,7 +127,7 @@ export default function Sidebar({ open, onClose }) {
               <p className="text-sm font-semibold text-white truncate">
                 {localStorage.getItem("user_name") || "User"}
               </p>
-              <p className="text-xs text-blue-400 truncate">PT Flotech Controls</p>
+              <p className="text-xs text-blue-400 truncate">PT Flotech Controls Indonesia</p>
             </div>
           </div>
           <button

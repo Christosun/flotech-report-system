@@ -312,7 +312,7 @@ export default function Catalog() {
               <div>
                 <label className={labelClass}>Model / Series</label>
                 <input value={form.model_series} onChange={e => setForm({...form, model_series: e.target.value})}
-                  placeholder="Contoh: Promag W 400, EH-FMR57" className={inputClass} />
+                  placeholder="Contoh: EFS803/RFT203, RD780G" className={inputClass} />
               </div>
               <div>
                 <label className={labelClass}>Deskripsi</label>
