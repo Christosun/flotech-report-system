@@ -356,7 +356,7 @@ export default function Quotations() {
                         <div>
                           <label className={labelClass}>Brand / Principal</label>
                           <input value={item.brand} onChange={e => updateItem(i, "brand", e.target.value)}
-                            placeholder="Endress+Hauser, etc" className={inputClass} />
+                            placeholder="iSOLV, atau brand lain" className={inputClass} />
                         </div>
                         <div>
                           <label className={labelClass}>Model / Part No</label>

@@ -19,7 +19,7 @@ const STATUS_CONFIG = {
   retired:     { label: "Retired",      bg: "bg-gray-200",   text: "text-gray-500" },
 };
 
-const TYPE_OPTIONS = ["Flow Meter", "Level Transmitter", "Pressure Transmitter", "Temperature", "Analyzer", "Control Valve", "Calibrator", "Other"];
+const TYPE_OPTIONS = ["Flow Meter", "Level Transmitter", "Pressure Transmitter", "Temperature Transmitter", "Process Analyzer", "Control Valve", "Calibrator", "Gas Detector", "Other"];
 const EMPTY_FORM = {
   name: "", brand: "", model: "", serial_number: "", asset_tag: "",
   type: "", category: "stock", condition: "good", status: "available",
@@ -152,49 +152,91 @@ export default function Stock() {
           <p className="text-gray-500 font-medium">Belum ada unit terdaftar</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(item => {
-            const sc = STATUS_CONFIG[item.status] || STATUS_CONFIG.available;
-            const cc = CONDITION_CONFIG[item.condition] || CONDITION_CONFIG.good;
-            return (
-              <div key={item.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between mb-3">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100">
+                  {["Nama Alat","Brand / Model","S/N & Tag","Tipe","Status","Kondisi","Lokasi","Aksi"].map(h => (
+                    <th key={h} className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filtered.map(item => {
+                  const sc = STATUS_CONFIG[item.status] || STATUS_CONFIG.available;
+                  const cc = CONDITION_CONFIG[item.condition] || CONDITION_CONFIG.good;
+                  return (
+                    <tr key={item.id} className="hover:bg-blue-50 transition-colors">
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-gray-800 text-sm">{item.name}</p>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${item.category === "demo" ? "bg-purple-100 text-purple-700" : "bg-indigo-50 text-indigo-600"}`}>
+                          {item.category === "demo" ? "Demo" : "Stock"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="text-sm font-semibold text-gray-700">{item.brand}</p>
+                        {item.model && <p className="text-xs text-gray-400">{item.model}</p>}
+                      </td>
+                      <td className="px-4 py-3">
+                        {item.serial_number && <p className="text-xs font-mono text-gray-700">{item.serial_number}</p>}
+                        {item.asset_tag && <p className="text-xs text-gray-400">{item.asset_tag}</p>}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-600">{item.type || "—"}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap ${sc.bg} ${sc.text}`}>{sc.label}</span>
+                        {item.status === "on_loan" && item.loan_to && (
+                          <p className="text-xs text-orange-500 mt-0.5">{item.loan_to}</p>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className={`flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-lg w-fit ${cc.bg} ${cc.text}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${cc.dot}`} />
+                          {cc.label}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-500">{item.location || "—"}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-1.5">
+                          <button onClick={() => setViewItem(item)} className="px-2.5 py-1.5 bg-gray-50 text-gray-700 rounded-lg text-xs font-semibold hover:bg-gray-100">Detail</button>
+                          <button onClick={() => openEdit(item)} className="px-2.5 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-100">Edit</button>
+                          <button onClick={() => deleteItem(item.id)} className="px-2.5 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-100">🗑</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {/* Mobile list */}
+          <div className="md:hidden divide-y divide-gray-50">
+            {filtered.map(item => {
+              const sc = STATUS_CONFIG[item.status] || STATUS_CONFIG.available;
+              const cc = CONDITION_CONFIG[item.condition] || CONDITION_CONFIG.good;
+              return (
+                <div key={item.id} className="p-4 flex items-center gap-3">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${sc.bg} ${sc.text}`}>{sc.label}</span>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${item.category === "demo" ? "bg-purple-100 text-purple-700" : "bg-indigo-50 text-indigo-600"}`}>
-                        {item.category === "demo" ? "Demo Unit" : "Stock"}
-                      </span>
+                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                      <p className="font-semibold text-gray-800 text-sm truncate">{item.name}</p>
                     </div>
-                    <h3 className="font-bold text-gray-800 truncate">{item.name}</h3>
                     <p className="text-xs text-gray-500">{item.brand} {item.model && `• ${item.model}`}</p>
+                    {item.serial_number && <p className="text-xs font-mono text-gray-400 mt-0.5">{item.serial_number}</p>}
+                    <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${sc.bg} ${sc.text}`}>{sc.label}</span>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${cc.bg} ${cc.text}`}>{cc.label}</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-1.5 flex-shrink-0">
+                    <button onClick={() => setViewItem(item)} className="p-2 bg-gray-50 text-gray-600 rounded-lg text-xs hover:bg-gray-100">👁</button>
+                    <button onClick={() => openEdit(item)} className="p-2 bg-blue-50 text-blue-700 rounded-lg text-xs hover:bg-blue-100">✏️</button>
+                    <button onClick={() => deleteItem(item.id)} className="p-2 bg-red-50 text-red-600 rounded-lg text-xs hover:bg-red-100">🗑</button>
                   </div>
                 </div>
-
-                <div className="space-y-1.5 text-xs text-gray-500 mb-4">
-                  {item.serial_number && <p>🔢 S/N: <span className="font-mono font-semibold text-gray-700">{item.serial_number}</span></p>}
-                  {item.asset_tag && <p>🏷️ Tag: {item.asset_tag}</p>}
-                  {item.type && <p>⚙️ {item.type}</p>}
-                  {item.location && <p>📍 {item.location}</p>}
-                  {item.status === "on_loan" && item.loan_to && <p>👤 Dipinjam: <span className="font-semibold text-orange-600">{item.loan_to}</span></p>}
-                  {item.return_date && <p>📅 Kembali: {new Date(item.return_date).toLocaleDateString("id-ID")}</p>}
-                </div>
-
-                <div className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg mb-3 ${cc.bg} ${cc.text}`}>
-                  <span className={`w-2 h-2 rounded-full ${cc.dot}`} />
-                  Kondisi: {cc.label}
-                </div>
-
-                {item.remarks && <p className="text-xs text-gray-400 italic mb-3 line-clamp-2">{item.remarks}</p>}
-
-                <div className="flex gap-2">
-                  <button onClick={() => setViewItem(item)} className="flex-1 py-2 bg-gray-50 text-gray-700 rounded-lg text-xs font-semibold hover:bg-gray-100">Detail</button>
-                  <button onClick={() => openEdit(item)} className="flex-1 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-100">Edit</button>
-                  <button onClick={() => deleteItem(item.id)} className="py-2 px-3 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-100">🗑</button>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -257,7 +299,7 @@ export default function Stock() {
                   </div>
                   <div>
                     <label className={labelClass}>Brand / Principal *</label>
-                    <input value={form.brand} onChange={e => setForm({...form, brand: e.target.value})} placeholder="Endress+Hauser, Yokogawa, dll" className={inputClass} />
+                    <input value={form.brand} onChange={e => setForm({...form, brand: e.target.value})} placeholder="iSOLV, atau brand lain" className={inputClass} />
                   </div>
                   <div>
                     <label className={labelClass}>Model / Part Number</label>

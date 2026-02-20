@@ -11,11 +11,7 @@ const TYPE_CONFIG = {
   other:      { label: "Other",        icon: "📄", bg: "bg-gray-50",   text: "text-gray-700" },
 };
 
-const BRAND_OPTIONS = [
-  "Endress+Hauser", "Yokogawa", "Emerson", "ABB", "Siemens",
-  "Honeywell", "Krohne", "Vega", "Bürkert", "Pepperl+Fuchs",
-  "Rosemount", "Fisher", "Samson", "Other"
-];
+const BRAND_OPTIONS = ["iSOLV", "Other"];
 
 export default function Catalog() {
   const [files, setFiles] = useState([]);
@@ -167,61 +163,92 @@ export default function Catalog() {
           <p className="text-gray-400 text-sm mt-1">Upload catalog, manual, atau datasheet alat Anda</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(file => {
-            const tc = TYPE_CONFIG[file.document_type] || TYPE_CONFIG.other;
-            const isPdf = file.filename?.toLowerCase().endsWith(".pdf");
-            return (
-              <div key={file.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:shadow-md transition-shadow group">
-                <div className="flex items-start gap-3 mb-4">
-                  <div className={`w-12 h-12 ${tc.bg} rounded-xl flex items-center justify-center text-2xl flex-shrink-0`}>
-                    {tc.icon}
-                  </div>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100">
+                  {["Dokumen","Brand / Model","Tipe","Tags","Ukuran","Tanggal","Aksi"].map(h => (
+                    <th key={h} className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filtered.map(file => {
+                  const tc = TYPE_CONFIG[file.document_type] || TYPE_CONFIG.other;
+                  const isPdf = file.filename?.toLowerCase().endsWith(".pdf");
+                  return (
+                    <tr key={file.id} className="hover:bg-blue-50 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <span className={`w-8 h-8 ${tc.bg} rounded-lg flex items-center justify-center text-base flex-shrink-0`}>{tc.icon}</span>
+                          <p className="font-semibold text-gray-800 text-sm max-w-[200px] truncate">{file.title}</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        {file.brand && <p className="text-sm font-semibold text-gray-700">{file.brand}</p>}
+                        {file.model_series && <p className="text-xs text-gray-400">{file.model_series}</p>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap ${tc.bg} ${tc.text}`}>{tc.label}</span>
+                      </td>
+                      <td className="px-4 py-3 max-w-[160px]">
+                        {file.tags ? (
+                          <div className="flex flex-wrap gap-1">
+                            {file.tags.split(",").slice(0,3).map(t => t.trim()).filter(Boolean).map(tag => (
+                              <span key={tag} className="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded text-[10px] font-medium">#{tag}</span>
+                            ))}
+                          </div>
+                        ) : <span className="text-gray-300">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{formatSize(file.file_size)}</td>
+                      <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+                        {file.created_at ? new Date(file.created_at).toLocaleDateString("id-ID") : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-1.5">
+                          {isPdf && (
+                            <button onClick={() => handleView(file.id)}
+                              className="px-2.5 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-100">👁 View</button>
+                          )}
+                          <button onClick={() => handleDownload(file.id, file.filename)}
+                            className="px-2.5 py-1.5 bg-[#0B3D91] text-white rounded-lg text-xs font-semibold hover:bg-[#1E5CC6]">⬇ DL</button>
+                          <button onClick={() => deleteFile(file.id)}
+                            className="px-2.5 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-100">🗑</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {/* Mobile list */}
+          <div className="md:hidden divide-y divide-gray-50">
+            {filtered.map(file => {
+              const tc = TYPE_CONFIG[file.document_type] || TYPE_CONFIG.other;
+              const isPdf = file.filename?.toLowerCase().endsWith(".pdf");
+              return (
+                <div key={file.id} className="p-4 flex items-center gap-3">
+                  <span className={`w-10 h-10 ${tc.bg} rounded-xl flex items-center justify-center text-xl flex-shrink-0`}>{tc.icon}</span>
                   <div className="flex-1 min-w-0">
-                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${tc.bg} ${tc.text}`}>
-                      {tc.label}
-                    </span>
-                    <h3 className="font-bold text-gray-800 text-sm mt-1 leading-tight line-clamp-2">{file.title}</h3>
+                    <p className="font-semibold text-gray-800 text-sm truncate">{file.title}</p>
+                    <p className="text-xs text-gray-400">{file.brand}{file.model_series ? ` • ${file.model_series}` : ""}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${tc.bg} ${tc.text}`}>{tc.label}</span>
+                      <span className="text-[10px] text-gray-400">{formatSize(file.file_size)}</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-1.5 flex-shrink-0">
+                    {isPdf && <button onClick={() => handleView(file.id)} className="p-2 bg-blue-50 text-blue-700 rounded-lg text-xs hover:bg-blue-100">👁</button>}
+                    <button onClick={() => handleDownload(file.id, file.filename)} className="p-2 bg-[#0B3D91] text-white rounded-lg text-xs hover:bg-[#1E5CC6]">⬇</button>
+                    <button onClick={() => deleteFile(file.id)} className="p-2 bg-red-50 text-red-600 rounded-lg text-xs hover:bg-red-100">🗑</button>
                   </div>
                 </div>
-
-                <div className="space-y-1.5 text-xs text-gray-500 mb-4">
-                  {file.brand && <p>🏭 <span className="font-semibold text-gray-700">{file.brand}</span></p>}
-                  {file.model_series && <p>⚙️ {file.model_series}</p>}
-                  {file.description && <p className="line-clamp-2">{file.description}</p>}
-                  {file.tags && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {file.tags.split(",").map(t => t.trim()).filter(Boolean).map(tag => (
-                        <span key={tag} className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full text-[10px] font-medium">
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <p className="text-gray-300 mt-2">
-                    {formatSize(file.file_size)} • {file.created_at ? new Date(file.created_at).toLocaleDateString("id-ID") : ""}
-                  </p>
-                </div>
-
-                <div className="flex gap-2">
-                  {isPdf && (
-                    <button onClick={() => handleView(file.id)}
-                      className="flex-1 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-100 transition-colors">
-                      👁 View
-                    </button>
-                  )}
-                  <button onClick={() => handleDownload(file.id, file.filename)}
-                    className="flex-1 py-2 bg-[#0B3D91] text-white rounded-lg text-xs font-semibold hover:bg-[#1E5CC6] transition-colors">
-                    ⬇ Download
-                  </button>
-                  <button onClick={() => deleteFile(file.id)}
-                    className="py-2 px-3 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-100 transition-colors">
-                    🗑
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -276,7 +303,7 @@ export default function Catalog() {
                 <div>
                   <label className={labelClass}>Brand / Principal</label>
                   <input value={form.brand} onChange={e => setForm({...form, brand: e.target.value})}
-                    list="brandList" placeholder="Endress+Hauser..." className={inputClass} />
+                    list="brandList" placeholder="iSOLV atau brand lain" className={inputClass} />
                   <datalist id="brandList">
                     {BRAND_OPTIONS.map(b => <option key={b} value={b} />)}
                   </datalist>

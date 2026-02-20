@@ -10,44 +10,39 @@ export default function Login() {
   const navigate = useNavigate();
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      setError("Email dan password harus diisi");
-      return;
-    }
-    setLoading(true);
-    setError("");
+    if (!email || !password) { setError("Email dan password harus diisi"); return; }
+    setLoading(true); setError("");
     try {
       const res = await API.post("/auth/login", { email, password });
-      // ✅ Simpan token DAN nama user
       localStorage.setItem("token", res.data.access_token);
       localStorage.setItem("user_name", res.data.name || "User");
       navigate("/dashboard");
-    } catch (err) {
-      setError("Email atau password salah");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") handleLogin();
+    } catch { setError("Email atau password salah"); }
+    finally { setLoading(false); }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 to-blue-50 px-4">
-      <div className="bg-white p-8 sm:p-10 rounded-2xl shadow-xl w-full max-w-sm">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#0a1628] via-[#0d2347] to-[#0B3D91] px-4">
+      {/* Card */}
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 sm:p-10">
         {/* Logo */}
-        <div className="flex items-center gap-3 justify-center mb-8">
-          <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-            <span className="text-white font-black text-xl">F</span>
+        <div className="flex flex-col items-center mb-8">
+          <img
+            src="/logo.png"
+            alt="Flotech Logo"
+            className="h-16 w-auto object-contain mb-3"
+            onError={(e) => {
+              e.target.style.display = "none";
+              e.target.nextElementSibling.style.display = "flex";
+            }}
+          />
+          <div className="w-16 h-16 bg-[#0B3D91] rounded-2xl items-center justify-center mb-3" style={{display:"none"}}>
+            <span className="text-white font-black text-2xl">F</span>
           </div>
-          <div>
-            <h1 className="text-2xl font-black tracking-widest text-primary">FLOTECH</h1>
-            <p className="text-xs text-gray-400 tracking-wider">ENGINEERING SYSTEM</p>
-          </div>
+          <p className="text-xs text-gray-400 tracking-widest uppercase font-semibold mt-1">Management System</p>
         </div>
 
-        <h2 className="text-lg font-bold text-gray-700 mb-6 text-center">Sign In</h2>
+        <h2 className="text-base font-bold text-gray-600 mb-6 text-center">Sign in to your account</h2>
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl mb-4">
@@ -57,40 +52,33 @@ export default function Login() {
 
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Email</label>
-            <input
-              type="email"
-              placeholder="email@company.com"
-              value={email}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Email</label>
+            <input type="email" placeholder="email@flotech.co.id" value={email}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91] transition-all"
               onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={handleKeyDown}
-            />
+              onKeyDown={(e) => e.key === "Enter" && handleLogin()} />
           </div>
-
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Password</label>
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Password</label>
+            <input type="password" placeholder="••••••••" value={password}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91] transition-all"
               onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={handleKeyDown}
-            />
+              onKeyDown={(e) => e.key === "Enter" && handleLogin()} />
           </div>
         </div>
 
-        <button
-          onClick={handleLogin}
-          disabled={loading}
-          className="mt-6 w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-secondary transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-        >
-          {loading ? (
-            <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Signing in...</>
-          ) : "Sign In"}
+        <button onClick={handleLogin} disabled={loading}
+          className="mt-6 w-full bg-[#0B3D91] text-white py-3 rounded-xl font-bold hover:bg-[#1E5CC6] transition-colors disabled:opacity-60 flex items-center justify-center gap-2 text-sm">
+          {loading
+            ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Signing in...</>
+            : "Sign In"}
         </button>
       </div>
+
+      {/* Footer */}
+      <p className="mt-6 text-[11px] text-blue-300 text-center opacity-60 select-none">
+        Developed by PT Flotech Controls Indonesia &nbsp;·&nbsp; 2026 &nbsp;·&nbsp; All Rights Reserved
+      </p>
     </div>
   );
 }
