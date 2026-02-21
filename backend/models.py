@@ -49,6 +49,7 @@ class Report(db.Model):
     report_date = db.Column(db.Date)
     status = db.Column(db.String(20), default="draft")
     data_json = db.Column(db.JSON)
+    created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     images = db.relationship("ReportImage", backref="report", lazy=True)
@@ -60,4 +61,5 @@ class ReportImage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     report_id = db.Column(db.Integer, db.ForeignKey("reports.id"))
     file_path = db.Column(db.String(300))
+    caption = db.Column(db.String(500), default="")   # ← NEW: image caption/annotation
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
