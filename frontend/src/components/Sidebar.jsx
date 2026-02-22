@@ -13,6 +13,13 @@ const navGroups = [
       { to: "/quotations", label: "Quotations", icon: "📄" },
       { to: "/reports", label: "Field Reports", icon: "📋" },
       { to: "/reports/create", label: "New Report", icon: "✏️" },
+      { to: "/onsite", label: "Onsite Reports", icon: "🔧" },
+    ]
+  },
+  {
+    label: "Documents",
+    items: [
+      { to: "/surat", label: "Serah Terima", icon: "📜" },
     ]
   },
   {
@@ -48,7 +55,7 @@ export default function Sidebar({ open, onClose }) {
         lg:translate-x-0 lg:relative lg:z-auto
       `}>
 
-        {/* Logo Area — logo only, no text */}
+        {/* Logo Area */}
         <div className="px-5 py-5 border-b border-white border-opacity-10 flex items-left justify-left min-h-[72px]">
           <img
             src="/logo.png"
@@ -59,19 +66,15 @@ export default function Sidebar({ open, onClose }) {
               e.target.nextElementSibling.style.display = "flex";
             }}
           />
-          {/* Fallback if no logo */}
           <div className="w-10 h-10 bg-blue-600 rounded-xl items-center justify-center" style={{display:"none"}}>
             <span className="text-white font-black text-lg">F</span>
           </div>
         </div>
 
-        {/* Navigation — custom dark scrollbar */}
+        {/* Navigation */}
         <nav
           className="sidebar-nav flex-1 overflow-y-auto px-3 py-4 space-y-5"
-          style={{
-            scrollbarWidth: "thin",
-            scrollbarColor: "#1e3a5f #0a1628",
-          }}
+          style={{ scrollbarWidth: "thin", scrollbarColor: "#1e3a5f #0a1628" }}
         >
           <style>{`
             .sidebar-nav::-webkit-scrollbar { width: 4px; }
@@ -145,7 +148,6 @@ export default function Sidebar({ open, onClose }) {
             2026 · All Rights Reserved
           </p>
         </div>
-
       </aside>
     </>
   );

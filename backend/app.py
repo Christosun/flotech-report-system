@@ -30,6 +30,7 @@ import models
 def home():
     return {"message": "PT Flotech Controls Indonesia — Management System"}
 
+# ── Existing blueprints ──────────────────────────────────────
 from routes.auth import auth_bp
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 
@@ -48,16 +49,32 @@ app.register_blueprint(stock_bp, url_prefix='/api/stock')
 from routes.catalog import catalog_bp
 app.register_blueprint(catalog_bp, url_prefix='/api/catalog')
 
+# ── NEW blueprints ───────────────────────────────────────────
+from routes.onsite_report import onsite_bp
+app.register_blueprint(onsite_bp, url_prefix='/api/onsite')
+
+from routes.surat_serah_terima import surat_bp
+app.register_blueprint(surat_bp, url_prefix='/api/surat')
+
+# ── Static uploads ───────────────────────────────────────────
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
+# ── DB init ─────────────────────────────────────────────────
 with app.app_context():
     db.create_all()
-    # Create catalog subfolder
-    catalog_path = os.path.join(UPLOAD_FOLDER, "catalog")
-    if not os.path.exists(catalog_path):
-        os.makedirs(catalog_path)
+
+    # Import new models so tables are created
+    from routes.onsite_report import OnsiteReport
+    from routes.surat_serah_terima import SuratSerahTerima
+    db.create_all()  # create new tables if not exists
+
+    # Create subfolders
+    for folder in ["catalog"]:
+        path = os.path.join(UPLOAD_FOLDER, folder)
+        if not os.path.exists(path):
+            os.makedirs(path)
 
 if __name__ == "__main__":
     app.run(debug=True)
