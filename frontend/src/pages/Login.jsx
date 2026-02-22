@@ -39,7 +39,7 @@ export default function Login() {
           <div className="w-16 h-16 bg-[#0B3D91] rounded-2xl items-center justify-center mb-3" style={{display:"none"}}>
             <span className="text-white font-black text-2xl">F</span>
           </div>
-          <p className="text-xs text-gray-400 tracking-widest uppercase font-semibold mt-1">Management System</p>
+          <p className="text-xs text-gray-400 tracking-widest uppercase font-semibold mt-1">Service Management System</p>
         </div>
 
         <h2 className="text-base font-bold text-gray-600 mb-6 text-center">Sign in to your account</h2>
