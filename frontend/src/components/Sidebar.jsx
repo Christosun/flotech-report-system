@@ -11,8 +11,8 @@ const navGroups = [
     label: "Operations",
     items: [
       { to: "/quotations", label: "Quotations", icon: "📄" },
-      { to: "/reports", label: "Field Reports", icon: "📋" },
-      { to: "/reports/create", label: "New Report", icon: "✏️" },
+      { to: "/reports", label: "Official Reports", icon: "📋" },
+      { to: "/reports/create", label: "New Official Report", icon: "✏️" },
       { to: "/onsite", label: "Onsite Reports", icon: "🔧" },
     ]
   },

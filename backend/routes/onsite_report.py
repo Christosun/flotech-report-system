@@ -26,29 +26,29 @@ FLOTECH_INFO = {
 
 class OnsiteReport(db.Model):
     __tablename__ = "onsite_reports"
-    id = db.Column(db.Integer, primary_key=True)
-    report_number = db.Column(db.String(50))
-    visit_date = db.Column(db.Date)
-    client_name = db.Column(db.String(150))
-    client_company = db.Column(db.String(200))
-    client_address = db.Column(db.Text)
-    site_location = db.Column(db.String(200))
-    contact_person = db.Column(db.String(150))
-    contact_phone = db.Column(db.String(30))
-    engineer_id = db.Column(db.Integer, db.ForeignKey("engineers.id"), nullable=True)
+    id              = db.Column(db.Integer, primary_key=True)
+    report_number   = db.Column(db.String(50))
+    visit_date      = db.Column(db.Date)
+    client_name     = db.Column(db.String(150))
+    client_company  = db.Column(db.String(200))
+    client_address  = db.Column(db.Text)
+    site_location   = db.Column(db.String(200))
+    contact_person  = db.Column(db.String(150))
+    contact_phone   = db.Column(db.String(30))
+    engineer_id     = db.Column(db.Integer, db.ForeignKey("engineers.id"), nullable=True)
     job_description = db.Column(db.Text)
-    equipment_tag = db.Column(db.String(100))
+    equipment_tag   = db.Column(db.String(100))
     equipment_model = db.Column(db.String(150))
-    serial_number = db.Column(db.String(100))
-    work_performed = db.Column(db.Text)
-    findings = db.Column(db.Text)
+    serial_number   = db.Column(db.String(100))
+    work_performed  = db.Column(db.Text)
+    findings        = db.Column(db.Text)
     recommendations = db.Column(db.Text)
-    materials_used = db.Column(db.Text)
-    customer_signature = db.Column(db.Text)  # base64
-    status = db.Column(db.String(20), default="draft")
-    created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    materials_used  = db.Column(db.Text)
+    customer_signature = db.Column(db.Text)
+    status          = db.Column(db.String(20), default="draft")
+    created_by      = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at      = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 def report_to_dict(r, include_sig=False):
@@ -146,15 +146,20 @@ def delete_report(rid):
     return jsonify({"message": "Deleted"}), 200
 
 
-# ── PDF ─────────────────────────────────────────────────────────────────────
+# ── PDF BUILDER ──────────────────────────────────────────────────────────────
+# Layout: A4, margin L=R=2cm → usable width = 17cm
+# ─────────────────────────────────────────────────────────────────────────────
 def build_onsite_pdf(rid):
     r = OnsiteReport.query.get(rid)
     if not r: return None
     eng = Engineer.query.get(r.engineer_id) if r.engineer_id else None
 
     buffer = BytesIO()
+    LEFT = RIGHT = 2*cm
+    USABLE_W = 17*cm  # A4 210mm - 40mm margins
+
     doc = SimpleDocTemplate(buffer, pagesize=A4,
-        topMargin=2*cm, bottomMargin=3.5*cm, leftMargin=2*cm, rightMargin=2*cm)
+        topMargin=2*cm, bottomMargin=3.5*cm, leftMargin=LEFT, rightMargin=RIGHT)
 
     primary   = colors.HexColor("#0B3D91")
     secondary = colors.HexColor("#1E5CC6")
@@ -163,121 +168,161 @@ def build_onsite_pdf(rid):
     text_clr  = colors.HexColor("#374151")
     gray      = colors.HexColor("#6B7280")
     border    = colors.HexColor("#D1D5DB")
-    light_gray= colors.HexColor("#F9FAFB")
+    white     = colors.white
 
     def ps(name, **kw):
         d = dict(fontName='Helvetica', fontSize=10, textColor=text_clr, leading=14)
         d.update(kw); return ParagraphStyle(name, **d)
 
-    title_s    = ps('T', fontSize=16, fontName='Helvetica-Bold', textColor=colors.white, alignment=2)
-    sub_s      = ps('S', fontSize=9, textColor=colors.HexColor("#BFD3F5"), alignment=2)
-    sec_s      = ps('Sec', fontSize=10, fontName='Helvetica-Bold', textColor=primary, spaceBefore=10, spaceAfter=3)
-    label_s    = ps('L', fontSize=8, fontName='Helvetica-Bold', textColor=gray)
-    value_s    = ps('V', fontSize=10, textColor=dark)
-    body_s     = ps('B', fontSize=9, textColor=text_clr, leading=13, spaceAfter=3)
-    sig_lbl_s  = ps('SL', fontSize=9, fontName='Helvetica-Bold', textColor=primary, alignment=1)
-    sig_sub_s  = ps('SS', fontSize=8, textColor=gray, alignment=1)
-
     elements = []
 
-    # ── HEADER ──────────────────────────────────────────────────
+    # ── HEADER: logo left + title right ─────────────────────────
     logo_path = os.path.join(current_app.root_path, "assets", "logo.png")
+    logo_col_w = 8*cm
+    title_col_w = USABLE_W - logo_col_w  # 9cm
+
     if os.path.exists(logo_path):
         try:
             pil_logo = PILImage.open(logo_path)
             lw, lh = pil_logo.size
-            target_h = 1.6*cm; target_w = min((lw/lh)*target_h, 4.5*cm)
+            target_h = 1.6*cm
+            target_w = min((lw / lh) * target_h, 4.5*cm)
             logo_cell = Image(logo_path, width=target_w, height=target_h)
         except:
             logo_cell = Paragraph("<b>FLOTECH</b>", ps('LF', fontSize=16, fontName='Helvetica-Bold', textColor=primary))
     else:
         logo_cell = Paragraph("<b>FLOTECH</b>", ps('LF', fontSize=16, fontName='Helvetica-Bold', textColor=primary))
 
-    right_block = Table([[Paragraph("ONSITE SERVICE REPORT", title_s)], [Paragraph(r.report_number or "", sub_s)]], colWidths=[8.5*cm])
-    right_block.setStyle(TableStyle([('BACKGROUND', (0,0),(-1,-1), primary), ('PADDING',(0,0),(-1,-1),10), ('VALIGN',(0,0),(-1,-1),'MIDDLE')]))
-    header_row = Table([[logo_cell, right_block]], colWidths=[8*cm, 9*cm])
-    header_row.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'MIDDLE'), ('ALIGN',(1,0),(1,0),'RIGHT')]))
-    elements.append(header_row)
+    right_block = Table([
+        [Paragraph("ONSITE SERVICE REPORT", ps('TT', fontSize=14, fontName='Helvetica-Bold', textColor=white, alignment=2))],
+        [Paragraph(r.report_number or "", ps('TS', fontSize=9, textColor=colors.HexColor("#BFD3F5"), alignment=2))],
+    ], colWidths=[title_col_w])
+    right_block.setStyle(TableStyle([
+        ('BACKGROUND',(0,0),(-1,-1), primary),
+        ('PADDING',(0,0),(-1,-1), 10),
+        ('VALIGN',(0,0),(-1,-1),'MIDDLE'),
+    ]))
+
+    hdr = Table([[logo_cell, right_block]], colWidths=[logo_col_w, title_col_w])
+    hdr.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'MIDDLE')]))
+    elements.append(hdr)
     elements.append(Spacer(1, 0.3*cm))
     elements.append(HRFlowable(width="100%", thickness=2, color=primary))
     elements.append(Spacer(1, 0.3*cm))
 
-    # ── META BLOCK ──────────────────────────────────────────────
+    # ── META: nomor + tanggal (full width, 4 cols) ───────────────
     visit_str = r.visit_date.strftime("%d %B %Y") if r.visit_date else "-"
+    # col widths must sum to USABLE_W = 17cm
+    # 3cm + 5cm + 3cm + 6cm = 17cm
+    meta_col_w = [3*cm, 5*cm, 3*cm, 6*cm]
     meta_data = [[
-        Paragraph("<b>Nomor Report</b>", label_s), Paragraph(r.report_number or "-", value_s),
-        Paragraph("<b>Tanggal Kunjungan</b>", label_s), Paragraph(visit_str, value_s),
-        Paragraph("<b>Status</b>", label_s), Paragraph((r.status or "draft").upper(), ps('St', fontSize=9, fontName='Helvetica-Bold', textColor=secondary)),
+        Paragraph("<b>Nomor Report</b>", ps('ML', fontSize=8, fontName='Helvetica-Bold', textColor=gray)),
+        Paragraph(r.report_number or "-", ps('MV', fontSize=10, fontName='Helvetica-Bold', textColor=dark)),
+        Paragraph("<b>Tanggal Kunjungan</b>", ps('ML2', fontSize=8, fontName='Helvetica-Bold', textColor=gray)),
+        Paragraph(visit_str, ps('MV2', fontSize=10, textColor=dark)),
     ]]
-    mt = Table(meta_data, colWidths=[3*cm, 4.5*cm, 3.5*cm, 3.5*cm, 2*cm, 2*cm])
-    mt.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,-1),accent), ('BOX',(0,0),(-1,-1),0.5,border), ('PADDING',(0,0),(-1,-1),8), ('VALIGN',(0,0),(-1,-1),'MIDDLE')]))
+    mt = Table(meta_data, colWidths=meta_col_w)
+    mt.setStyle(TableStyle([
+        ('BACKGROUND',(0,0),(-1,-1), accent),
+        ('BOX',(0,0),(-1,-1), 0.5, border),
+        ('LINEAFTER',(1,0),(1,0), 0.5, border),
+        ('PADDING',(0,0),(-1,-1), 9),
+        ('VALIGN',(0,0),(-1,-1),'MIDDLE'),
+    ]))
     elements.append(mt)
     elements.append(Spacer(1, 0.4*cm))
 
     def section(text):
-        elements.append(Paragraph(f"▌ {text}", sec_s))
+        elements.append(Paragraph(f"▌ {text}", ps('SH', fontSize=10, fontName='Helvetica-Bold', textColor=primary, spaceBefore=8, spaceAfter=2)))
         elements.append(HRFlowable(width="100%", thickness=0.5, color=border))
         elements.append(Spacer(1, 0.15*cm))
 
-    def info_row(label, value):
-        if not value: return
-        t = Table([[Paragraph(label, label_s), Paragraph(str(value), value_s)]], colWidths=[4.5*cm, 12.5*cm])
-        t.setStyle(TableStyle([('PADDING',(0,0),(-1,-1),6), ('LINEBELOW',(0,0),(-1,0),0.3,border), ('VALIGN',(0,0),(-1,-1),'TOP')]))
+    # ── CLIENT INFO (full width) ─────────────────────────────────
+    section("INFORMASI CLIENT / CUSTOMER")
+
+    # 2-column info grid: label col + value col + label col + value col
+    # Widths: 3cm + 5.5cm + 3cm + 5.5cm = 17cm
+    def info_grid(rows):
+        """rows: list of (label, value) tuples, 2 per row in PDF"""
+        table_data = []
+        for i in range(0, len(rows), 2):
+            left  = rows[i]
+            right = rows[i+1] if i+1 < len(rows) else ("", "")
+            table_data.append([
+                Paragraph(left[0],  ps('IL', fontSize=8, fontName='Helvetica-Bold', textColor=gray)),
+                Paragraph(str(left[1] or "—"),  ps('IV', fontSize=9, textColor=dark)),
+                Paragraph(right[0], ps('IL2', fontSize=8, fontName='Helvetica-Bold', textColor=gray)),
+                Paragraph(str(right[1] or "—") if right[1] else "", ps('IV2', fontSize=9, textColor=dark)),
+            ])
+        t = Table(table_data, colWidths=[3*cm, 5.5*cm, 3*cm, 5.5*cm])
+        t.setStyle(TableStyle([
+            ('PADDING',(0,0),(-1,-1), 7),
+            ('LINEBELOW',(0,0),(-1,-1), 0.2, border),
+            ('VALIGN',(0,0),(-1,-1),'TOP'),
+            ('BACKGROUND',(0,0),(0,-1), accent),
+            ('BACKGROUND',(2,0),(2,-1), accent),
+        ]))
         elements.append(t)
 
-    def text_box(label, text):
-        if not text: return
-        t = Table([[Paragraph(f"<b>{label}</b>", label_s)], [Paragraph(text, body_s)]], colWidths=[17*cm])
-        t.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,0),accent), ('BOX',(0,0),(-1,-1),0.3,border), ('PADDING',(0,0),(-1,-1),8)]))
-        elements.append(t); elements.append(Spacer(1, 0.2*cm))
-
-    # ── CLIENT & ENGINEER ────────────────────────────────────────
-    section("INFORMASI CLIENT & ENGINEER")
-    client_data = [
-        [Paragraph("<b>INFORMASI CLIENT</b>", ps('CH', fontSize=9, fontName='Helvetica-Bold', textColor=colors.white))],
-        [Paragraph(r.client_company or r.client_name or "-", ps('CN', fontSize=11, fontName='Helvetica-Bold', textColor=dark))],
+    client_rows = [
+        ("Perusahaan / Instansi", r.client_company),
+        ("Nama Client / PIC", r.client_name),
+        ("Contact Person", r.contact_person),
+        ("No. Telepon", r.contact_phone),
+        ("Lokasi / Site", r.site_location),
+        ("Alamat", r.client_address),
     ]
-    if r.client_name and r.client_company: client_data.append([Paragraph(r.client_name, ps('CP', fontSize=9, textColor=text_clr))])
-    if r.contact_person: client_data.append([Paragraph(f"Contact: {r.contact_person}", ps('CC', fontSize=9, textColor=gray))])
-    if r.contact_phone: client_data.append([Paragraph(f"Tel: {r.contact_phone}", ps('CT', fontSize=9, textColor=gray))])
-    if r.site_location: client_data.append([Paragraph(f"Site: {r.site_location}", ps('CS', fontSize=9, textColor=gray))])
-    if r.client_address: client_data.append([Paragraph(r.client_address, ps('CA', fontSize=8, textColor=gray, leading=11))])
+    # Filter out empty values but keep pairs
+    client_rows_filtered = [(l, v) for l, v in client_rows if v]
+    if client_rows_filtered:
+        info_grid(client_rows_filtered)
 
-    ct = Table(client_data, colWidths=[7.5*cm])
-    ct.setStyle(TableStyle([('BACKGROUND',(0,0),(0,0),primary), ('BACKGROUND',(0,1),(-1,-1),accent), ('BOX',(0,0),(-1,-1),0.5,border), ('PADDING',(0,0),(-1,-1),8), ('VALIGN',(0,0),(-1,-1),'TOP')]))
+    elements.append(Spacer(1, 0.3*cm))
 
-    eng_data = [
-        [Paragraph("<b>ENGINEER</b>", ps('EH', fontSize=9, fontName='Helvetica-Bold', textColor=colors.white))],
-        [Paragraph(eng.name if eng else "-", ps('EN', fontSize=11, fontName='Helvetica-Bold', textColor=dark))],
-    ]
-    if eng:
-        if eng.position: eng_data.append([Paragraph(eng.position, ps('EP', fontSize=9, textColor=text_clr))])
-        if eng.employee_id: eng_data.append([Paragraph(f"ID: {eng.employee_id}", ps('EI', fontSize=9, textColor=gray))])
-        if eng.certification: eng_data.append([Paragraph(f"Cert: {eng.certification}", ps('EC', fontSize=8, textColor=gray))])
-
-    et = Table(eng_data, colWidths=[7.5*cm])
-    et.setStyle(TableStyle([('BACKGROUND',(0,0),(0,0),secondary), ('BACKGROUND',(0,1),(-1,-1),accent), ('BOX',(0,0),(-1,-1),0.5,border), ('PADDING',(0,0),(-1,-1),8), ('VALIGN',(0,0),(-1,-1),'TOP')]))
-
-    two_col = Table([[ct, et]], colWidths=[8*cm, 9*cm])
-    two_col.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP'), ('RIGHTPADDING',(0,0),(0,0),10)]))
-    elements.append(two_col)
-    elements.append(Spacer(1, 0.4*cm))
-
-    # ── EQUIPMENT ────────────────────────────────────────────────
+    # ── EQUIPMENT INFO ───────────────────────────────────────────
     if any([r.equipment_tag, r.equipment_model, r.serial_number]):
         section("DATA PERALATAN")
-        info_row("Tag / ID Alat", r.equipment_tag)
-        info_row("Model / Type", r.equipment_model)
-        info_row("Serial Number", r.serial_number)
+        equip_rows = [
+            ("Tag / ID Alat", r.equipment_tag),
+            ("Model / Type", r.equipment_model),
+            ("Serial Number", r.serial_number),
+            ("Engineer", eng.name if eng else None),
+        ]
+        equip_filtered = [(l, v) for l, v in equip_rows if v]
+        if equip_filtered:
+            info_grid(equip_filtered)
         elements.append(Spacer(1, 0.3*cm))
 
-    # ── WORK DETAILS ─────────────────────────────────────────────
+    # ── DETAIL PEKERJAAN (single big text block) ─────────────────
     section("DETAIL PEKERJAAN")
-    text_box("Deskripsi Pekerjaan", r.job_description)
-    text_box("Pekerjaan yang Dilakukan", r.work_performed)
-    text_box("Temuan / Findings", r.findings)
-    text_box("Rekomendasi", r.recommendations)
-    text_box("Material / Parts Digunakan", r.materials_used)
+
+    def text_block(label, text, label_color=None):
+        if not text: return
+        lc = label_color or primary
+        header_row = [Paragraph(f"<b>{label}</b>", ps('BL', fontSize=9, fontName='Helvetica-Bold', textColor=white))]
+        content_row = [Paragraph(str(text), ps('BC', fontSize=9, textColor=text_clr, leading=13))]
+        t = Table([header_row, content_row], colWidths=[USABLE_W])
+        t.setStyle(TableStyle([
+            ('BACKGROUND',(0,0),(-1,0), lc),
+            ('BACKGROUND',(0,1),(-1,-1), accent),
+            ('BOX',(0,0),(-1,-1), 0.3, border),
+            ('PADDING',(0,0),(-1,-1), 8),
+            ('VALIGN',(0,0),(-1,-1),'TOP'),
+        ]))
+        elements.append(t)
+        elements.append(Spacer(1, 0.2*cm))
+
+    # Consolidated: all work detail in one block if user wrote all in one field
+    # Or separate blocks per field if multiple fields filled
+    work_fields = [
+        ("Deskripsi / Scope Pekerjaan", r.job_description, primary),
+        ("Pekerjaan yang Dilakukan", r.work_performed, secondary),
+        ("Temuan / Findings", r.findings, colors.HexColor("#7C3AED")),
+        ("Rekomendasi", r.recommendations, colors.HexColor("#059669")),
+        ("Material / Parts Digunakan", r.materials_used, colors.HexColor("#D97706")),
+    ]
+    for label, text, color in work_fields:
+        text_block(label, text, color)
 
     # ── SIGNATURES ───────────────────────────────────────────────
     elements.append(Spacer(1, 0.4*cm))
@@ -291,23 +336,35 @@ def build_onsite_pdf(rid):
             decoded = base64.b64decode(data)
             pil_img = PILImage.open(BytesIO(decoded)).convert("RGBA")
             buf = BytesIO(); pil_img.save(buf, format="PNG"); buf.seek(0)
-            img = Image(buf, width=4*cm, height=1.6*cm); img.hAlign = 'CENTER'
+            img = Image(buf, width=4*cm, height=1.6*cm)
+            img.hAlign = 'CENTER'
             return img
         except: return Spacer(1, 1.8*cm)
 
+    half_w = USABLE_W / 2  # 8.5cm each
+    sig_l  = ps('SL', fontSize=9, fontName='Helvetica-Bold', textColor=primary, alignment=1)
+    sig_sub = ps('SS', fontSize=8, textColor=gray, alignment=1, leading=11)
+
     sig_rows = [
-        [Paragraph("ENGINEER", sig_lbl_s), Paragraph("CUSTOMER / CLIENT", sig_lbl_s)],
+        [Paragraph("ENGINEER", sig_l), Paragraph("CUSTOMER / CLIENT", sig_l)],
         [sig_image(eng.signature_data if eng else None), sig_image(r.customer_signature)],
-        [HRFlowable(width=6*cm, thickness=0.5, color=border), HRFlowable(width=6*cm, thickness=0.5, color=border)],
-        [Paragraph(eng.name if eng else "—", sig_sub_s), Paragraph(r.client_name or "—", sig_sub_s)],
-        [Paragraph(f"{eng.position or ''}{' | ' + eng.employee_id if eng and eng.employee_id else ''}" if eng else "", sig_sub_s),
-         Paragraph(r.client_company or "", sig_sub_s)],
+        [HRFlowable(width=half_w - 1.5*cm, thickness=0.5, color=border),
+         HRFlowable(width=half_w - 1.5*cm, thickness=0.5, color=border)],
+        [Paragraph(eng.name if eng else "—", sig_sub),
+         Paragraph(r.client_name or "—", sig_sub)],
+        [Paragraph(f"{eng.position or ''}" + (f"  |  {eng.employee_id}" if eng and eng.employee_id else "") if eng else "",
+                   sig_sub),
+         Paragraph(r.client_company or "", sig_sub)],
     ]
-    sig_t = Table(sig_rows, colWidths=[8.5*cm, 8.5*cm])
+    sig_t = Table(sig_rows, colWidths=[half_w, half_w])
     sig_t.setStyle(TableStyle([
-        ('ALIGN',(0,0),(-1,-1),'CENTER'), ('VALIGN',(0,0),(-1,-1),'MIDDLE'), ('PADDING',(0,0),(-1,-1),8),
-        ('BOX',(0,0),(0,-1),0.5,border), ('BOX',(1,0),(1,-1),0.5,border),
-        ('BACKGROUND',(0,0),(0,0),accent), ('BACKGROUND',(1,0),(1,0),accent),
+        ('ALIGN',(0,0),(-1,-1),'CENTER'),
+        ('VALIGN',(0,0),(-1,-1),'MIDDLE'),
+        ('PADDING',(0,0),(-1,-1), 8),
+        ('BOX',(0,0),(0,-1), 0.5, border),
+        ('BOX',(1,0),(1,-1), 0.5, border),
+        ('BACKGROUND',(0,0),(0,0), accent),
+        ('BACKGROUND',(1,0),(1,0), accent),
     ]))
     elements.append(sig_t)
 
@@ -316,7 +373,7 @@ def build_onsite_pdf(rid):
         cv.saveState()
         pw, ph = A4
         cv.setStrokeColor(primary); cv.setLineWidth(1.5)
-        cv.line(2*cm, 2.8*cm, pw-2*cm, 2.8*cm)
+        cv.line(LEFT, 2.8*cm, pw - RIGHT, 2.8*cm)
         cv.setFont("Helvetica-Bold", 9); cv.setFillColor(primary)
         cv.drawCentredString(pw/2, 2.3*cm, FLOTECH_INFO["name"])
         cv.setFont("Helvetica", 8); cv.setFillColor(colors.HexColor("#6B7280"))
@@ -324,7 +381,7 @@ def build_onsite_pdf(rid):
         cv.drawCentredString(pw/2, 1.7*cm, FLOTECH_INFO["telp"])
         cv.drawCentredString(pw/2, 1.4*cm, FLOTECH_INFO["email"])
         cv.setFillColor(colors.HexColor("#9CA3AF"))
-        cv.drawCentredString(pw/2, 1.0*cm, f"Generated: {datetime.now().strftime('%d %B %Y %H:%M')}  |  Page {doc_obj.page}")
+        cv.drawCentredString(pw/2, 1.0*cm, f"Generated: {datetime.now().strftime('%d %B %Y %H:%M')}  |  Halaman {doc_obj.page}")
         cv.restoreState()
 
     doc.build(elements, onFirstPage=footer_canvas, onLaterPages=footer_canvas)
@@ -349,4 +406,5 @@ def preview_pdf(rid):
     if not r: return jsonify({"error": "Not found"}), 404
     buf = build_onsite_pdf(rid)
     if not buf: return jsonify({"error": "Failed"}), 500
-    return Response(buf, mimetype="application/pdf", headers={"Content-Disposition": f"inline; filename=OnsiteReport_{r.report_number}.pdf"})
+    return Response(buf, mimetype="application/pdf",
+        headers={"Content-Disposition": f"inline; filename=OnsiteReport_{r.report_number}.pdf"})
