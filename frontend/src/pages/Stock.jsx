@@ -32,6 +32,109 @@ const EMPTY_BATCH = {
   variants: [{ model: "", serial_number: "", condition: "good", status: "available", location: "", remarks: "" }],
 };
 
+/* ─── Export PDF Modal ───────────────────────────────────────────────────── */
+function ExportPDFModal({ onClose, onExport, exporting, items }) {
+  const [category, setCategory] = useState('all');
+  const [status,   setStatus]   = useState('');
+
+  const preview = items.filter(u => {
+    const catOk = category === 'all' || u.category === category;
+    const staOk = !status || u.status === status;
+    return catOk && staOk;
+  }).length;
+
+  const STATUS_OPTIONS = [
+    { value: '',          label: 'Semua Status' },
+    { value: 'available', label: 'Available'    },
+    { value: 'on_loan',   label: 'On Loan'      },
+    { value: 'demo',      label: 'Demo'         },
+    { value: 'in_repair', label: 'In Repair'    },
+    { value: 'sold',      label: 'Sold'         },
+    { value: 'retired',   label: 'Retired'      },
+  ];
+  const CAT_OPTIONS = [
+    { value: 'all',   label: 'Stock & Demo', icon: '📦' },
+    { value: 'stock', label: 'Stock saja',   icon: '🗃'  },
+    { value: 'demo',  label: 'Demo Unit',    icon: '🔬'  },
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div className="bg-gradient-to-r from-[#0B3D91] to-[#1E5CC6] px-6 py-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-white">Export Laporan PDF</h2>
+              <p className="text-blue-200 text-xs mt-0.5">Pilih filter untuk mengunduh laporan</p>
+            </div>
+            <button onClick={onClose} className="text-blue-200 hover:text-white text-xl transition-colors">✕</button>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-5">
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2.5">Kategori Unit</label>
+            <div className="grid grid-cols-3 gap-2">
+              {CAT_OPTIONS.map(opt => (
+                <button key={opt.value} onClick={() => setCategory(opt.value)}
+                  className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border-2 text-xs font-semibold transition-all
+                    ${category === opt.value
+                      ? 'border-[#0B3D91] bg-blue-50 text-[#0B3D91]'
+                      : 'border-gray-200 text-gray-500 hover:border-gray-300 bg-white'}`}>
+                  <span className="text-xl">{opt.icon}</span>
+                  <span className="text-center leading-tight">{opt.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2.5">Filter Status</label>
+            <div className="flex flex-wrap gap-2">
+              {STATUS_OPTIONS.map(opt => (
+                <button key={opt.value} onClick={() => setStatus(opt.value)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all
+                    ${status === opt.value
+                      ? 'bg-[#0B3D91] text-white border-[#0B3D91]'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-[#0B3D91]'}`}>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-r from-[#EEF3FB] to-blue-50 rounded-xl p-4 border border-blue-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-[#0B3D91] uppercase tracking-wide">Preview</p>
+                <p className="text-2xl font-black text-gray-800 mt-0.5">{preview}</p>
+                <p className="text-xs text-gray-500">unit akan diekspor</p>
+              </div>
+              <div className="text-4xl">📊</div>
+            </div>
+            {preview === 0 && (
+              <p className="text-xs text-orange-600 font-semibold mt-2">⚠ Tidak ada data dengan filter ini</p>
+            )}
+          </div>
+        </div>
+
+        <div className="px-6 pb-6 flex gap-3">
+          <button onClick={onClose}
+            className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
+            Batal
+          </button>
+          <button onClick={() => onExport(category, status)} disabled={exporting || preview === 0}
+            className="flex-1 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-bold hover:bg-[#1E5CC6] disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
+            {exporting
+              ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Generating...</>
+              : <>⬇ Download PDF</>}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Delete Dialog ─────────────────────────────────────────────── */
 function DeleteDialog({ title, description, onConfirm, onCancel, loading }) {
   return (
@@ -75,12 +178,37 @@ export default function Stock() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [viewMode, setViewMode] = useState("grouped"); // "grouped" | "list"
+  const [showExport, setShowExport]     = useState(false);
+  const [exporting, setExporting]       = useState(false);
 
   const fetchItems = async () => {
     setLoading(true);
     try { const res = await API.get("/stock/list"); setItems(res.data); }
     catch { toast.error("Gagal memuat data stock"); }
     finally { setLoading(false); }
+  };
+
+  const handleExportPDF = async (category, status) => {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams({ category });
+      if (status) params.append('status', status);
+      const res = await API.get(`/stock/pdf/export?${params.toString()}`, { responseType: 'blob' });
+      const catLabel = { stock: 'Stock', demo: 'DemoUnit', all: 'StockDemo' }[category] || 'Stock';
+      const staLabel = status ? status.replace('_','') : 'SemuaStatus';
+      const dateStr  = new Date().toISOString().slice(0,10).replace(/-/g,'');
+      const filename = `LaporanStock_${catLabel}_${staLabel}_${dateStr}.pdf`;
+      const url  = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      Object.assign(document.createElement('a'), { href: url, download: filename }).click();
+      URL.revokeObjectURL(url);
+      toast.success('PDF berhasil didownload! 📄');
+      setShowExport(false);
+    } catch (err) {
+      if (err.response?.status === 404) toast.error('Tidak ada data yang sesuai filter');
+      else toast.error('Gagal generate PDF');
+    } finally {
+      setExporting(false);
+    }
   };
 
   useEffect(() => { fetchItems(); }, []);
@@ -193,6 +321,16 @@ export default function Stock() {
         />
       )}
 
+      {/* Export PDF Modal */}
+      {showExport && (
+        <ExportPDFModal
+          onClose={() => setShowExport(false)}
+          onExport={handleExportPDF}
+          exporting={exporting}
+          items={items}
+        />
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
@@ -200,6 +338,10 @@ export default function Stock() {
           <p className="text-sm text-gray-400 mt-0.5">Inventory alat instrumentasi Flotech</p>
         </div>
         <div className="flex gap-2">
+          <button onClick={() => setShowExport(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-semibold hover:border-[#0B3D91] hover:text-[#0B3D91] transition-all">
+            ⬇ Export PDF
+          </button>
           <button onClick={() => { setBatchForm({ name: "", brand: "", type: "", category: "stock", variants: [{ model: "", serial_number: "", condition: "good", status: "available", location: "", remarks: "" }] }); setShowBatchModal(true); }}
             className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors">
             + Batch Tambah
