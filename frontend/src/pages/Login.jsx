@@ -76,7 +76,7 @@ export default function Login() {
       </div>
 
       {/* Footer */}
-      <p className="mt-6 text-[11px] text-blue-300 text-center opacity-60 select-none">
+      <p className="mt-6 text-[11px] text-blue-100 text-center opacity-60 select-none">
         Developed by PT Flotech Controls Indonesia &nbsp;·&nbsp; 2026 &nbsp;·&nbsp; All Rights Reserved
       </p>
     </div>
