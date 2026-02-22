@@ -11,6 +11,36 @@ const TYPE_CONFIG = {
   other:       { label: "Other",       icon: "📄", bg: "bg-gray-50",   text: "text-gray-600",   border: "border-gray-300" },
 };
 
+/* ─── Elegant Delete Dialog ───────────────────────────────────── */
+function DeleteDialog({ title, onConfirm, onCancel, loading }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+        <div className="bg-gradient-to-br from-red-50 to-rose-100 px-6 pt-6 pb-4 text-center">
+          <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <span className="text-2xl">🗑</span>
+          </div>
+          <h3 className="text-lg font-bold text-gray-800">Hapus Dokumen?</h3>
+          <p className="text-sm text-gray-500 mt-1">
+            <span className="font-semibold text-gray-700">"{title}"</span> akan dihapus permanen dan tidak bisa dikembalikan.
+          </p>
+        </div>
+        <div className="px-6 py-4 flex gap-3">
+          <button onClick={onCancel}
+            className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
+            Batal
+          </button>
+          <button onClick={onConfirm} disabled={loading}
+            className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+            {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
+            Hapus
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Catalog() {
   const [files, setFiles]           = useState([]);
   const [loading, setLoading]       = useState(true);
@@ -19,7 +49,9 @@ export default function Catalog() {
   const [search, setSearch]         = useState("");
   const [filterType, setFilterType] = useState("");
   const [filterBrand, setFilterBrand] = useState("");
-  const [filterTag, setFilterTag]   = useState("");   // ← NEW: active tag filter
+  const [filterTag, setFilterTag]   = useState("");
+  const [deleteTarget, setDeleteTarget] = useState(null); // { id, title }
+  const [deleting, setDeleting]     = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [form, setForm] = useState({
     title: "", brand: "", model_series: "", document_type: "catalog",
@@ -96,10 +128,15 @@ export default function Catalog() {
     } catch { toast.error("Gagal membuka file"); }
   };
 
-  const deleteFile = async (id) => {
-    if (!confirm("Hapus dokumen ini?")) return;
-    try { await API.delete(`/catalog/delete/${id}`); toast.success("Dokumen dihapus"); fetchFiles(); }
-    catch { toast.error("Gagal menghapus"); }
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await API.delete(`/catalog/delete/${deleteTarget.id}`);
+      toast.success("Dokumen dihapus");
+      setDeleteTarget(null); fetchFiles();
+    } catch { toast.error("Gagal menghapus"); }
+    finally { setDeleting(false); }
   };
 
   const formatSize = bytes => {
@@ -117,6 +154,15 @@ export default function Catalog() {
 
   return (
     <div className="w-full">
+      {/* Delete Dialog */}
+      {deleteTarget && (
+        <DeleteDialog
+          title={deleteTarget.title}
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteTarget(null)}
+          loading={deleting}
+        />
+      )}
 
       {/* ── Header ─────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
@@ -306,7 +352,7 @@ export default function Catalog() {
                             className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all" title="Download">
                             ⬇
                           </button>
-                          <button onClick={() => deleteFile(file.id)}
+                          <button onClick={() => setDeleteTarget({ id: file.id, title: file.title })}
                             className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Hapus">
                             🗑
                           </button>
@@ -354,7 +400,7 @@ export default function Catalog() {
                         <button onClick={() => handleView(file.id)} className="text-xs text-[#0B3D91] font-semibold hover:underline">Lihat</button>
                       )}
                       <button onClick={() => handleDownload(file.id, file.filename)} className="text-xs text-emerald-600 font-semibold hover:underline">Unduh</button>
-                      <button onClick={() => deleteFile(file.id)} className="text-xs text-red-500 font-semibold hover:underline">Hapus</button>
+                      <button onClick={() => setDeleteTarget({ id: file.id, title: file.title })} className="text-xs text-red-500 font-semibold hover:underline">Hapus</button>
                     </div>
                   </div>
                 </div>
@@ -410,12 +456,12 @@ export default function Catalog() {
                 <div>
                   <label className={labelClass}>Brand</label>
                   <input value={form.brand} onChange={e => setForm({...form, brand: e.target.value})}
-                    placeholder="e.g. iSOLV, others" className={inputClass} />
+                    placeholder="e.g. iSOLV, Yokogawa" className={inputClass} />
                 </div>
                 <div>
                   <label className={labelClass}>Model / Series</label>
                   <input value={form.model_series} onChange={e => setForm({...form, model_series: e.target.value})}
-                    placeholder="e.g. EFS803/RFT203, RD780G" className={inputClass} />
+                    placeholder="e.g. MagFlux 3000" className={inputClass} />
                 </div>
               </div>
 
