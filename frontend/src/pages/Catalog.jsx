@@ -456,12 +456,12 @@ export default function Catalog() {
                 <div>
                   <label className={labelClass}>Brand</label>
                   <input value={form.brand} onChange={e => setForm({...form, brand: e.target.value})}
-                    placeholder="e.g. iSOLV, Yokogawa" className={inputClass} />
+                    placeholder="e.g. iSOLV, others" className={inputClass} />
                 </div>
                 <div>
                   <label className={labelClass}>Model / Series</label>
                   <input value={form.model_series} onChange={e => setForm({...form, model_series: e.target.value})}
-                    placeholder="e.g. MagFlux 3000" className={inputClass} />
+                    placeholder="e.g. EFS803/RFT203, RD780" className={inputClass} />
                 </div>
               </div>
 
