@@ -16,6 +16,7 @@ import SuratSerahTerima from "./pages/SuratSerahTerima";
 import CreateSurat from "./pages/CreateSurat";
 import SuratDetail from "./pages/SuratDetail";
 import Layout from "./components/Layout";
+import SuratResmi from "./pages/SuratResmi";
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
           <Route path="/quotations/:id" element={<QuotationDetail />} />
           <Route path="/stock" element={<Stock />} />
           <Route path="/catalog" element={<Catalog />} />
+          <Route path="/surat-resmi" element={<SuratResmi />} />
         </Route>
       </Routes>
     </BrowserRouter>

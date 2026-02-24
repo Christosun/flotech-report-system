@@ -4,6 +4,10 @@ const API = axios.create({
   baseURL: "http://127.0.0.1:5000/api",
 });
 
+//const API = axios.create({
+//  baseURL: "http://192.168.18.8:5000/api",
+//});
+
 // Attach token ke setiap request
 API.interceptors.request.use((req) => {
   const token = localStorage.getItem("token");

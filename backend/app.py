@@ -21,6 +21,18 @@ CORS(app, resources={r"/api/*": {
     "supports_credentials": True
 }})
 
+#CORS(app, resources={r"/api/*": {
+#    "origins": [
+#        "http://localhost:5173",
+#        "http://127.0.0.1:5173",
+#        "http://192.168.18.8:5173",   # tambahkan ini
+#        "http://192.168.18.12:5173",  # tambahkan ini (opsional)
+#    ],
+#    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+#    "allow_headers": ["Content-Type", "Authorization"],
+#    "supports_credentials": True
+#}})
+
 db.init_app(app)
 jwt.init_app(app)
 
@@ -56,6 +68,9 @@ app.register_blueprint(onsite_bp, url_prefix='/api/onsite')
 from routes.surat_serah_terima import surat_bp
 app.register_blueprint(surat_bp, url_prefix='/api/surat')
 
+from routes.surat_resmi import surat_resmi_bp, SuratResmi
+app.register_blueprint(surat_resmi_bp, url_prefix="/surat-resmi")
+
 # ── Static uploads ───────────────────────────────────────────
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
@@ -77,4 +92,8 @@ with app.app_context():
             os.makedirs(path)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
+
+#if __name__ == "__main__":
+#    app.run(debug=True)
+#    app.run(host="0.0.0.0", port=5000, debug=True)

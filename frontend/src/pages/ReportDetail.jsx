@@ -4,6 +4,8 @@ import API from "../services/api";
 import toast from "react-hot-toast";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+//const BASE_URL = import.meta.env.VITE_API_URL || "http://192.168.18.8:5000";
+
 
 /* ─── Field definitions (reused for edit mode) ─────────────────── */
 const COMMISSIONING_FIELDS = [

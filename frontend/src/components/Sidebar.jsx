@@ -20,6 +20,7 @@ const navGroups = [
     label: "Documents",
     items: [
       { to: "/surat", label: "Serah Terima", icon: "📜" },
+      { to: "/surat-resmi", label: "Surat Resmi", icon: "📋" },
     ]
   },
   {
