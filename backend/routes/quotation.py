@@ -40,6 +40,8 @@ class Quotation(db.Model):
     shipment_terms = db.Column(db.String(200))
     delivery = db.Column(db.String(200))
     payment_terms = db.Column(db.String(200))
+    vat_pct = db.Column(db.Float, default=11.0)
+    vat_include = db.Column(db.Boolean, default=False)
     created_by = db.Column(db.Integer, db.ForeignKey("users.id"))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -197,6 +199,8 @@ def create_quotation():
         shipment_terms=data.get("shipment_terms"),
         delivery=data.get("delivery"),
         payment_terms=data.get("payment_terms"),
+        vat_pct=float(data.get("vat_pct") or 11),
+        vat_include=bool(data.get("vat_include", False)),
         created_by=user_id,
     )
     db.session.add(q)
@@ -264,7 +268,7 @@ def update_quotation(qid):
     for f in ["customer_name", "customer_company", "customer_email", "customer_phone",
               "customer_address", "project_name", "category", "currency", "notes",
               "terms", "items", "total_amount", "status", "sales_person", "ref_no",
-              "shipment_terms", "delivery", "payment_terms"]:
+              "shipment_terms", "delivery", "payment_terms", "vat_pct", "vat_include"]:
         if f in data:
             setattr(q, f, data[f])
     
@@ -356,10 +360,19 @@ def build_quotation_pdf(q):
     elements = []
 
     # ── LOGO + HEADER ─────────────────────────────────────────────────────────
-    LOGO_PATH = os.path.join(os.path.dirname(__file__), "static", "flotech_logo.png")
+    # Look for logo in multiple locations
+    _base = os.path.dirname(os.path.abspath(__file__))
+    _logo_candidates = [
+        os.path.join(_base, "..", "frontend", "public", "logo.png"),
+        os.path.join(_base, "static", "logo.png"),
+        os.path.join(_base, "static", "flotech_logo.png"),
+        os.path.join(_base, "..", "..", "frontend", "public", "logo.png"),
+    ]
+    LOGO_PATH = next((p for p in _logo_candidates if os.path.exists(os.path.normpath(p))), None)
     logo_cell = ""
-    if os.path.exists(LOGO_PATH):
+    if LOGO_PATH:
         try:
+            LOGO_PATH = os.path.normpath(LOGO_PATH)
             pil = PILImage.open(LOGO_PATH)
             w, h = pil.size
             ratio = h / w

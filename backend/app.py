@@ -55,6 +55,9 @@ app.register_blueprint(engineer_bp, url_prefix='/api/engineer')
 from routes.quotation import quotation_bp
 app.register_blueprint(quotation_bp, url_prefix='/api/quotation')
 
+from routes.customer import customer_bp
+app.register_blueprint(customer_bp, url_prefix='/api/customer')
+
 from routes.stock import stock_bp
 app.register_blueprint(stock_bp, url_prefix='/api/stock')
 
@@ -84,6 +87,7 @@ with app.app_context():
     from routes.onsite_report import OnsiteReport
     from routes.surat_serah_terima import SuratSerahTerima
     from routes.surat_resmi import SuratResmi
+    from routes.customer import Customer
     db.create_all()  # create new tables if not exists
 
     # Create subfolders

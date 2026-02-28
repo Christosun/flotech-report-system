@@ -23,6 +23,8 @@ MIGRATIONS = [
     ("shipment_terms", "ALTER TABLE quotations ADD COLUMN IF NOT EXISTS shipment_terms VARCHAR(200)"),
     ("delivery",       "ALTER TABLE quotations ADD COLUMN IF NOT EXISTS delivery VARCHAR(200)"),
     ("payment_terms",  "ALTER TABLE quotations ADD COLUMN IF NOT EXISTS payment_terms VARCHAR(200)"),
+    ("vat_pct",        "ALTER TABLE quotations ADD COLUMN IF NOT EXISTS vat_pct FLOAT DEFAULT 11"),
+    ("vat_include",    "ALTER TABLE quotations ADD COLUMN IF NOT EXISTS vat_include BOOLEAN DEFAULT FALSE"),
 ]
 
 # Backfill base_number dari quotation_number yang sudah ada
