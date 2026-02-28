@@ -4,23 +4,23 @@ const navGroups = [
   {
     label: "Overview",
     items: [
-      { to: "/dashboard", label: "Dashboard", icon: "▦" },
+      { to: "/dashboard", label: "Dashboard", icon: "▦", exact: true },
     ]
   },
   {
     label: "Operations",
     items: [
       { to: "/quotations", label: "Quotations", icon: "📄" },
-      { to: "/reports", label: "Official Reports", icon: "📋" },
-      { to: "/reports/create", label: "New Official Report", icon: "✏️" },
+      { to: "/reports", label: "Official Reports", icon: "📋", exclude: ["/reports/create"] },
+      { to: "/reports/create", label: "New Official Report", icon: "✏️", exact: true },
       { to: "/onsite", label: "Onsite Reports", icon: "🔧" },
     ]
   },
   {
     label: "Documents",
     items: [
-      { to: "/surat", label: "Serah Terima", icon: "📜" },
-      { to: "/surat-resmi", label: "Surat Resmi", icon: "📋" },
+      { to: "/surat", label: "Serah Terima", icon: "📜", exact: true, matchPaths: ["/surat", "/surat/create", "/surat/"] },
+      { to: "/surat-resmi", label: "Surat Rekomendasi/Pernyataan", icon: "📋" },
     ]
   },
   {
@@ -40,6 +40,33 @@ const navGroups = [
 
 export default function Sidebar({ open, onClose }) {
   const location = useLocation();
+
+  const isActive = (item) => {
+    const path = location.pathname;
+
+    // If item has explicit matchPaths, use those
+    if (item.matchPaths) {
+      return item.matchPaths.some(mp =>
+        path === mp || (mp.endsWith("/") && path.startsWith(mp))
+      );
+    }
+
+    // Exact match only
+    if (item.exact) return path === item.to;
+
+    // Default: startsWith but must be exact segment boundary
+    // e.g. /surat should NOT match /surat-resmi
+    if (!path.startsWith(item.to)) return false;
+
+    // Check that the next character after the prefix is "/" or end of string
+    const nextChar = path[item.to.length];
+    if (nextChar !== undefined && nextChar !== "/") return false;
+
+    // Check excludes
+    if (item.exclude && item.exclude.includes(path)) return false;
+
+    return true;
+  };
 
   return (
     <>
@@ -91,11 +118,7 @@ export default function Sidebar({ open, onClose }) {
               </p>
               <div className="space-y-0.5">
                 {group.items.map((item) => {
-                  const isActive =
-                    location.pathname === item.to ||
-                    (item.to.length > 1 &&
-                      location.pathname.startsWith(item.to) &&
-                      item.to !== "/reports/create");
+                  const active = isActive(item);
                   return (
                     <Link
                       key={item.to}
@@ -103,7 +126,7 @@ export default function Sidebar({ open, onClose }) {
                       onClick={onClose}
                       className={`
                         flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150
-                        ${isActive
+                        ${active
                           ? "bg-[#1E5CC6] text-white shadow-lg"
                           : "text-blue-200 hover:bg-white hover:bg-opacity-10 hover:text-white"
                         }

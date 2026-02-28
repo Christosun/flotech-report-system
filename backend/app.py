@@ -69,7 +69,7 @@ from routes.surat_serah_terima import surat_bp
 app.register_blueprint(surat_bp, url_prefix='/api/surat')
 
 from routes.surat_resmi import surat_resmi_bp, SuratResmi
-app.register_blueprint(surat_resmi_bp, url_prefix="/surat-resmi")
+app.register_blueprint(surat_resmi_bp, url_prefix="/api/surat-resmi")
 
 # ── Static uploads ───────────────────────────────────────────
 @app.route('/uploads/<path:filename>')
@@ -83,6 +83,7 @@ with app.app_context():
     # Import new models so tables are created
     from routes.onsite_report import OnsiteReport
     from routes.surat_serah_terima import SuratSerahTerima
+    from routes.surat_resmi import SuratResmi
     db.create_all()  # create new tables if not exists
 
     # Create subfolders
@@ -91,9 +92,9 @@ with app.app_context():
         if not os.path.exists(path):
             os.makedirs(path)
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
-
 #if __name__ == "__main__":
-#    app.run(debug=True)
+#    app.run(host="0.0.0.0", port=5000, debug=True)
+
+if __name__ == "__main__":
+    app.run(debug=True)
 #    app.run(host="0.0.0.0", port=5000, debug=True)
