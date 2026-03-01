@@ -1051,4 +1051,472 @@ def quotation_pdf_preview(qid):
     if not q: return jsonify({"error": "Not found"}), 404
     buf = build_quotation_pdf(q)
     return Response(buf, mimetype="application/pdf",
-        headers={"Content-Disposition": f"inline; filename=Quotation_{q.quotation_number}.pdf"})
+        headers={"Content-Disposition": f"inline; filename=Quotation_{q.quotation_number}.pdf"})# ═══════════════════════════════════════════════════════════════════════════════
+# PDF BUILDER — Single Quotation  (A4, margins L/R = 1.8cm → usable = 17.4cm)
+# Layout: header | blue divider | meta-band | customer+project | items | terms
+# ═══════════════════════════════════════════════════════════════════════════════
+def build_quotation_pdf(q):
+    buffer = BytesIO()
+
+    # ── Page geometry ────────────────────────────────────────────────────────
+    PW, PH  = A4                   # 595.28 × 841.89 pt
+    L = R   = 1.8 * cm
+    TOP     = 2.0 * cm
+    BOT     = 3.8 * cm             # space reserved for footer
+    UW      = PW - L - R           # usable width ≈ 17.4 cm
+
+    doc = SimpleDocTemplate(
+        buffer, pagesize=A4,
+        topMargin=TOP, bottomMargin=BOT,
+        leftMargin=L, rightMargin=R,
+        title=f"Quotation {q.quotation_number}",
+        author="PT. Flotech Controls Indonesia",
+    )
+
+    # ── Palette ──────────────────────────────────────────────────────────────
+    C_PRIMARY  = colors.HexColor("#0B3D91")
+    C_NAVY2    = colors.HexColor("#1E5CC6")
+    C_ACCENT   = colors.HexColor("#EEF3FB")
+    C_DARK     = colors.HexColor("#111827")
+    C_TEXT     = colors.HexColor("#374151")
+    C_GRAY     = colors.HexColor("#6B7280")
+    C_LTGRAY   = colors.HexColor("#F3F4F6")
+    C_BORDER   = colors.HexColor("#D1D5DB")
+    C_WHITE    = colors.white
+    C_DISC_BG  = colors.HexColor("#FFF7ED")
+    C_DISC_FC  = colors.HexColor("#B45309")
+    C_GRANDROW = colors.HexColor("#0B3D91")
+
+    # ── Style factory ────────────────────────────────────────────────────────
+    def S(name, **kw):
+        d = dict(fontName="Helvetica", fontSize=9, leading=12, textColor=C_TEXT)
+        d.update(kw)
+        return ParagraphStyle(name, **d)
+
+    cur    = q.currency or "IDR"
+    is_idr = (cur == "IDR")
+
+    def fmt(v):
+        n = float(v or 0)
+        if is_idr:
+            return f"{n:,.0f}".replace(",",".")
+        return f"{n:,.2f}"
+
+    elements = []
+
+    # ════════════════════════════════════════════════════════════════════════
+    # SECTION 1 — HEADER  (logo left, company+title right)
+    # ════════════════════════════════════════════════════════════════════════
+    logo_path = _find_logo()
+    if logo_path:
+        try:
+            pil    = PILImage.open(logo_path)
+            lw     = 5.2 * cm
+            lh     = lw * pil.size[1] / pil.size[0]
+            logo_c = RLImage(logo_path, width=lw, height=lh)
+        except Exception:
+            logo_c = Paragraph("<b>FLOTECH</b>",
+                S("lf", fontName="Helvetica-Bold", fontSize=20, textColor=C_PRIMARY))
+    else:
+        logo_c = Paragraph(
+            "<b>FLOTECH</b><br/><font size='7'>PROCESS CONTROL &amp; INSTRUMENTATION</font>",
+            S("lf2", fontName="Helvetica-Bold", fontSize=18, textColor=C_PRIMARY, leading=22))
+
+    right_c = [
+        Paragraph("PT. FLOTECH CONTROLS INDONESIA",
+            S("cn", fontName="Helvetica-Bold", fontSize=9.5, textColor=C_PRIMARY,
+              leading=13, alignment=TA_RIGHT)),
+        Spacer(1, 2),
+        Paragraph("SALES QUOTATION",
+            S("qt", fontName="Helvetica-Bold", fontSize=20, textColor=C_NAVY2,
+              leading=24, alignment=TA_RIGHT)),
+    ]
+
+    hdr_t = Table([[logo_c, right_c]], colWidths=[6.0*cm, UW - 6.0*cm])
+    hdr_t.setStyle(TableStyle([
+        ("VALIGN",        (0,0),(-1,-1),"MIDDLE"),
+        ("LEFTPADDING",   (0,0),(-1,-1), 0),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 0),
+        ("TOPPADDING",    (0,0),(-1,-1), 0),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 0),
+    ]))
+    elements.append(hdr_t)
+    elements.append(HRFlowable(width=UW, thickness=2.5, color=C_PRIMARY, spaceAfter=3))
+
+    # ════════════════════════════════════════════════════════════════════════
+    # SECTION 2 — META BAND  (6 equal columns, full width)
+    # ════════════════════════════════════════════════════════════════════════
+    q_date  = q.created_at.strftime("%d %B %Y") if q.created_at else datetime.utcnow().strftime("%d %B %Y")
+    rev_str = f"Rev. {q.revision}" if (q.revision or 0) > 0 else "Original"
+    cw6     = UW / 6
+
+    def mcell(lbl, val):
+        return [
+            Paragraph(lbl, S(f"ml{lbl}", fontSize=7, fontName="Helvetica-Bold",
+                             textColor=C_GRAY, leading=9, alignment=TA_LEFT)),
+            Paragraph(str(val), S(f"mv{lbl}", fontSize=9, fontName="Helvetica-Bold",
+                                  textColor=C_DARK, leading=12, alignment=TA_LEFT)),
+        ]
+
+    meta_cols = [
+        mcell("QUOTATION NO.",  q.quotation_number or "-"),
+        mcell("DATE",           q_date),
+        mcell("SALES PERSON",   q.sales_person or "-"),
+        mcell("REVISION",       rev_str),
+        mcell("REF. NO.",       q.ref_no or "-"),
+        mcell("CURRENCY",       cur),
+    ]
+
+    meta_t = Table(
+        [[c[0] for c in meta_cols], [c[1] for c in meta_cols]],
+        colWidths=[cw6]*6,
+    )
+    meta_t.setStyle(TableStyle([
+        ("BACKGROUND",    (0,0),(-1,-1), C_ACCENT),
+        ("BOX",           (0,0),(-1,-1), 0.5, C_BORDER),
+        ("LINEAFTER",     (0,0),(4, 1),  0.3, C_BORDER),
+        ("TOPPADDING",    (0,0),(-1,-1), 5),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 5),
+        ("LEFTPADDING",   (0,0),(-1,-1), 7),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 4),
+        ("VALIGN",        (0,0),(-1,-1), "TOP"),
+    ]))
+    elements.append(meta_t)
+    elements.append(Spacer(1, 0.4*cm))
+
+    # ════════════════════════════════════════════════════════════════════════
+    # SECTION 3 — CUSTOMER  (left 56%)  +  PROJECT  (right 44%)
+    # ════════════════════════════════════════════════════════════════════════
+    GAP    = 0.3 * cm
+    cust_w = UW * 0.56 - GAP / 2
+    proj_w = UW * 0.44 - GAP / 2
+
+    def cust_block():
+        rows = [[Paragraph("CUSTOMER / RECIPIENT",
+            S("ch", fontName="Helvetica-Bold", fontSize=7.5,
+              textColor=C_WHITE, leading=10))]]
+        if q.customer_company:
+            rows.append([Paragraph(q.customer_company,
+                S("cc", fontName="Helvetica-Bold", fontSize=10.5,
+                  textColor=C_DARK, leading=14))])
+        for ln in (q.customer_address or "").split("\n"):
+            if ln.strip():
+                rows.append([Paragraph(ln.strip(),
+                    S("ca", fontSize=8.5, textColor=C_GRAY, leading=12))])
+        if q.customer_name:
+            rows.append([Paragraph(f"Attn : {q.customer_name}",
+                S("cn2", fontSize=9, textColor=C_TEXT))])
+        if q.customer_email:
+            rows.append([Paragraph(f"Email : {q.customer_email}",
+                S("ce", fontSize=8.5, textColor=C_GRAY))])
+        if q.customer_phone:
+            rows.append([Paragraph(f"Phone : {q.customer_phone}",
+                S("cp", fontSize=8.5, textColor=C_GRAY))])
+        t = Table(rows, colWidths=[cust_w])
+        t.setStyle(TableStyle([
+            ("BACKGROUND",    (0,0),(0,0),  C_PRIMARY),
+            ("BACKGROUND",    (0,1),(-1,-1),C_ACCENT),
+            ("BOX",           (0,0),(-1,-1),0.5, C_BORDER),
+            ("TOPPADDING",    (0,0),(-1,-1),6),
+            ("BOTTOMPADDING", (0,0),(-1,-1),6),
+            ("LEFTPADDING",   (0,0),(-1,-1),8),
+            ("RIGHTPADDING",  (0,0),(-1,-1),8),
+            ("VALIGN",        (0,0),(-1,-1),"MIDDLE"),
+        ]))
+        return t
+
+    def proj_block():
+        rows = [[Paragraph("PROJECT DETAILS",
+            S("ph", fontName="Helvetica-Bold", fontSize=7.5,
+              textColor=C_WHITE, leading=10))]]
+        rows.append([Paragraph(q.project_name or "-",
+            S("pn", fontName="Helvetica-Bold", fontSize=10.5,
+              textColor=C_DARK, leading=14))])
+        if q.category:
+            rows.append([Paragraph(f"Category : {q.category}",
+                S("pc", fontSize=8.5, textColor=C_GRAY))])
+        if q.valid_until:
+            rows.append([Paragraph(
+                f"Valid Until : {q.valid_until.strftime('%d %B %Y')}",
+                S("pv", fontSize=8.5, textColor=C_GRAY))])
+        t = Table(rows, colWidths=[proj_w])
+        t.setStyle(TableStyle([
+            ("BACKGROUND",    (0,0),(0,0),  C_NAVY2),
+            ("BACKGROUND",    (0,1),(-1,-1),C_ACCENT),
+            ("BOX",           (0,0),(-1,-1),0.5, C_BORDER),
+            ("TOPPADDING",    (0,0),(-1,-1),6),
+            ("BOTTOMPADDING", (0,0),(-1,-1),6),
+            ("LEFTPADDING",   (0,0),(-1,-1),8),
+            ("RIGHTPADDING",  (0,0),(-1,-1),8),
+            ("VALIGN",        (0,0),(-1,-1),"MIDDLE"),
+        ]))
+        return t
+
+    two_col = Table([[cust_block(), proj_block()]],
+        colWidths=[cust_w + GAP/2, proj_w + GAP/2])
+    two_col.setStyle(TableStyle([
+        ("VALIGN",        (0,0),(-1,-1),"TOP"),
+        ("LEFTPADDING",   (0,0),(-1,-1),0),
+        ("RIGHTPADDING",  (0,0),(-1,-1),0),
+        ("TOPPADDING",    (0,0),(-1,-1),0),
+        ("BOTTOMPADDING", (0,0),(-1,-1),0),
+        ("RIGHTPADDING",  (0,0),(0,0),  GAP/2),
+        ("LEFTPADDING",   (1,0),(1,0),  GAP/2),
+    ]))
+    elements.append(two_col)
+    elements.append(Spacer(1, 0.4*cm))
+
+    # ════════════════════════════════════════════════════════════════════════
+    # SECTION 4 — ITEMS TABLE
+    # Column widths must sum to UW (≈ 17.4 cm = PW - 2×1.8cm)
+    #   S/N  | Description        | UOM  | Qty  | Unit Price  | Disc% | Amount
+    #   0.75 | 6.55               | 1.2  | 1.0  | 3.3         | 1.0   | 3.6
+    # ════════════════════════════════════════════════════════════════════════
+    CW = [0.75*cm, 6.55*cm, 1.2*cm, 1.0*cm, 3.3*cm, 1.0*cm, 3.6*cm]
+    # Adjust last col so sum == UW exactly
+    CW[-1] = UW - sum(CW[:-1])
+
+    TH  = S("th",  fontName="Helvetica-Bold", fontSize=8,   textColor=C_WHITE, leading=11, alignment=TA_CENTER)
+    TD  = S("td",  fontSize=8.5, leading=12)
+    TDS = S("tds", fontSize=7.5, textColor=C_GRAY, leading=10)
+    TDC = S("tdc", fontSize=8.5, leading=12, alignment=TA_CENTER)
+    TDR = S("tdr", fontSize=8.5, leading=12, alignment=TA_RIGHT)
+
+    rows      = [[
+        Paragraph("S/N",                     TH),
+        Paragraph("Description / Inventory", TH),
+        Paragraph("UOM",                     TH),
+        Paragraph("Qty",                     TH),
+        Paragraph(f"Unit Price\n({cur})",    TH),
+        Paragraph("Disc\n%",                 TH),
+        Paragraph(f"Amount\n({cur})",        TH),
+    ]]
+    row_fills  = []
+    subtotal   = 0.0
+    total_disc = 0.0
+    items      = q.items or []
+
+    for i, item in enumerate(items):
+        gross, d_amt, net = calc_item(item)
+        subtotal   += net
+        total_disc += d_amt
+
+        desc_flow = []
+        if item.get("description"):
+            desc_flow.append(Paragraph(f"<b>{item['description']}</b>", TD))
+        bm = "  |  ".join(filter(None, [item.get("brand"), item.get("model")]))
+        if bm:
+            desc_flow.append(Paragraph(bm, TDS))
+        if item.get("remarks"):
+            desc_flow.append(Paragraph(f"<i>{item['remarks']}</i>", TDS))
+
+        qty   = float(item.get("qty")        or 0)
+        disc  = float(item.get("discount")   or 0)
+        up    = float(item.get("unit_price") or 0)
+        unit  = item.get("unit") or "Unit"
+        qty_s = str(int(qty)) if qty == int(qty) else f"{qty:g}"
+
+        disc_p = (
+            Paragraph(f"<b>{disc:.0f}%</b>",
+                S(f"dc{i}", fontName="Helvetica-Bold", fontSize=8,
+                  textColor=C_DISC_FC, leading=11, alignment=TA_CENTER))
+            if disc > 0 else Paragraph("—", TDC)
+        )
+
+        rows.append([
+            Paragraph(str(i+1), TDC),
+            desc_flow,
+            Paragraph(unit,     TDC),
+            Paragraph(qty_s,    TDC),
+            Paragraph(fmt(up),  TDR),
+            disc_p,
+            Paragraph(fmt(net), TDR),
+        ])
+        if i % 2 == 1:
+            row_fills.append(("BACKGROUND", (0,i+1),(-1,i+1), C_LTGRAY))
+
+    n_items = len(items)
+
+    # ── Total subtable (same width as items table, pinned right) ─────────────
+    vat_pct     = float(q.vat_pct or 11) if (q.vat_include or False) else 0
+    vat_include = bool(q.vat_include)
+    vat_amt     = subtotal * vat_pct / 100 if vat_include else 0
+    grand_total = subtotal + vat_amt
+    has_disc    = total_disc > 0.005
+
+    # Total label col = first 5 item cols width; value col = last 2
+    lbl_w = sum(CW[:5])   # ≈ 12.8 cm
+    val_w = sum(CW[5:])   # ≈  4.6 cm
+
+    SL = S("sl", fontName="Helvetica-Bold", fontSize=9,  textColor=C_GRAY,    alignment=TA_RIGHT)
+    SV = S("sv", fontName="Helvetica-Bold", fontSize=9,  textColor=C_DARK,    alignment=TA_RIGHT)
+    GL = S("gl", fontName="Helvetica-Bold", fontSize=10, textColor=C_WHITE,   alignment=TA_RIGHT)
+    GV = S("gv", fontName="Helvetica-Bold", fontSize=10, textColor=C_WHITE,   alignment=TA_RIGHT)
+    DL = S("dl", fontName="Helvetica-Bold", fontSize=9,  textColor=C_DISC_FC, alignment=TA_RIGHT)
+    DV = S("dv", fontName="Helvetica-Bold", fontSize=9,  textColor=C_DISC_FC, alignment=TA_RIGHT)
+
+    tot_rows   = []
+    tot_styles = [
+        ("LEFTPADDING",   (0,0),(-1,-1), 8),
+        ("RIGHTPADDING",  (0,0),(-1,-1), 8),
+        ("TOPPADDING",    (0,0),(-1,-1), 5),
+        ("BOTTOMPADDING", (0,0),(-1,-1), 5),
+        ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
+        ("LINEBELOW",     (0,0),(-1, 0), 0.5, C_BORDER),
+    ]
+
+    tot_rows.append([Paragraph("Sub Total (IDR) :", SL), Paragraph(fmt(subtotal), SV)])
+
+    if has_disc:
+        r = len(tot_rows)
+        tot_rows.append([Paragraph("Discount :", DL),
+                         Paragraph(f"({fmt(total_disc)})", DV)])
+        tot_styles += [
+            ("BACKGROUND", (0,r),(-1,r), C_DISC_BG),
+            ("LINEABOVE",  (0,r),(-1,r), 0.5, C_BORDER),
+            ("LINEBELOW",  (0,r),(-1,r), 0.5, C_BORDER),
+        ]
+
+    if vat_include:
+        r = len(tot_rows)
+        tot_rows.append([Paragraph(f"VAT {vat_pct:.0f}% :", SL),
+                         Paragraph(fmt(vat_amt), SV)])
+        tot_styles.append(("LINEBELOW", (0,r),(-1,r), 0.3, C_BORDER))
+
+    r_grand = len(tot_rows)
+    tot_rows.append([Paragraph("GRAND TOTAL (IDR) :", GL), Paragraph(fmt(grand_total), GV)])
+    tot_styles += [
+        ("BACKGROUND",    (0,r_grand),(-1,r_grand), C_PRIMARY),
+        ("TOPPADDING",    (0,r_grand),(-1,r_grand), 7),
+        ("BOTTOMPADDING", (0,r_grand),(-1,r_grand), 7),
+    ]
+
+    tot_t = Table(tot_rows, colWidths=[lbl_w, val_w])
+    tot_t.setStyle(TableStyle(tot_styles))
+
+    tbl_style = [
+        ("BACKGROUND",    (0,0),(-1,0),         C_PRIMARY),
+        ("TEXTCOLOR",     (0,0),(-1,0),          C_WHITE),
+        ("ALIGN",         (0,0),(-1,0),          "CENTER"),
+        ("VALIGN",        (0,0),(-1,-1),         "TOP"),
+        ("TOPPADDING",    (0,0),(-1,-1),         5),
+        ("BOTTOMPADDING", (0,0),(-1,-1),         5),
+        ("LEFTPADDING",   (0,0),(-1,-1),         5),
+        ("RIGHTPADDING",  (0,0),(-1,-1),         5),
+        ("ALIGN",  (0,1),(0,n_items), "CENTER"),
+        ("ALIGN",  (2,1),(2,n_items), "CENTER"),
+        ("ALIGN",  (3,1),(3,n_items), "CENTER"),
+        ("ALIGN",  (4,1),(4,n_items), "RIGHT"),
+        ("ALIGN",  (5,1),(5,n_items), "CENTER"),
+        ("ALIGN",  (6,1),(6,n_items), "RIGHT"),
+        ("BOX",      (0,0),(-1,n_items), 0.5, C_BORDER),
+        ("INNERGRID",(0,0),(-1,n_items), 0.25, C_BORDER),
+        ("LINEBELOW",(0,n_items),(-1,n_items), 2.0, C_PRIMARY),
+    ] + row_fills
+
+    items_t = Table(rows, colWidths=CW, repeatRows=1)
+    items_t.setStyle(TableStyle(tbl_style))
+
+    elements.append(items_t)
+    elements.append(tot_t)
+    elements.append(Spacer(1, 0.35*cm))
+
+    # ════════════════════════════════════════════════════════════════════════
+    # SECTION 5 — NOTE
+    # ════════════════════════════════════════════════════════════════════════
+    if q.notes and q.notes.strip():
+        elements.append(Paragraph(
+            f"<i>Note : {q.notes}</i>",
+            S("note", fontSize=8, textColor=C_GRAY, leading=11)))
+        elements.append(Spacer(1, 0.25*cm))
+
+    elements.append(HRFlowable(width=UW, thickness=0.5, color=C_BORDER, spaceAfter=0.3*cm))
+
+    # ════════════════════════════════════════════════════════════════════════
+    # SECTION 6 — TERMS  (left)  +  REGARDS  (right)  — side by side
+    # ════════════════════════════════════════════════════════════════════════
+    vat_note = f"Include VAT {vat_pct:.0f}%" if vat_include else "Exclude VAT"
+
+    TLH = S("tlh", fontName="Helvetica-Bold", fontSize=8.5, textColor=C_DARK)
+    TLV = S("tlv", fontSize=8.5, textColor=C_TEXT, leading=12)
+    COL = S("col", fontSize=8.5, textColor=C_GRAY,  alignment=TA_CENTER)
+
+    def tc_row(lbl, val):
+        return [
+            Paragraph(f"<b>{lbl}</b>", TLH),
+            Paragraph(":",             COL),
+            Paragraph(str(val),        TLV),
+        ]
+
+    tc_data = [
+        tc_row("Currency",       f"{cur}  —  {vat_note}"),
+        tc_row("Shipment Terms", q.shipment_terms or "-"),
+        tc_row("Validity",       "20 Days from quotation date"),
+        tc_row("Delivery",       q.delivery      or "-"),
+        tc_row("Payment Terms",  q.payment_terms or "-"),
+    ]
+    if q.terms and q.terms.strip():
+        tc_data.append(tc_row("Additional Terms",
+                               q.terms.replace("\n", "<br/>")))
+
+    tc_lbl_w  = 3.4 * cm
+    tc_colon  = 0.4 * cm
+    tc_val_w  = UW * 0.58 - tc_lbl_w - tc_colon
+    tc_t = Table(tc_data, colWidths=[tc_lbl_w, tc_colon, tc_val_w])
+    tc_t.setStyle(TableStyle([
+        ("VALIGN",        (0,0),(-1,-1),"TOP"),
+        ("TOPPADDING",    (0,0),(-1,-1),2),
+        ("BOTTOMPADDING", (0,0),(-1,-1),2),
+        ("LEFTPADDING",   (0,0),(-1,-1),0),
+        ("RIGHTPADDING",  (0,0),(-1,-1),0),
+    ]))
+
+    sig_items = [
+        Paragraph("Regards,", S("rg", fontSize=8.5, textColor=C_GRAY)),
+        Spacer(1, 1.0*cm),
+    ]
+    if q.sales_person:
+        sig_items.append(Paragraph(f"<u><b>{q.sales_person}</b></u>",
+            S("sp", fontName="Helvetica-Bold", fontSize=9.5, textColor=C_DARK)))
+    sig_items.append(Paragraph("PT. Flotech Controls Indonesia",
+        S("spc", fontSize=8.5, textColor=C_GRAY)))
+
+    terms_w = tc_lbl_w + tc_colon + tc_val_w
+    sig_w   = UW - terms_w
+    side_t  = Table([[tc_t, sig_items]], colWidths=[terms_w, sig_w])
+    side_t.setStyle(TableStyle([
+        ("VALIGN",        (0,0),(-1,-1),"TOP"),
+        ("LEFTPADDING",   (0,0),(-1,-1),0),
+        ("RIGHTPADDING",  (0,0),(-1,-1),0),
+        ("TOPPADDING",    (0,0),(-1,-1),0),
+        ("BOTTOMPADDING", (0,0),(-1,-1),0),
+        ("LEFTPADDING",   (1,0),(1, 0), 0.5*cm),
+    ]))
+
+    elements.append(Paragraph("<b><u>General Terms &amp; Conditions</u></b>",
+        S("tch", fontName="Helvetica-Bold", fontSize=9, textColor=C_DARK)))
+    elements.append(Spacer(1, 0.2*cm))
+    elements.append(side_t)
+
+    # ════════════════════════════════════════════════════════════════════════
+    # FOOTER  (canvas callback)
+    # ════════════════════════════════════════════════════════════════════════
+    def footer_cb(cv, doc_obj):
+        cv.saveState()
+        y = BOT - 0.2 * cm
+        cv.setStrokeColor(C_PRIMARY); cv.setLineWidth(1.5)
+        cv.line(L, y, PW - R, y)
+        cv.setFont("Helvetica-Bold", 9); cv.setFillColor(C_PRIMARY)
+        cv.drawCentredString(PW/2, y - 0.45*cm, FLOTECH_INFO["name"])
+        cv.setFont("Helvetica", 7.5); cv.setFillColor(colors.HexColor("#6B7280"))
+        cv.drawCentredString(PW/2, y - 0.82*cm,
+            f"{FLOTECH_INFO['address']}  |  {FLOTECH_INFO['city']}")
+        cv.drawCentredString(PW/2, y - 1.14*cm, FLOTECH_INFO["telp"])
+        cv.drawCentredString(PW/2, y - 1.46*cm, FLOTECH_INFO["email"])
+        cv.setFont("Helvetica", 7); cv.setFillColor(colors.HexColor("#9CA3AF"))
+        cv.drawRightString(PW - R, 0.6*cm, f"Page {doc_obj.page}")
+        cv.restoreState()
+
+    doc.build(elements, onFirstPage=footer_cb, onLaterPages=footer_cb)
+    buffer.seek(0)
+    return buffer

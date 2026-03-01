@@ -317,9 +317,9 @@ def build_onsite_pdf(rid):
     work_fields = [
         ("Deskripsi / Scope Pekerjaan", r.job_description, primary),
         ("Pekerjaan yang Dilakukan", r.work_performed, secondary),
-        ("Temuan / Findings", r.findings, colors.HexColor("#7C3AED")),
-        ("Rekomendasi", r.recommendations, colors.HexColor("#059669")),
-        ("Material / Parts Digunakan", r.materials_used, colors.HexColor("#D97706")),
+        ("Temuan / Findings", r.findings, colors.HexColor("#B7B7B7")),
+        ("Rekomendasi", r.recommendations, colors.HexColor("#B7B7B7")),
+        ("Material / Parts Digunakan", r.materials_used, colors.HexColor("#B7B7B7")),
     ]
     for label, text, color in work_fields:
         text_block(label, text, color)
