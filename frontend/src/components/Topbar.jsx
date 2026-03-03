@@ -8,6 +8,7 @@ const PAGE_TITLES = {
   "/quotations": { title: "Quotations", sub: "Sales & proposals" },
   "/stock": { title: "Stock & Demo Units", sub: "Inventory management" },
   "/catalog": { title: "Catalogs & Manuals", sub: "Product documents" },
+  "/leave": { title: "Leave Management", sub: "Leave requests & approvals" },
 };
 
 export default function Topbar({ onMenuClick }) {

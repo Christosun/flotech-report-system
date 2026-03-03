@@ -74,6 +74,9 @@ app.register_blueprint(surat_bp, url_prefix='/api/surat')
 from routes.surat_resmi import surat_resmi_bp, SuratResmi
 app.register_blueprint(surat_resmi_bp, url_prefix="/api/surat-resmi")
 
+from routes.leave import leave_bp
+app.register_blueprint(leave_bp, url_prefix='/api/leave')
+
 # ── Static uploads ───────────────────────────────────────────
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
@@ -96,9 +99,9 @@ with app.app_context():
         if not os.path.exists(path):
             os.makedirs(path)
 
-#if __name__ == "__main__":
-#    app.run(host="0.0.0.0", port=5000, debug=True)
-
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
+
+#if __name__ == "__main__":
+#    app.run(debug=True)
 #    app.run(host="0.0.0.0", port=5000, debug=True)

@@ -34,6 +34,7 @@ const navGroups = [
     label: "People",
     items: [
       { to: "/engineers", label: "Engineers", icon: "👷" },
+      { to: "/leave", label: "Leave Management", icon: "🏖️" },  // ← ADD THIS
     ]
   }
 ];

@@ -63,3 +63,42 @@ class ReportImage(db.Model):
     file_path = db.Column(db.String(300))
     caption = db.Column(db.String(500), default="")   # ← NEW: image caption/annotation
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class LeaveEntitlement(db.Model):
+    __tablename__ = "leave_entitlements"
+    id               = db.Column(db.Integer, primary_key=True)
+    user_id          = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    year             = db.Column(db.Integer, nullable=False)
+    entitlement_days = db.Column(db.Integer, default=12)
+    joint_leave_days = db.Column(db.Integer, default=0)
+    created_at       = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at       = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class LeaveRequest(db.Model):
+    __tablename__ = "leave_requests"
+    id               = db.Column(db.Integer, primary_key=True)
+    request_number   = db.Column(db.String(50), unique=True)
+    user_id          = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    leave_type       = db.Column(db.String(50))   # annual/sick/emergency/marriage/maternity/paternity/bereavement
+    reason           = db.Column(db.String(500))
+    start_date       = db.Column(db.Date, nullable=False)
+    end_date         = db.Column(db.Date)
+    total_days       = db.Column(db.Integer, default=1)
+    status           = db.Column(db.String(20), default="pending")  # pending/approved/rejected
+    approved_by      = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    approved_at      = db.Column(db.DateTime, nullable=True)
+    rejection_reason = db.Column(db.String(500))
+    is_joint_leave   = db.Column(db.Boolean, default=False)
+    notes            = db.Column(db.Text)
+    created_at       = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at       = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class JointLeaveSchedule(db.Model):
+    __tablename__ = "joint_leave_schedules"
+    id         = db.Column(db.Integer, primary_key=True)
+    year       = db.Column(db.Integer, nullable=False)
+    name       = db.Column(db.String(200), nullable=False)
+    leave_date = db.Column(db.Date, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

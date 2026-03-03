@@ -17,6 +17,7 @@ import CreateSurat from "./pages/CreateSurat";
 import SuratDetail from "./pages/SuratDetail";
 import Layout from "./components/Layout";
 import SuratResmi from "./pages/SuratResmi";
+import LeaveManagement from "./pages/LeaveManagement";
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
           <Route path="/stock" element={<Stock />} />
           <Route path="/catalog" element={<Catalog />} />
           <Route path="/surat-resmi" element={<SuratResmi />} />
+          <Route path="/leave" element={<LeaveManagement />} />
         </Route>
       </Routes>
     </BrowserRouter>
