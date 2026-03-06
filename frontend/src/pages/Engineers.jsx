@@ -282,7 +282,7 @@ export default function Engineers() {
             <div className="p-5 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
-                  <label className={labelClass}>Nama Lengkap *</label>
+                  <label className={labelClass}>Full Name *</label>
                   <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
                     placeholder="Nama lengkap engineer" className={inputClass} />
                 </div>
@@ -292,7 +292,7 @@ export default function Engineers() {
                     placeholder="FJKT-001" className={inputClass} />
                 </div>
                 <div>
-                  <label className={labelClass}>Jabatan / Position</label>
+                  <label className={labelClass}>Job Position</label>
                   <input value={form.position} onChange={e => setForm({ ...form, position: e.target.value })}
                     placeholder="Senior Engineer" className={inputClass} />
                 </div>
@@ -302,13 +302,13 @@ export default function Engineers() {
                     placeholder="Instrumentation" className={inputClass} />
                 </div>
                 <div>
-                  <label className={labelClass}>Tahun Pengalaman</label>
+                  <label className={labelClass}>Year of Experience</label>
                   <input type="number" min="0" value={form.years_experience}
                     onChange={e => setForm({ ...form, years_experience: e.target.value })}
                     placeholder="5" className={inputClass} />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className={labelClass}>Spesialisasi</label>
+                  <label className={labelClass}>Specialization</label>
                   <input value={form.specialization} onChange={e => setForm({ ...form, specialization: e.target.value })}
                     placeholder="Flow, Level, Pressure, Analyzer..." className={inputClass} />
                 </div>
@@ -327,11 +327,11 @@ export default function Engineers() {
             <div className="p-5 border-t border-gray-100 flex gap-3 justify-end sticky bottom-0 bg-white rounded-b-2xl">
               <button onClick={() => setShowModal(false)}
                 className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
-                Batal
+                Cancel
               </button>
               <button onClick={handleSubmit} disabled={saving}
                 className="px-6 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] disabled:opacity-60 flex items-center gap-2">
-                {saving ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Menyimpan...</> : "Simpan Engineer"}
+                {saving ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Menyimpan...</> : "Save Engineer"}
               </button>
             </div>
           </div>
