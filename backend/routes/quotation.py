@@ -510,7 +510,7 @@ def export_pdf_list():
         ('ALIGN', (1,0),(1,0), 'RIGHT'),
     ]))
     elements.append(top)
-    elements.append(HRFlowable(width=usable, thickness=2, color=primary, spaceAfter=0.3*cm))
+    elements.append(HRFlowable(width=usable, thickness=1, color=primary, spaceAfter=0.3*cm))
 
     # Table
     th = ps("th", fontSize=8, fontName="Helvetica-Bold", textColor=white, alignment=TA_CENTER)
@@ -591,7 +591,7 @@ def export_pdf_list():
     def footer_cb(cv, doc_obj):
         cv.saveState()
         pw, ph = A4
-        cv.setStrokeColor(primary); cv.setLineWidth(1.5)
+        cv.setStrokeColor(primary); cv.setLineWidth(1)
         cv.line(L, 3.0*cm, pw-R, 3.0*cm)
         cv.setFont("Helvetica-Bold", 9); cv.setFillColor(primary)
         cv.drawCentredString(pw/2, 2.55*cm, FLOTECH_INFO["name"])
@@ -685,7 +685,7 @@ def build_quotation_pdf(q):
         ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
     ]))
     elements.append(hdr_t)
-    elements.append(HRFlowable(width=usable, thickness=2.5, color=primary, spaceAfter=4))
+    elements.append(HRFlowable(width=usable, thickness=1, color=primary, spaceAfter=4))
 
     # ────────────────────────────────────────────────────────────────────────
     # 2.  META-INFO BAND  — 6 cells spanning full usable width
@@ -1010,7 +1010,7 @@ def build_quotation_pdf(q):
         y_line = 3.3 * cm
         # Horizontal rule — aligned with text margins
         cv.setStrokeColor(primary)
-        cv.setLineWidth(1.5)
+        cv.setLineWidth(1)
         cv.line(L, y_line, pw - R, y_line)
         # Company name
         cv.setFont("Helvetica-Bold", 9)
@@ -1141,7 +1141,7 @@ def build_quotation_pdf(q):
         ("BOTTOMPADDING", (0,0),(-1,-1), 0),
     ]))
     elements.append(hdr_t)
-    elements.append(HRFlowable(width=UW, thickness=2.5, color=C_PRIMARY, spaceAfter=3))
+    elements.append(HRFlowable(width=UW, thickness=1, color=C_PRIMARY, spaceBefore=10, spaceAfter=20))
 
     # ════════════════════════════════════════════════════════════════════════
     # SECTION 2 — META BAND  (6 equal columns, full width)
@@ -1504,7 +1504,7 @@ def build_quotation_pdf(q):
     def footer_cb(cv, doc_obj):
         cv.saveState()
         y = BOT - 0.2 * cm
-        cv.setStrokeColor(C_PRIMARY); cv.setLineWidth(1.5)
+        cv.setStrokeColor(C_PRIMARY); cv.setLineWidth(1)
         cv.line(L, y, PW - R, y)
         cv.setFont("Helvetica-Bold", 9); cv.setFillColor(C_PRIMARY)
         cv.drawCentredString(PW/2, y - 0.45*cm, FLOTECH_INFO["name"])
