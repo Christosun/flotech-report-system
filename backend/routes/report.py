@@ -639,7 +639,7 @@ def build_report_pdf(report_id):
             self.saveState()
             pw, ph = A4
             self.setStrokeColor(primary_color)
-            self.setLineWidth(1.5)
+            self.setLineWidth(1)
             self.line(2*cm, 2.8*cm, pw - 2*cm, 2.8*cm)
             self.setFont("Helvetica-Bold", 9)
             self.setFillColor(primary_color)

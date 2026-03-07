@@ -29,9 +29,9 @@ from html.parser import HTMLParser
 onsite_bp = Blueprint("onsite", __name__)
 
 FLOTECH_INFO = {
-    "name": "PT. Flotech Controls Indonesia",
-    "address": "Jl. Boulevard Artha Gading",
-    "city": "Jakarta 14240",
+    "name": "PT FLOTECH CONTROLS INDONESIA",
+    "address": "Rukan Artha Gading Niaga, Blok F/7",
+    "city": "Jl. Boulevard Artha Gading, Jakarta 14240",
     "telp": "Telp: +6221 45850778 / Fax: +6221 45850779",
     "email": "e-Mail: salesjkt@flotech.co.id / Website: www.flotech.com.sg",
 }
@@ -527,8 +527,8 @@ def build_onsite_pdf(rid):
     hdr.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')]))
     elements.append(hdr)
     elements.append(Spacer(1, 0.3 * cm))
-    elements.append(HRFlowable(width="100%", thickness=2, color=primary))
-    elements.append(Spacer(1, 0.3 * cm))
+    elements.append(HRFlowable(width="100%", thickness=1, color=primary))
+    elements.append(Spacer(1, 0.6 * cm))
 
     # ── META BAND: report number + date ─────────────────────────
     # Build date string — range if visit_date_to present
@@ -771,7 +771,7 @@ def build_onsite_pdf(rid):
             self.saveState()
             pw, ph = A4
             self.setStrokeColor(primary)
-            self.setLineWidth(1.5)
+            self.setLineWidth(1)
             self.line(LEFT, 2.8 * cm, pw - RIGHT, 2.8 * cm)
             self.setFont("Helvetica-Bold", 9)
             self.setFillColor(primary)

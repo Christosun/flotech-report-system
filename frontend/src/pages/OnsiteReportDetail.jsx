@@ -250,7 +250,7 @@ function EquipmentEditItem({ item, index, onChange, onRemove, canRemove }) {
         <div>
           <label className={labelCls}>Model / Type</label>
           <input value={item.model || ""} onChange={e => onChange(index, "model", e.target.value)}
-            placeholder="Contoh: Rosemount 3051" className={inputCls} />
+            placeholder="Contoh: iSOLV TUF333iB, EFS803" className={inputCls} />
         </div>
         <div>
           <label className={labelCls}>Serial Number</label>
