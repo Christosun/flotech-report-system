@@ -1,507 +1,517 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import API from "../services/api";
 
-// ─── MOCK DATA (replace with API calls in production) ────────────────────────
-const CURRENT_USER = {
-  id: 1,
-  name: localStorage.getItem("user_name") || "Christosun Billy Bulu Bora",
-  role: localStorage.getItem("user_role") || "engineer",
-};
-
+// ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const YEAR = new Date().getFullYear();
 
-const JOINT_LEAVE_SCHEDULE = [
-  { id: 1, name: "Idul Fitri Joint Leave", date: `${YEAR}-03-20`, total_days: 1 },
-  { id: 2, name: "Idul Fitri Joint Leave", date: `${YEAR}-03-23`, total_days: 1 },
-  { id: 3, name: "Idul Fitri Joint Leave", date: `${YEAR}-03-24`, total_days: 1 },
-  { id: 4, name: "Christmas Joint Leave", date: `${YEAR}-12-24`, total_days: 1 },
-];
-
 const LEAVE_TYPES = [
-  { value: "annual", label: "Annual Leave", icon: "🏖️", color: "#0B3D91" },
-  { value: "sick", label: "Sick Leave", icon: "🏥", color: "#dc2626" },
-  { value: "emergency", label: "Emergency Leave", icon: "🚨", color: "#d97706" },
-  { value: "marriage", label: "Marriage Leave", icon: "💍", color: "#7c3aed" },
-  { value: "maternity", label: "Maternity Leave", icon: "👶", color: "#db2777" },
-  { value: "paternity", label: "Paternity Leave", icon: "👨‍👧", color: "#0891b2" },
-  { value: "bereavement", label: "Bereavement Leave", icon: "🕊️", color: "#374151" },
+  { value: "annual",      label: "Annual Leave",     icon: "🏖️",  color: "#0B3D91" },
+  { value: "sick",        label: "Sick Leave",        icon: "🏥",  color: "#dc2626" },
+  { value: "emergency",   label: "Emergency Leave",   icon: "🚨",  color: "#d97706" },
+  { value: "marriage",    label: "Marriage Leave",    icon: "💍",  color: "#7c3aed" },
+  { value: "maternity",   label: "Maternity Leave",   icon: "👶",  color: "#db2777" },
+  { value: "paternity",   label: "Paternity Leave",   icon: "👨‍👧", color: "#0891b2" },
+  { value: "bereavement", label: "Bereavement Leave", icon: "🕊️",  color: "#374151" },
 ];
 
-const STATUS_CONFIG = {
+const STATUS = {
   pending:  { label: "Pending",  color: "#d97706", bg: "#fef3c7", icon: "⏳" },
-  approved: { label: "Approved", color: "#059669", bg: "#d1fae5", icon: "✅" },
-  rejected: { label: "Rejected", color: "#dc2626", bg: "#fee2e2", icon: "❌" },
+  approved: { label: "Disetujui", color: "#059669", bg: "#d1fae5", icon: "✅" },
+  rejected: { label: "Ditolak",  color: "#dc2626", bg: "#fee2e2", icon: "❌" },
 };
 
-// ─── UTILITY ─────────────────────────────────────────────────────────────────
+const isAdminRole = (r) => ["admin", "hr", "manager"].includes(r);
+
 function calcWorkingDays(start, end) {
   if (!start || !end) return 1;
-  const s = new Date(start), e = new Date(end);
-  let count = 0;
-  const cur = new Date(s);
-  while (cur <= e) {
-    const day = cur.getDay();
-    if (day !== 0 && day !== 6) count++;
-    cur.setDate(cur.getDate() + 1);
-  }
+  let count = 0, cur = new Date(start), e = new Date(end);
+  while (cur <= e) { if (cur.getDay() !== 0 && cur.getDay() !== 6) count++; cur.setDate(cur.getDate() + 1); }
   return Math.max(count, 1);
 }
 
-function formatDate(d) {
-  if (!d) return "-";
-  const dt = typeof d === "string" ? new Date(d) : d;
-  return dt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+function fmtDate(d) {
+  if (!d) return "—";
+  return new Date(d).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-function genReqNumber() {
-  const now = new Date();
-  return `LV-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,"0")}${String(now.getDate()).padStart(2,"0")}-${String(Math.floor(Math.random()*9000)+1000)}`;
+function fmtDatetime(d) {
+  if (!d) return "—";
+  return new Date(d).toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-// ─── EXPORT HELPERS ───────────────────────────────────────────────────────────
-function exportToCSV(requests, summary) {
-  const rows = [
-    ["Leave Management Report - PT Flotech Controls Indonesia"],
-    [`Generated: ${new Date().toLocaleDateString("en-GB")}`],
-    [],
-    ["SUMMARY"],
-    ["Annual Entitlement", summary.entitlement],
-    ["Joint Leave", summary.jointLeave],
-    ["Annual Leave Taken", summary.annualTaken],
-    ["Balance", summary.balance],
-    [],
-    ["LEAVE HISTORY"],
-    ["No.", "Request Number", "Type", "Reason", "Start Date", "End Date", "Days", "Status", "Approved By"],
-  ];
-  requests.forEach((r, i) => {
-    rows.push([
-      i + 1,
-      r.request_number,
-      LEAVE_TYPES.find(t => t.value === r.leave_type)?.label || r.leave_type,
-      r.reason,
-      formatDate(r.start_date),
-      formatDate(r.end_date),
-      r.total_days,
-      STATUS_CONFIG[r.status]?.label || r.status,
-      r.approved_by_name || "-",
-    ]);
-  });
-
-  const csv = rows.map(row => row.map(v => `"${v}"`).join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `Leave_Report_${CURRENT_USER.name.replace(/ /g,"_")}_${YEAR}.csv`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+function useToast() {
+  const [toasts, setToasts] = useState([]);
+  const add = useCallback((msg, type = "success") => {
+    const id = Date.now();
+    setToasts(p => [...p, { id, msg, type }]);
+    setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 3500);
+  }, []);
+  return { toasts, add };
 }
 
-function exportToPDFHtml(requests, summary, userName) {
-  const leaveTypeLabel = (v) => LEAVE_TYPES.find(t => t.value === v)?.label || v;
-  const rows = requests.map((r, i) => `
-    <tr style="background:${i%2===0?"#f8fafc":"#fff"}">
-      <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:center">${i+1}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;font-family:monospace;font-size:11px">${r.request_number}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0">${leaveTypeLabel(r.leave_type)}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0">${r.reason || "-"}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:center">${formatDate(r.start_date)}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:center">${formatDate(r.end_date)}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:center">${r.total_days}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:center">
-        <span style="background:${STATUS_CONFIG[r.status]?.bg};color:${STATUS_CONFIG[r.status]?.color};padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600">
-          ${STATUS_CONFIG[r.status]?.label || r.status}
-        </span>
-      </td>
-    </tr>`).join("");
-
-  const html = `<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
-<title>Annual Leave Recap ${YEAR} - ${userName}</title>
-<style>
-  @page { margin: 2cm; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; margin: 0; }
-  .header { background: #0B3D91; color: #fff; padding: 24px 30px; margin-bottom: 24px; }
-  .header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 700; }
-  .header p { margin: 0; font-size: 13px; opacity: 0.8; }
-  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
-  .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; }
-  .card-label { font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-  .card-value { font-size: 28px; font-weight: 700; color: #0B3D91; margin-top: 4px; }
-  h2 { font-size: 15px; font-weight: 700; color: #0B3D91; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; }
-  table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th { background: #0B3D91; color: #fff; padding: 10px; text-align: left; font-weight: 600; font-size: 11px; }
-  .footer { margin-top: 30px; font-size: 11px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 14px; }
-</style></head>
-<body>
-<div class="header">
-  <h1>PT Flotech Controls Indonesia</h1>
-  <p>Annual Leave Recap ${YEAR} — ${userName}</p>
-</div>
-<div class="grid">
-  <div class="card"><div class="card-label">Entitlement</div><div class="card-value">${summary.entitlement}</div></div>
-  <div class="card"><div class="card-label">Joint Leave</div><div class="card-value">${summary.jointLeave}</div></div>
-  <div class="card"><div class="card-label">Leave Taken</div><div class="card-value">${summary.annualTaken}</div></div>
-  <div class="card" style="background:#eff6ff"><div class="card-label">Balance</div><div class="card-value" style="color:#059669">${summary.balance}</div></div>
-</div>
-<h2>Leave History</h2>
-<table>
-  <thead><tr>
-    <th style="width:32px;text-align:center">#</th>
-    <th>Request No.</th><th>Type</th><th>Reason</th>
-    <th style="text-align:center">Start</th><th style="text-align:center">End</th>
-    <th style="text-align:center">Days</th><th style="text-align:center">Status</th>
-  </tr></thead>
-  <tbody>${rows || '<tr><td colspan="8" style="text-align:center;padding:20px;color:#94a3b8">No leave records found</td></tr>'}</tbody>
-</table>
-<div class="footer">Generated on ${new Date().toLocaleDateString("en-GB", {day:"2-digit",month:"long",year:"numeric"})} · PT Flotech Controls Indonesia Management System</div>
-</body></html>`;
-
-  const w = window.open("", "_blank");
-  w.document.write(html);
-  w.document.close();
-  setTimeout(() => { w.focus(); w.print(); }, 500);
-}
-
-// ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
-export default function LeaveManagement() {
-  const [tab, setTab] = useState("overview");
-  const [requests, setRequests] = useState([
-    {
-      id: 1, request_number: "LV-20260115-1042", user_id: 1,
-      leave_type: "annual", reason: "Family vacation",
-      start_date: "2026-01-20", end_date: "2026-01-22",
-      total_days: 3, status: "approved",
-      approved_by_name: "Admin", approved_at: "2026-01-10T08:00:00",
-      is_joint_leave: false, notes: "",
-    },
-    {
-      id: 2, request_number: "LV-20260310-5591", user_id: 1,
-      leave_type: "sick", reason: "Fever and flu",
-      start_date: "2026-03-10", end_date: "2026-03-11",
-      total_days: 2, status: "approved",
-      approved_by_name: "Admin", approved_at: "2026-03-10T09:30:00",
-      is_joint_leave: false, notes: "",
-    },
-  ]);
-  const [allUsers, setAllUsers] = useState([
-    { id: 1, name: "Christosun Billy Bulu Bora", role: "engineer" },
-    { id: 2, name: "Admin HR", role: "admin" },
-    { id: 3, name: "Budi Santoso", role: "engineer" },
-  ]);
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [filterType, setFilterType] = useState("all");
-  const [showForm, setShowForm] = useState(false);
-  const [showApprovalModal, setShowApprovalModal] = useState(null);
-  const [showDetailModal, setShowDetailModal] = useState(null);
-  const [viewMode, setViewMode] = useState("my"); // "my" | "all" (admin)
-
-  const isAdmin = CURRENT_USER.role === "admin";
-  const entitlement = 12;
-  const jointLeave = JOINT_LEAVE_SCHEDULE.length;
-
-  const myRequests = requests.filter(r => r.user_id === CURRENT_USER.id);
-  const annualTaken = myRequests.filter(r => r.status === "approved" && r.leave_type === "annual" && !r.is_joint_leave)
-    .reduce((s, r) => s + r.total_days, 0);
-  const balance = entitlement - annualTaken - jointLeave;
-
-  const displayRequests = viewMode === "all" && isAdmin ? requests : myRequests;
-  const filtered = displayRequests.filter(r => {
-    if (filterStatus !== "all" && r.status !== filterStatus) return false;
-    if (filterType !== "all" && r.leave_type !== filterType) return false;
-    return true;
-  });
-
-  const summary = { entitlement, jointLeave, annualTaken, balance };
-
+function ToastContainer({ toasts }) {
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Page Header */}
-      <div className="bg-white border-b border-gray-100 px-6 py-5 mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              🏖️ Leave Management
-            </h1>
-            <p className="text-sm text-gray-500 mt-0.5">
-              {YEAR} · {CURRENT_USER.name}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {isAdmin && (
-              <div className="flex bg-gray-100 rounded-xl p-1">
-                <button onClick={() => setViewMode("my")}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${viewMode === "my" ? "bg-white shadow text-[#0B3D91]" : "text-gray-500"}`}>
-                  My Leave
-                </button>
-                <button onClick={() => setViewMode("all")}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${viewMode === "all" ? "bg-white shadow text-[#0B3D91]" : "text-gray-500"}`}>
-                  All Employees
-                </button>
-              </div>
-            )}
-            <button onClick={() => exportToCSV(myRequests, summary)}
-              className="px-3 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-xl hover:bg-emerald-700 flex items-center gap-1.5 transition-all">
-              📊 Export Excel
-            </button>
-            <button onClick={() => exportToPDFHtml(myRequests, summary, CURRENT_USER.name)}
-              className="px-3 py-2 bg-rose-600 text-white text-xs font-semibold rounded-xl hover:bg-rose-700 flex items-center gap-1.5 transition-all">
-              📄 Export PDF
-            </button>
-            <button onClick={() => setShowForm(true)}
-              className="px-4 py-2 bg-[#0B3D91] text-white text-xs font-bold rounded-xl hover:bg-[#1E5CC6] flex items-center gap-1.5 transition-all shadow-sm">
-              + Request Leave
-            </button>
-          </div>
+    <div className="fixed bottom-5 right-5 z-[100] flex flex-col gap-2 pointer-events-none">
+      {toasts.map(t => (
+        <div key={t.id} className={`flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-2xl text-sm font-semibold
+          ${t.type === "success" ? "bg-emerald-600 text-white" : "bg-red-600 text-white"}`}>
+          {t.type === "success" ? "✅" : "❌"} {t.msg}
         </div>
-      </div>
-
-      <div className="px-4 lg:px-6 space-y-6">
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <SummaryCard label="Annual Entitlement" value={entitlement} icon="📋" color="#0B3D91" suffix="days" />
-          <SummaryCard label="Joint Leave" value={jointLeave} icon="🤝" color="#7c3aed" suffix="days" />
-          <SummaryCard label="Leave Taken" value={annualTaken} icon="✈️" color="#d97706" suffix="days" />
-          <SummaryCard label="Balance" value={balance} icon="💚" color="#059669" suffix="days" highlight />
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit">
-          {[
-            { id: "overview", label: "Overview", icon: "📊" },
-            { id: "history", label: "Leave History", icon: "📋" },
-            { id: "joint", label: "Joint Leave Schedule", icon: "🤝" },
-            ...(isAdmin ? [{ id: "pending", label: `Approvals ${requests.filter(r=>r.status==="pending").length > 0 ? `(${requests.filter(r=>r.status==="pending").length})` : ""}`, icon: "⏳" }] : []),
-          ].map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              className={`px-3 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5
-                ${tab === t.id ? "bg-white shadow text-[#0B3D91]" : "text-gray-500 hover:text-gray-700"}`}>
-              {t.icon} {t.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab Content */}
-        {tab === "overview" && (
-          <OverviewTab myRequests={myRequests} summary={summary} />
-        )}
-
-        {tab === "history" && (
-          <HistoryTab
-            requests={filtered}
-            allRequests={displayRequests}
-            filterStatus={filterStatus} setFilterStatus={setFilterStatus}
-            filterType={filterType} setFilterType={setFilterType}
-            onDetail={setShowDetailModal}
-            isAdmin={isAdmin}
-            viewMode={viewMode}
-            allUsers={allUsers}
-          />
-        )}
-
-        {tab === "joint" && (
-          <JointLeaveTab schedule={JOINT_LEAVE_SCHEDULE} />
-        )}
-
-        {tab === "pending" && isAdmin && (
-          <PendingApprovalsTab
-            requests={requests.filter(r => r.status === "pending")}
-            onApprove={(id, approved, reason) => {
-              setRequests(prev => prev.map(r => r.id === id ? {
-                ...r,
-                status: approved ? "approved" : "rejected",
-                approved_by_name: CURRENT_USER.name,
-                approved_at: new Date().toISOString(),
-                rejection_reason: reason,
-              } : r));
-              setShowApprovalModal(null);
-            }}
-            setShowApprovalModal={setShowApprovalModal}
-          />
-        )}
-      </div>
-
-      {/* Modals */}
-      {showForm && (
-        <RequestLeaveModal
-          onClose={() => setShowForm(false)}
-          onSubmit={(data) => {
-            const req = {
-              ...data, id: Date.now(), user_id: CURRENT_USER.id,
-              request_number: genReqNumber(), status: "pending",
-              approved_by_name: null, approved_at: null,
-            };
-            setRequests(prev => [req, ...prev]);
-            setShowForm(false);
-          }}
-        />
-      )}
-      {showDetailModal && (
-        <DetailModal request={showDetailModal} onClose={() => setShowDetailModal(null)} />
-      )}
-      {showApprovalModal && (
-        <ApprovalModal
-          request={showApprovalModal}
-          onClose={() => setShowApprovalModal(null)}
-          onDecide={(approved, reason) => {
-            setRequests(prev => prev.map(r => r.id === showApprovalModal.id ? {
-              ...r,
-              status: approved ? "approved" : "rejected",
-              approved_by_name: CURRENT_USER.name,
-              approved_at: new Date().toISOString(),
-              rejection_reason: reason,
-            } : r));
-            setShowApprovalModal(null);
-          }}
-        />
-      )}
+      ))}
     </div>
   );
 }
 
-// ─── SUMMARY CARD ─────────────────────────────────────────────────────────────
-function SummaryCard({ label, value, icon, color, suffix, highlight }) {
+// ─── TINY UI PIECES ────────────────────────────────────────────────────────────
+function Badge({ status }) {
+  const c = STATUS[status] || STATUS.pending;
+  return (
+    <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap"
+      style={{ color: c.color, background: c.bg }}>
+      {c.icon} {c.label}
+    </span>
+  );
+}
+
+function StatCard({ label, value, icon, color, highlight, sub }) {
   return (
     <div className={`bg-white rounded-2xl border ${highlight ? "border-emerald-200 shadow-emerald-50" : "border-gray-100"} shadow-sm p-4 lg:p-5`}>
       <div className="flex items-start justify-between mb-3">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
-          style={{ background: color + "15" }}>
-          {icon}
-        </div>
-        {highlight && <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">REMAINING</span>}
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: color + "18" }}>{icon}</div>
+        {highlight && <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full tracking-wide">SISA</span>}
       </div>
-      <p className="text-3xl font-black" style={{ color }}>{value}</p>
-      <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mt-0.5">{label}</p>
-      <p className="text-xs text-gray-400">{suffix} · {YEAR}</p>
+      <p className="text-3xl font-black tabular-nums" style={{ color }}>{value}</p>
+      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">{label}</p>
+      <p className="text-xs text-gray-400">{sub || "hari"}</p>
     </div>
   );
 }
 
-// ─── OVERVIEW TAB ─────────────────────────────────────────────────────────────
-function OverviewTab({ myRequests, summary }) {
-  const approvedCount = myRequests.filter(r => r.status === "approved").length;
-  const pendingCount = myRequests.filter(r => r.status === "pending").length;
-  const progress = Math.min(((summary.annualTaken + summary.jointLeave) / summary.entitlement) * 100, 100);
+function Spinner({ className = "h-40" }) {
+  return (
+    <div className={`flex items-center justify-center ${className}`}>
+      <div className="w-8 h-8 border-2 border-[#0B3D91] border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
+
+const INPUT = "w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#0B3D91] focus:ring-2 focus:ring-blue-50 bg-white transition-all";
+const LABEL = "block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5";
+
+// ─── MODAL WRAPPER ────────────────────────────────────────────────────────────
+function Modal({ onClose, title, children, maxW = "max-w-md" }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className={`bg-white rounded-2xl shadow-2xl w-full ${maxW} max-h-[92vh] flex flex-col`}>
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+          <h2 className="text-base font-bold text-gray-900">{title}</h2>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 text-xl transition-colors">✕</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─── REQUEST LEAVE MODAL ──────────────────────────────────────────────────────
+function RequestModal({ onClose, onSubmit, balance }) {
+  const [form, setForm] = useState({ leave_type: "annual", reason: "", start_date: "", end_date: "", notes: "" });
+  const [busy, setBusy] = useState(false);
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const lt   = LEAVE_TYPES.find(t => t.value === form.leave_type);
+  const days = calcWorkingDays(form.start_date, form.end_date || form.start_date);
+  const overQuota = form.leave_type === "annual" && days > balance;
+
+  const submit = async () => {
+    if (!form.reason.trim()) return;
+    if (!form.start_date) return;
+    if (overQuota) return;
+    setBusy(true);
+    try { await onSubmit({ ...form, end_date: form.end_date || form.start_date }); onClose(); }
+    catch (e) { alert(e.response?.data?.error || "Gagal mengirim"); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <Modal onClose={onClose} title="🏖️ Request Leave">
+      <div className="p-5 space-y-4 overflow-y-auto flex-1">
+        {/* Type grid */}
+        <div>
+          <label className={LABEL}>Jenis Cuti</label>
+          <div className="grid grid-cols-2 gap-2">
+            {LEAVE_TYPES.map(t => (
+              <button key={t.value} onClick={() => set("leave_type", t.value)}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all text-left
+                  ${form.leave_type === t.value ? "border-[#0B3D91] bg-blue-50 text-[#0B3D91]" : "border-gray-200 text-gray-600 hover:border-gray-300"}`}>
+                <span className="text-base flex-shrink-0">{t.icon}</span>
+                <span className="truncate">{t.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Reason */}
+        <div>
+          <label className={LABEL}>Alasan / Keterangan *</label>
+          <textarea value={form.reason} onChange={e => set("reason", e.target.value)}
+            rows={3} placeholder="Jelaskan alasan cuti…" className={INPUT + " resize-none"} />
+        </div>
+
+        {/* Dates */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={LABEL}>Tanggal Mulai *</label>
+            <input type="date" value={form.start_date}
+              onChange={e => { set("start_date", e.target.value); if (!form.end_date) set("end_date", e.target.value); }}
+              className={INPUT} />
+          </div>
+          <div>
+            <label className={LABEL}>Tanggal Selesai</label>
+            <input type="date" value={form.end_date} min={form.start_date} onChange={e => set("end_date", e.target.value)} className={INPUT} />
+          </div>
+        </div>
+
+        {/* Days preview */}
+        {form.start_date && (
+          <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${overQuota ? "bg-red-50 border-red-200" : "bg-blue-50 border-blue-100"}`}>
+            <span className="text-2xl">{lt?.icon}</span>
+            <div>
+              <p className={`text-sm font-black ${overQuota ? "text-red-600" : "text-[#0B3D91]"}`}>{days} hari kerja</p>
+              {form.leave_type === "annual" && (
+                <p className="text-[11px] text-gray-500">Saldo tersedia: <span className="font-bold">{balance} hari</span></p>
+              )}
+            </div>
+            {overQuota && <span className="ml-auto text-xs text-red-600 font-bold">Melebihi saldo!</span>}
+          </div>
+        )}
+
+        {/* Notes */}
+        <div>
+          <label className={LABEL}>Catatan (opsional)</label>
+          <input type="text" value={form.notes} onChange={e => set("notes", e.target.value)}
+            placeholder="e.g. sudah koordinasi dengan tim" className={INPUT} />
+        </div>
+      </div>
+
+      <div className="px-5 py-4 border-t border-gray-100 flex gap-3 flex-shrink-0">
+        <button onClick={onClose} className="flex-1 py-2.5 border border-gray-200 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-50">Batal</button>
+        <button onClick={submit} disabled={busy || overQuota || !form.reason.trim() || !form.start_date}
+          className="flex-1 py-2.5 bg-[#0B3D91] text-white text-sm font-bold rounded-xl hover:bg-[#0a3280] disabled:opacity-40 flex items-center justify-center gap-2">
+          {busy && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+          Kirim Permohonan
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── DETAIL MODAL ─────────────────────────────────────────────────────────────
+function DetailModal({ req: r, onClose }) {
+  const lt = LEAVE_TYPES.find(t => t.value === r.leave_type);
+  const rows = [
+    ["No. Permohonan",   r.request_number],
+    ["Jenis Cuti",       `${lt?.icon || ""} ${lt?.label || r.leave_type}`],
+    ["Alasan",           r.reason],
+    ["Tanggal Mulai",    fmtDate(r.start_date)],
+    ["Tanggal Selesai",  fmtDate(r.end_date)],
+    ["Total Hari Kerja", `${r.total_days} hari`],
+    ["Status",           <Badge key="s" status={r.status} />],
+    ...(r.requester_name ? [["Pemohon", r.requester_name]] : []),
+    ...(r.approved_by_name ? [["Diputuskan oleh", r.approved_by_name]] : []),
+    ...(r.approved_at ? [["Waktu Keputusan", fmtDatetime(r.approved_at)]] : []),
+    ...(r.rejection_reason ? [["Alasan Penolakan", <span key="rr" className="text-red-600 font-semibold">{r.rejection_reason}</span>]] : []),
+    ...(r.notes ? [["Catatan", r.notes]] : []),
+    ["Diajukan pada", fmtDatetime(r.created_at)],
+  ];
+
+  return (
+    <Modal onClose={onClose} title="Detail Permohonan Cuti" maxW="max-w-sm">
+      <div className="p-5 space-y-1 overflow-y-auto flex-1">
+        {rows.map(([lbl, val], i) => (
+          <div key={i} className="flex justify-between gap-3 py-1.5 border-b border-gray-50 last:border-0 items-start">
+            <span className="text-[11px] text-gray-400 font-semibold flex-shrink-0 pt-0.5">{lbl}</span>
+            <span className="text-xs text-gray-700 font-medium text-right">{val}</span>
+          </div>
+        ))}
+      </div>
+      <div className="px-5 py-4 border-t border-gray-100 flex-shrink-0">
+        <button onClick={onClose} className="w-full py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200">Tutup</button>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── APPROVAL MODAL ───────────────────────────────────────────────────────────
+function ApprovalModal({ req: r, onClose, onDecide }) {
+  const [mode, setMode]         = useState(null); // null | "reject"
+  const [reason, setReason]     = useState("");
+  const [busy, setBusy]         = useState(false);
+  const lt = LEAVE_TYPES.find(t => t.value === r.leave_type);
+
+  const decide = async (approved) => {
+    if (!approved && !reason.trim()) return;
+    setBusy(true);
+    try { await onDecide(r.id, approved, reason); onClose(); }
+    catch (e) { alert(e.response?.data?.error || "Gagal"); setBusy(false); }
+  };
+
+  return (
+    <Modal onClose={onClose} title="⚖️ Review Permohonan">
+      <div className="p-5 space-y-4 flex-1 overflow-y-auto">
+        {/* Request summary card */}
+        <div className="p-4 rounded-xl bg-amber-50 border border-amber-100">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-2xl">{lt?.icon}</span>
+            <div>
+              <p className="font-black text-gray-800 text-sm">{r.requester_name || `User #${r.user_id}`}</p>
+              <p className="text-xs text-gray-500">{lt?.label}</p>
+            </div>
+          </div>
+          <div className="space-y-1 text-xs text-gray-700">
+            <p><span className="font-semibold text-gray-500">Alasan:</span> {r.reason}</p>
+            <p><span className="font-semibold text-gray-500">Durasi:</span> {fmtDate(r.start_date)} – {fmtDate(r.end_date)} <span className="font-black text-[#0B3D91]">({r.total_days} hari)</span></p>
+            {r.notes && <p><span className="font-semibold text-gray-500">Catatan:</span> {r.notes}</p>}
+          </div>
+          <p className="text-[10px] font-mono text-gray-400 mt-2">{r.request_number}</p>
+        </div>
+
+        {mode === "reject" && (
+          <div>
+            <label className={LABEL}>Alasan Penolakan *</label>
+            <textarea value={reason} onChange={e => setReason(e.target.value)} rows={3}
+              placeholder="Jelaskan alasan penolakan permohonan ini…"
+              className={INPUT + " resize-none"} />
+          </div>
+        )}
+      </div>
+
+      <div className="px-5 py-4 border-t border-gray-100 flex gap-3 flex-shrink-0">
+        {!mode ? (
+          <>
+            <button onClick={() => setMode("reject")}
+              className="flex-1 py-2.5 border-2 border-red-200 bg-red-50 text-red-600 text-sm font-bold rounded-xl hover:bg-red-100 transition-all">
+              ❌ Tolak
+            </button>
+            <button onClick={() => decide(true)} disabled={busy}
+              className="flex-1 py-2.5 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2">
+              {busy && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+              ✅ Setujui
+            </button>
+          </>
+        ) : (
+          <>
+            <button onClick={() => { setMode(null); setReason(""); }}
+              className="flex-1 py-2.5 border border-gray-200 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-50">
+              ← Kembali
+            </button>
+            <button onClick={() => decide(false)} disabled={busy || !reason.trim()}
+              className="flex-1 py-2.5 bg-red-600 text-white text-sm font-bold rounded-xl hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2">
+              {busy && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+              Konfirmasi Tolak
+            </button>
+          </>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+// ─── ADD JOINT LEAVE MODAL ────────────────────────────────────────────────────
+function JointScheduleModal({ onClose, onSaved, year }) {
+  const [name, setName] = useState("");
+  const [date, setDate] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const save = async () => {
+    if (!name.trim() || !date) return;
+    setBusy(true);
+    try {
+      await API.post("/leave/joint-schedule/create", { name, date, year });
+      onSaved(); onClose();
+    } catch (e) { alert(e.response?.data?.error || "Gagal menyimpan"); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <Modal onClose={onClose} title={`➕ Tambah Cuti Bersama ${year}`} maxW="max-w-sm">
+      <div className="p-5 space-y-4 flex-1">
+        <div>
+          <label className={LABEL}>Nama / Keterangan *</label>
+          <input type="text" value={name} onChange={e => setName(e.target.value)}
+            placeholder="e.g. Cuti Bersama Idul Fitri" className={INPUT} autoFocus />
+        </div>
+        <div>
+          <label className={LABEL}>Tanggal *</label>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)} className={INPUT} />
+        </div>
+      </div>
+      <div className="px-5 py-4 border-t border-gray-100 flex gap-3 flex-shrink-0">
+        <button onClick={onClose} className="flex-1 py-2.5 border border-gray-200 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-50">Batal</button>
+        <button onClick={save} disabled={busy || !name.trim() || !date}
+          className="flex-1 py-2.5 bg-[#0B3D91] text-white text-sm font-bold rounded-xl hover:bg-[#0a3280] disabled:opacity-40 flex items-center justify-center gap-2">
+          {busy && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+          Simpan
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── ENTITLEMENT MODAL (ADMIN) ────────────────────────────────────────────────
+function EntitlementModal({ users, year, onClose, onSaved }) {
+  const [vals, setVals]   = useState({});
+  const [busy, setBusy]   = useState(null); // userId being saved
+
+  useEffect(() => {
+    // Fetch current entitlements for all users
+    Promise.all(
+      users.map(u => API.get(`/leave/summary?year=${year}`)
+        .then(r => ({ userId: u.id, days: r.data.entitlement }))
+        .catch(() => ({ userId: u.id, days: 12 }))
+      )
+    ).then(results => {
+      const map = {};
+      results.forEach(r => { map[r.userId] = r.days; });
+      setVals(map);
+    });
+  }, [users, year]);
+
+  const save = async (userId) => {
+    setBusy(userId);
+    try {
+      await API.put(`/leave/entitlement/${userId}`, { year, entitlement_days: parseInt(vals[userId] ?? 12) });
+      onSaved();
+    } catch { alert("Gagal menyimpan"); }
+    finally { setBusy(null); }
+  };
+
+  return (
+    <Modal onClose={onClose} title={`⚙️ Hak Cuti Karyawan ${year}`} maxW="max-w-md">
+      <div className="p-5 flex-1 overflow-y-auto space-y-2">
+        <p className="text-xs text-gray-400 mb-3">Atur jumlah hari cuti tahunan per karyawan. Default: 12 hari.</p>
+        {users.length === 0 && <p className="text-sm text-gray-400 text-center py-8">Tidak ada data karyawan</p>}
+        {users.map(u => (
+          <div key={u.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-blue-100 transition-colors">
+            <div className="w-9 h-9 bg-gradient-to-br from-[#0B3D91] to-[#1E5CC6] rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-xs font-black">{u.name.charAt(0).toUpperCase()}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-800 truncate">{u.name}</p>
+              <p className="text-[10px] text-gray-400 capitalize">{u.role}</p>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <input type="number" min={1} max={30}
+                value={vals[u.id] ?? 12}
+                onChange={e => setVals(p => ({ ...p, [u.id]: e.target.value }))}
+                className="w-14 text-center text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#0B3D91]" />
+              <span className="text-[10px] text-gray-400">hr</span>
+              <button onClick={() => save(u.id)} disabled={busy === u.id}
+                className="w-8 h-8 flex items-center justify-center bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 flex-shrink-0">
+                {busy === u.id
+                  ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  : <span className="text-xs font-black">✓</span>}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="px-5 py-4 border-t border-gray-100 flex-shrink-0">
+        <button onClick={onClose} className="w-full py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200">Tutup</button>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── TAB: OVERVIEW ────────────────────────────────────────────────────────────
+function OverviewTab({ myReqs, summary }) {
+  const used    = (summary.annual_taken || 0) + (summary.joint_leave || 0);
+  const total   = summary.entitlement || 12;
+  const pct     = Math.min((used / total) * 100, 100);
 
   const byType = LEAVE_TYPES.map(lt => ({
     ...lt,
-    count: myRequests.filter(r => r.leave_type === lt.value && r.status === "approved").length,
-    days: myRequests.filter(r => r.leave_type === lt.value && r.status === "approved").reduce((s, r) => s + r.total_days, 0),
+    days: myReqs.filter(r => r.leave_type === lt.value && r.status === "approved").reduce((s, r) => s + r.total_days, 0),
   })).filter(lt => lt.days > 0);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      {/* Leave Balance */}
+      {/* Balance bar card */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
-          📊 Leave Balance {YEAR}
-        </h3>
-        <div className="space-y-4">
-          <div>
-            <div className="flex justify-between text-xs mb-2">
-              <span className="text-gray-500 font-medium">Annual Leave Used</span>
-              <span className="font-bold text-gray-700">{summary.annualTaken + summary.jointLeave} / {summary.entitlement} days</span>
-            </div>
-            <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-[#0B3D91] to-[#1E5CC6] rounded-full transition-all duration-700"
-                style={{ width: `${progress}%` }} />
-            </div>
-            <div className="flex justify-between text-[10px] text-gray-400 mt-1">
-              <span>{progress.toFixed(0)}% used</span>
-              <span>{summary.balance} days remaining</span>
-            </div>
+        <h3 className="text-sm font-black text-gray-800 mb-4 flex items-center gap-2">📊 Saldo Cuti Tahunan</h3>
+        <div className="mb-5">
+          <div className="flex justify-between text-xs text-gray-500 mb-1.5">
+            <span>Terpakai ({used} hari)</span>
+            <span>Total ({total} hari)</span>
           </div>
-
-          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-gray-50">
-            {[
-              { label: "Entitlement", val: summary.entitlement, color: "#0B3D91" },
-              { label: "Joint Leave", val: summary.jointLeave, color: "#7c3aed" },
-              { label: "Annual Taken", val: summary.annualTaken, color: "#d97706" },
-            ].map(item => (
-              <div key={item.label} className="text-center p-2 rounded-xl bg-gray-50">
-                <p className="text-xl font-black" style={{ color: item.color }}>{item.val}</p>
-                <p className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider mt-0.5">{item.label}</p>
-              </div>
-            ))}
+          <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-full rounded-full bg-gradient-to-r from-[#0B3D91] to-[#1E5CC6] transition-all duration-700"
+              style={{ width: `${pct}%` }} />
+          </div>
+          <div className="flex justify-between text-[10px] text-gray-400 mt-1.5">
+            <span>{summary.annual_taken || 0} cuti + {summary.joint_leave || 0} cuti bersama</span>
+            <span className="font-black text-emerald-600">Sisa: {summary.balance ?? 0} hari</span>
           </div>
         </div>
+        {[
+          ["Hak Cuti Tahunan",   total,                    "#0B3D91"],
+          ["Cuti Bersama",       summary.joint_leave || 0, "#7c3aed"],
+          ["Cuti Tahunan Diambil", summary.annual_taken || 0, "#d97706"],
+          ["Saldo Tersisa",      summary.balance ?? 0,     "#059669"],
+        ].map(([lbl, val, clr]) => (
+          <div key={lbl} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+            <span className="text-xs text-gray-600">{lbl}</span>
+            <span className="text-sm font-black tabular-nums" style={{ color: clr }}>
+              {val} <span className="text-gray-400 font-normal text-xs">hari</span>
+            </span>
+          </div>
+        ))}
       </div>
 
-      {/* Status Overview */}
+      {/* Usage by type */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
-          🎯 Request Status
-        </h3>
-        <div className="space-y-3">
-          {[
-            { label: "Total Requests", val: myRequests.length, icon: "📋", color: "#0B3D91" },
-            { label: "Approved", val: approvedCount, icon: "✅", color: "#059669" },
-            { label: "Pending", val: pendingCount, icon: "⏳", color: "#d97706" },
-            { label: "Rejected", val: myRequests.filter(r=>r.status==="rejected").length, icon: "❌", color: "#dc2626" },
-          ].map(item => (
-            <div key={item.label} className="flex items-center gap-3">
-              <span className="text-lg w-7 text-center">{item.icon}</span>
-              <div className="flex-1">
-                <div className="flex justify-between items-center mb-0.5">
-                  <span className="text-xs text-gray-600 font-medium">{item.label}</span>
-                  <span className="text-sm font-bold" style={{ color: item.color }}>{item.val}</span>
-                </div>
-                <div className="h-1.5 bg-gray-100 rounded-full">
-                  <div className="h-full rounded-full transition-all" style={{
-                    width: myRequests.length > 0 ? `${(item.val/myRequests.length)*100}%` : "0%",
-                    background: item.color
-                  }} />
-                </div>
+        <h3 className="text-sm font-black text-gray-800 mb-4">📋 Penggunaan per Jenis</h3>
+        {byType.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-40 text-gray-400">
+            <span className="text-4xl mb-2">🏖️</span>
+            <p className="text-sm">Belum ada cuti diambil</p>
+          </div>
+        ) : byType.map(lt => (
+          <div key={lt.value} className="flex items-center gap-3 mb-3 last:mb-0">
+            <span className="text-xl">{lt.icon}</span>
+            <div className="flex-1">
+              <div className="flex justify-between text-xs mb-1">
+                <span className="font-semibold text-gray-700">{lt.label}</span>
+                <span className="font-black tabular-nums" style={{ color: lt.color }}>{lt.days} hari</span>
+              </div>
+              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all" style={{ width: `${Math.min((lt.days / total) * 100, 100)}%`, background: lt.color }} />
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
 
-      {/* Leave by Type */}
-      {byType.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 lg:col-span-2">
-          <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
-            📈 Leave by Type (Approved)
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            {byType.map(lt => (
-              <div key={lt.value} className="text-center p-3 rounded-xl border border-gray-100 hover:shadow-sm transition-all">
-                <span className="text-2xl">{lt.icon}</span>
-                <p className="text-2xl font-black mt-1" style={{ color: lt.color }}>{lt.days}</p>
-                <p className="text-[10px] text-gray-500 font-semibold">{lt.label}</p>
-                <p className="text-[9px] text-gray-400">{lt.count} request{lt.count !== 1 ? "s" : ""}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Recent Activity */}
+      {/* Recent activity */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 lg:col-span-2">
-        <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
-          🕒 Recent Activity
-        </h3>
-        {myRequests.length === 0 ? (
-          <div className="text-center py-8 text-gray-400">
-            <p className="text-3xl mb-2">🏖️</p>
-            <p className="text-sm">No leave requests yet</p>
+        <h3 className="text-sm font-black text-gray-800 mb-4">🕒 Aktivitas Terbaru</h3>
+        {myReqs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+            <span className="text-4xl mb-2">🏖️</span><p className="text-sm">Belum ada permohonan cuti</p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {myRequests.slice(0, 5).map(r => {
+          <div className="space-y-1.5">
+            {myReqs.slice(0, 6).map(r => {
               const lt = LEAVE_TYPES.find(t => t.value === r.leave_type);
-              const sc = STATUS_CONFIG[r.status];
               return (
                 <div key={r.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-all">
-                  <span className="text-xl">{lt?.icon || "📋"}</span>
+                  <span className="text-xl">{lt?.icon}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-800">{lt?.label || r.leave_type}</p>
-                    <p className="text-xs text-gray-400">{formatDate(r.start_date)} · {r.total_days} day{r.total_days!==1?"s":""}</p>
+                    <p className="text-sm font-semibold text-gray-800 truncate">{lt?.label}</p>
+                    <p className="text-xs text-gray-400">{fmtDate(r.start_date)} · {r.total_days} hari</p>
                   </div>
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-full"
-                    style={{ color: sc?.color, background: sc?.bg }}>
-                    {sc?.icon} {sc?.label}
-                  </span>
+                  <Badge status={r.status} />
                 </div>
               );
             })}
@@ -512,88 +522,94 @@ function OverviewTab({ myRequests, summary }) {
   );
 }
 
-// ─── HISTORY TAB ──────────────────────────────────────────────────────────────
-function HistoryTab({ requests, allRequests, filterStatus, setFilterStatus, filterType, setFilterType, onDetail, isAdmin, viewMode, allUsers }) {
+// ─── TAB: HISTORY ─────────────────────────────────────────────────────────────
+function HistoryTab({ myReqs, allReqs, isAdmin, onDetail, onDelete }) {
+  const [viewMode,     setViewMode]     = useState("my");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterType,   setFilterType]   = useState("all");
+
+  const base     = (viewMode === "all" && isAdmin) ? allReqs : myReqs;
+  const filtered = base.filter(r =>
+    (filterStatus === "all" || r.status === filterStatus) &&
+    (filterType   === "all" || r.leave_type === filterType)
+  );
+
   return (
     <div className="space-y-4">
-      {/* Filters */}
+      {/* Filter bar */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-wrap gap-3 items-center">
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-gray-500 font-semibold">Status:</label>
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-            className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:border-[#0B3D91]">
-            <option value="all">All Status</option>
-            {Object.entries(STATUS_CONFIG).map(([k, v]) => (
-              <option key={k} value={k}>{v.label}</option>
+        {isAdmin && (
+          <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+            {[["my","Saya"],["all","Semua Karyawan"]].map(([v, l]) => (
+              <button key={v} onClick={() => setViewMode(v)}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${viewMode === v ? "bg-white shadow text-[#0B3D91]" : "text-gray-400 hover:text-gray-600"}`}>
+                {l}
+              </button>
             ))}
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-gray-500 font-semibold">Type:</label>
-          <select value={filterType} onChange={e => setFilterType(e.target.value)}
-            className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:border-[#0B3D91]">
-            <option value="all">All Types</option>
-            {LEAVE_TYPES.map(lt => <option key={lt.value} value={lt.value}>{lt.label}</option>)}
-          </select>
-        </div>
-        <span className="text-xs text-gray-400 ml-auto">{requests.length} record{requests.length !== 1 ? "s" : ""}</span>
+          </div>
+        )}
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+          className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#0B3D91] bg-white">
+          <option value="all">Semua Status</option>
+          {Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+        </select>
+        <select value={filterType} onChange={e => setFilterType(e.target.value)}
+          className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#0B3D91] bg-white">
+          <option value="all">Semua Jenis</option>
+          {LEAVE_TYPES.map(lt => <option key={lt.value} value={lt.value}>{lt.icon} {lt.label}</option>)}
+        </select>
+        <span className="text-xs text-gray-400 ml-auto">{filtered.length} record</span>
       </div>
 
       {/* Table */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Desktop */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-[#0B3D91] text-white">
-                {isAdmin && viewMode === "all" && <th className="text-left px-4 py-3 text-xs font-semibold">Employee</th>}
-                <th className="text-left px-4 py-3 text-xs font-semibold">Request No.</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold">Type</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold">Reason</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold">Start</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold">End</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold">Days</th>
+                {isAdmin && viewMode === "all" && <th className="text-left px-4 py-3 text-xs font-semibold">Karyawan</th>}
+                <th className="text-left px-4 py-3 text-xs font-semibold">No. Permohonan</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold">Jenis</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold">Alasan</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold">Mulai</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold">Selesai</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold">Hari</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold">Status</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold">Action</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold">Aksi</th>
               </tr>
             </thead>
             <tbody>
-              {requests.length === 0 ? (
-                <tr><td colSpan={isAdmin && viewMode === "all" ? 9 : 8} className="text-center py-12 text-gray-400">
-                  <p className="text-3xl mb-2">📋</p>
-                  <p className="text-sm">No leave records found</p>
+              {filtered.length === 0 ? (
+                <tr><td colSpan={9} className="text-center py-12 text-gray-400">
+                  <p className="text-3xl mb-2">📋</p><p className="text-sm">Tidak ada data</p>
                 </td></tr>
-              ) : requests.map((r, i) => {
+              ) : filtered.map((r, i) => {
                 const lt = LEAVE_TYPES.find(t => t.value === r.leave_type);
-                const sc = STATUS_CONFIG[r.status];
-                const emp = allUsers.find(u => u.id === r.user_id);
+                const isOwn = String(r.user_id) === localStorage.getItem("user_id");
                 return (
-                  <tr key={r.id} className={`${i % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-blue-50 transition-all border-b border-gray-50`}>
+                  <tr key={r.id} className={`${i % 2 === 0 ? "bg-white" : "bg-gray-50/60"} hover:bg-blue-50/50 transition-all border-b border-gray-50`}>
                     {isAdmin && viewMode === "all" && (
-                      <td className="px-4 py-3 text-xs font-semibold text-gray-700">{emp?.name || `User #${r.user_id}`}</td>
+                      <td className="px-4 py-3 text-xs font-semibold text-gray-700">{r.requester_name || `—`}</td>
                     )}
-                    <td className="px-4 py-3 font-mono text-[11px] text-gray-500">{r.request_number}</td>
+                    <td className="px-4 py-3 font-mono text-[11px] text-gray-400">{r.request_number}</td>
                     <td className="px-4 py-3">
-                      <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: lt?.color }}>
+                      <span className="flex items-center gap-1.5 text-xs font-bold" style={{ color: lt?.color }}>
                         {lt?.icon} {lt?.label || r.leave_type}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-600 max-w-[200px] truncate">{r.reason || "-"}</td>
-                    <td className="px-4 py-3 text-xs text-center text-gray-600">{formatDate(r.start_date)}</td>
-                    <td className="px-4 py-3 text-xs text-center text-gray-600">{formatDate(r.end_date)}</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className="text-sm font-bold text-gray-700">{r.total_days}</span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className="text-xs font-bold px-2.5 py-1 rounded-full"
-                        style={{ color: sc?.color, background: sc?.bg }}>
-                        {sc?.icon} {sc?.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <button onClick={() => onDetail(r)}
-                        className="text-xs text-[#0B3D91] font-semibold hover:underline">
-                        View
-                      </button>
+                    <td className="px-4 py-3 text-xs text-gray-600 max-w-[180px] truncate">{r.reason}</td>
+                    <td className="px-4 py-3 text-xs text-center text-gray-600 whitespace-nowrap">{fmtDate(r.start_date)}</td>
+                    <td className="px-4 py-3 text-xs text-center text-gray-600 whitespace-nowrap">{fmtDate(r.end_date)}</td>
+                    <td className="px-4 py-3 text-center font-black text-gray-700">{r.total_days}</td>
+                    <td className="px-4 py-3 text-center"><Badge status={r.status} /></td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-center gap-2">
+                        <button onClick={() => onDetail(r)} className="text-xs text-[#0B3D91] font-bold hover:underline">Detail</button>
+                        {r.status === "pending" && (isOwn || isAdmin) && (
+                          <button onClick={() => onDelete(r.id)} className="text-xs text-red-400 font-bold hover:text-red-600">Batal</button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -601,90 +617,133 @@ function HistoryTab({ requests, allRequests, filterStatus, setFilterStatus, filt
             </tbody>
           </table>
         </div>
+        {/* Mobile cards */}
+        <div className="md:hidden divide-y divide-gray-100">
+          {filtered.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+              <p className="text-3xl mb-2">📋</p><p className="text-sm">Tidak ada data</p>
+            </div>
+          ) : filtered.map(r => {
+            const lt = LEAVE_TYPES.find(t => t.value === r.leave_type);
+            return (
+              <div key={r.id} className="p-4 hover:bg-blue-50/30 cursor-pointer transition-colors" onClick={() => onDetail(r)}>
+                <div className="flex items-start justify-between gap-2 mb-1.5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xl">{lt?.icon}</span>
+                    <div>
+                      <p className="text-sm font-bold text-gray-800">{lt?.label}</p>
+                      {isAdmin && viewMode === "all" && <p className="text-xs text-gray-500">{r.requester_name}</p>}
+                    </div>
+                  </div>
+                  <Badge status={r.status} />
+                </div>
+                <p className="text-xs text-gray-400 ml-8">{fmtDate(r.start_date)} – {fmtDate(r.end_date)} · <span className="font-bold">{r.total_days} hari</span></p>
+                <p className="text-xs text-gray-400 ml-8 truncate">{r.reason}</p>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
 }
 
-// ─── JOINT LEAVE TAB ──────────────────────────────────────────────────────────
-function JointLeaveTab({ schedule }) {
+// ─── TAB: JOINT LEAVE ─────────────────────────────────────────────────────────
+function JointLeaveTab({ schedule, isAdmin, onAdd, onDelete, year }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-bold text-gray-800">Joint Leave Schedule {YEAR}</h3>
-          <p className="text-xs text-gray-400 mt-0.5">Company-mandated joint leave days — deducted from annual entitlement</p>
+          <h3 className="text-sm font-black text-gray-800">Jadwal Cuti Bersama {year}</h3>
+          <p className="text-xs text-gray-400 mt-0.5">{schedule.length} hari — memotong hak cuti tahunan</p>
         </div>
-        <span className="text-xs font-bold bg-purple-100 text-purple-700 px-3 py-1.5 rounded-full">
-          Total: {schedule.length} days
-        </span>
+        {isAdmin && (
+          <button onClick={onAdd}
+            className="px-3 py-2 bg-[#0B3D91] text-white text-xs font-bold rounded-xl hover:bg-[#1E5CC6] flex items-center gap-1.5 transition-all">
+            ➕ Tambah
+          </button>
+        )}
       </div>
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="bg-gray-50 border-b border-gray-100">
-            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">#</th>
-            <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">Reason</th>
-            <th className="text-center px-5 py-3 text-xs font-semibold text-gray-500">Date</th>
-            <th className="text-center px-5 py-3 text-xs font-semibold text-gray-500">Day</th>
-            <th className="text-center px-5 py-3 text-xs font-semibold text-gray-500">Days</th>
-          </tr>
-        </thead>
-        <tbody>
-          {schedule.map((s, i) => {
-            const d = new Date(s.date);
-            const dayName = d.toLocaleDateString("en-US", { weekday: "long" });
-            return (
-              <tr key={s.id} className={`${i % 2 === 0 ? "bg-white" : "bg-gray-50"} border-b border-gray-50`}>
-                <td className="px-5 py-3 text-xs text-gray-400">{i + 1}</td>
-                <td className="px-5 py-3">
-                  <span className="text-sm font-semibold text-purple-700">{s.name}</span>
-                </td>
-                <td className="px-5 py-3 text-xs text-center text-gray-600">{formatDate(s.date)}</td>
-                <td className="px-5 py-3 text-xs text-center text-gray-500">{dayName}</td>
-                <td className="px-5 py-3 text-center">
-                  <span className="text-xs font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">{s.total_days}</span>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+
+      {schedule.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-14 text-gray-400">
+          <span className="text-4xl mb-3">🤝</span>
+          <p className="font-semibold text-sm">Belum ada jadwal cuti bersama {year}</p>
+          {isAdmin && <p className="text-xs mt-1 text-gray-400">Klik "Tambah" untuk menambahkan</p>}
+        </div>
+      ) : (
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-purple-50 border-b border-purple-100">
+              <th className="text-left px-5 py-3 text-xs font-bold text-purple-700">No.</th>
+              <th className="text-left px-5 py-3 text-xs font-bold text-purple-700">Nama / Keterangan</th>
+              <th className="text-center px-5 py-3 text-xs font-bold text-purple-700">Tanggal</th>
+              <th className="text-center px-5 py-3 text-xs font-bold text-purple-700">Hari</th>
+              {isAdmin && <th className="text-center px-5 py-3 text-xs font-bold text-purple-700">Aksi</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {schedule.map((s, i) => {
+              const d = new Date(s.date + "T00:00:00");
+              const dayName = d.toLocaleDateString("id-ID", { weekday: "long" });
+              return (
+                <tr key={s.id} className={`${i % 2 === 0 ? "bg-white" : "bg-purple-50/30"} border-b border-gray-50`}>
+                  <td className="px-5 py-3 text-xs text-gray-400">{i + 1}</td>
+                  <td className="px-5 py-3 text-sm font-semibold text-purple-700">{s.name}</td>
+                  <td className="px-5 py-3 text-xs text-center text-gray-700 whitespace-nowrap">{fmtDate(s.date)}</td>
+                  <td className="px-5 py-3 text-xs text-center text-gray-500">{dayName}</td>
+                  {isAdmin && (
+                    <td className="px-5 py-3 text-center">
+                      <button onClick={() => onDelete(s.id)}
+                        className="text-xs text-red-400 hover:text-red-600 font-bold hover:underline transition-colors">
+                        Hapus
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
 
-// ─── PENDING APPROVALS TAB ───────────────────────────────────────────────────
-function PendingApprovalsTab({ requests, setShowApprovalModal }) {
-  if (requests.length === 0) {
+// ─── TAB: PENDING APPROVALS ───────────────────────────────────────────────────
+function ApprovalsTab({ pending, onReview }) {
+  if (pending.length === 0) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
-        <p className="text-4xl mb-3">✅</p>
-        <p className="text-gray-500 font-semibold">No pending approvals</p>
-        <p className="text-sm text-gray-400 mt-1">All leave requests have been processed</p>
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center justify-center py-16 text-gray-400">
+        <span className="text-5xl mb-3">✅</span>
+        <p className="font-bold text-gray-600">Tidak ada permohonan pending</p>
+        <p className="text-sm mt-1">Semua permohonan sudah diproses</p>
       </div>
     );
   }
+
   return (
     <div className="space-y-3">
-      {requests.map(r => {
+      <p className="text-xs text-gray-500 font-semibold px-1">{pending.length} permohonan menunggu keputusan</p>
+      {pending.map(r => {
         const lt = LEAVE_TYPES.find(t => t.value === r.leave_type);
         return (
           <div key={r.id} className="bg-white rounded-2xl border border-amber-200 shadow-sm p-4 flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="flex items-center gap-3 flex-1">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl bg-amber-50">{lt?.icon || "📋"}</div>
-              <div>
-                <p className="font-bold text-gray-800 text-sm">{lt?.label}</p>
-                <p className="text-xs text-gray-500">{r.reason}</p>
-                <p className="text-[11px] text-gray-400 mt-0.5">{formatDate(r.start_date)} – {formatDate(r.end_date)} · {r.total_days} day{r.total_days!==1?"s":""}</p>
+            <div className="flex items-start gap-3 flex-1 min-w-0">
+              <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-2xl flex-shrink-0">{lt?.icon}</div>
+              <div className="min-w-0">
+                <p className="font-black text-gray-800 text-sm truncate">{r.requester_name || `User #${r.user_id}`}</p>
+                <p className="text-xs text-gray-500 truncate">{lt?.label} · {r.reason}</p>
+                <p className="text-[11px] text-gray-400 mt-0.5 whitespace-nowrap">
+                  {fmtDate(r.start_date)} – {fmtDate(r.end_date)} · <span className="font-bold text-[#0B3D91]">{r.total_days} hari</span>
+                </p>
+                <p className="text-[10px] font-mono text-gray-300 mt-0.5">{r.request_number}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-amber-600 bg-amber-50 font-bold px-2.5 py-1 rounded-full">⏳ Pending</span>
-              <button onClick={() => setShowApprovalModal(r)}
-                className="px-4 py-2 bg-[#0B3D91] text-white text-xs font-bold rounded-xl hover:bg-[#1E5CC6] transition-all">
-                Review
-              </button>
-            </div>
+            <button onClick={() => onReview(r)}
+              className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-black rounded-xl transition-all flex-shrink-0 shadow-sm">
+              Review →
+            </button>
           </div>
         );
       })}
@@ -692,220 +751,203 @@ function PendingApprovalsTab({ requests, setShowApprovalModal }) {
   );
 }
 
-// ─── REQUEST LEAVE MODAL ──────────────────────────────────────────────────────
-function RequestLeaveModal({ onClose, onSubmit }) {
-  const [form, setForm] = useState({
-    leave_type: "annual", reason: "",
-    start_date: "", end_date: "", notes: "",
-  });
-  const [days, setDays] = useState(1);
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN PAGE
+// ═══════════════════════════════════════════════════════════════════════════════
+export default function LeaveManagement() {
+  const [tab,          setTab]          = useState("overview");
+  const [year,         setYear]         = useState(YEAR);
+  const [loading,      setLoading]      = useState(true);
+  const [myReqs,       setMyReqs]       = useState([]);
+  const [allReqs,      setAllReqs]      = useState([]);
+  const [allUsers,     setAllUsers]     = useState([]);
+  const [summary,      setSummary]      = useState({ entitlement: 12, joint_leave: 0, annual_taken: 0, balance: 12 });
+  const [jointSched,   setJointSched]   = useState([]);
+  const [isAdmin,      setIsAdmin]      = useState(isAdminRole(localStorage.getItem("user_role") || "engineer"));
 
-  useEffect(() => {
-    if (form.start_date) {
-      setDays(calcWorkingDays(form.start_date, form.end_date || form.start_date));
-    }
-  }, [form.start_date, form.end_date]);
+  const [showRequest,    setShowRequest]    = useState(false);
+  const [showDetail,     setShowDetail]     = useState(null);
+  const [showApproval,   setShowApproval]   = useState(null);
+  const [showJointModal, setShowJointModal] = useState(false);
+  const [showEntitle,    setShowEntitle]    = useState(false);
 
-  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+  const { toasts, add: toast } = useToast();
 
-  const handleSubmit = () => {
-    if (!form.start_date || !form.reason) return alert("Please fill in required fields");
-    onSubmit({ ...form, end_date: form.end_date || form.start_date, total_days: days });
+  // ── Fetch ─────────────────────────────────────────────────────────────────
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Always refresh role from server
+      const meRes = await API.get("/auth/me");
+      const role  = meRes.data.role || "engineer";
+      localStorage.setItem("user_role", role);
+      localStorage.setItem("user_id",   String(meRes.data.id));
+      const admin = isAdminRole(role);
+      setIsAdmin(admin);
+
+      const [myRes, sumRes, jRes] = await Promise.all([
+        API.get("/leave/requests"),
+        API.get(`/leave/summary?year=${year}`),
+        API.get(`/leave/joint-schedule?year=${year}`),
+      ]);
+      setMyReqs(myRes.data);
+      setSummary(sumRes.data);
+      setJointSched(jRes.data);
+
+      if (admin) {
+        const [allReqRes, usersRes] = await Promise.all([
+          API.get("/leave/requests/all"),
+          API.get("/auth/users"),
+        ]);
+        setAllReqs(allReqRes.data);
+        setAllUsers(usersRes.data);
+      }
+    } catch (e) {
+      toast("Gagal memuat data cuti", "error");
+    } finally { setLoading(false); }
+  }, [year]);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  // ── Actions ──────────────────────────────────────────────────────────────
+  const submitRequest = async (data) => {
+    await API.post("/leave/request/create", data);
+    toast("Permohonan berhasil dikirim! 🎉");
+    fetchAll();
   };
 
-  const inputClass = "w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#0B3D91] focus:ring-2 focus:ring-[#0B3D91]/10 transition-all";
-  const labelClass = "block text-xs font-semibold text-gray-600 mb-1.5";
+  const decideRequest = async (id, approved, reason) => {
+    if (approved) {
+      await API.put(`/leave/request/${id}/approve`);
+      toast("Permohonan disetujui ✅");
+    } else {
+      await API.put(`/leave/request/${id}/reject`, { rejection_reason: reason });
+      toast("Permohonan ditolak");
+    }
+    fetchAll();
+  };
+
+  const cancelRequest = async (id) => {
+    if (!confirm("Batalkan permohonan cuti ini?")) return;
+    try {
+      await API.delete(`/leave/request/${id}`);
+      toast("Permohonan dibatalkan");
+      fetchAll();
+    } catch (e) { toast(e.response?.data?.error || "Gagal membatalkan", "error"); }
+  };
+
+  const deleteJoint = async (id) => {
+    if (!confirm("Hapus jadwal cuti bersama ini?")) return;
+    try {
+      await API.delete(`/leave/joint-schedule/${id}`);
+      toast("Jadwal dihapus");
+      fetchAll();
+    } catch { toast("Gagal menghapus", "error"); }
+  };
+
+  const exportCSV = async () => {
+    try {
+      const res = await API.get(`/leave/export/csv?year=${year}`, { responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement("a"); a.href = url; a.download = `Leave_Report_${year}.csv`; a.click();
+      window.URL.revokeObjectURL(url);
+    } catch { toast("Gagal export", "error"); }
+  };
+
+  const pendingReqs = allReqs.filter(r => r.status === "pending");
+
+  const TABS = [
+    { id: "overview",  label: "Overview",        icon: "📊" },
+    { id: "history",   label: "Riwayat",         icon: "📋" },
+    { id: "joint",     label: "Cuti Bersama",    icon: "🤝" },
+    ...(isAdmin ? [{ id: "approvals", label: pendingReqs.length > 0 ? `Approval (${pendingReqs.length})` : "Approval", icon: "⏳" }] : []),
+  ];
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white px-5 py-4 border-b border-gray-100 flex items-center justify-between rounded-t-2xl">
+    <div className="space-y-5">
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 lg:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-5">
           <div>
-            <h2 className="text-base font-bold text-gray-900">Request Leave</h2>
-            <p className="text-xs text-gray-400">Submit a new leave request</p>
+            <h1 className="text-xl font-black text-gray-900">Leave Management</h1>
+            <p className="text-xs text-gray-400 mt-0.5">PT Flotech Controls Indonesia · {year}</p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 transition-all">✕</button>
-        </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Year selector */}
+            <select value={year} onChange={e => setYear(Number(e.target.value))}
+              className="text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#0B3D91] bg-white font-bold">
+              {[YEAR - 1, YEAR, YEAR + 1].map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
 
-        <div className="p-5 space-y-4">
-          <div>
-            <label className={labelClass}>Leave Type *</label>
-            <div className="grid grid-cols-2 gap-2">
-              {LEAVE_TYPES.map(lt => (
-                <button key={lt.value} type="button"
-                  onClick={() => set("leave_type", lt.value)}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all text-left
-                    ${form.leave_type === lt.value ? "border-[#0B3D91] bg-blue-50 text-[#0B3D91]" : "border-gray-200 text-gray-600 hover:border-gray-300"}`}>
-                  <span className="text-base">{lt.icon}</span> {lt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className={labelClass}>Reason / Description *</label>
-            <textarea value={form.reason} onChange={e => set("reason", e.target.value)}
-              rows={3} placeholder="Describe the reason for your leave..."
-              className={inputClass + " resize-none"} />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelClass}>Start Date *</label>
-              <input type="date" value={form.start_date} onChange={e => set("start_date", e.target.value)}
-                className={inputClass} min={new Date().toISOString().split("T")[0]} />
-            </div>
-            <div>
-              <label className={labelClass}>End Date</label>
-              <input type="date" value={form.end_date} onChange={e => set("end_date", e.target.value)}
-                className={inputClass} min={form.start_date || new Date().toISOString().split("T")[0]} />
-            </div>
-          </div>
-
-          {form.start_date && (
-            <div className="bg-blue-50 rounded-xl px-4 py-3 flex items-center gap-2">
-              <span className="text-xl">📅</span>
-              <div>
-                <p className="text-sm font-bold text-[#0B3D91]">{days} Working Day{days !== 1 ? "s" : ""}</p>
-                <p className="text-xs text-blue-600">Weekends excluded from calculation</p>
-              </div>
-            </div>
-          )}
-
-          <div>
-            <label className={labelClass}>Additional Notes</label>
-            <textarea value={form.notes} onChange={e => set("notes", e.target.value)}
-              rows={2} placeholder="Any additional information..."
-              className={inputClass + " resize-none"} />
+            {isAdmin && (
+              <button onClick={() => setShowEntitle(true)}
+                className="px-3 py-2 bg-violet-600 text-white text-xs font-bold rounded-xl hover:bg-violet-700 transition-all">
+                ⚙️ Hak Cuti
+              </button>
+            )}
+            <button onClick={exportCSV}
+              className="px-3 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 flex items-center gap-1.5 transition-all">
+              📊 Export CSV
+            </button>
+            <button onClick={() => setShowRequest(true)}
+              className="px-4 py-2 bg-[#0B3D91] text-white text-xs font-black rounded-xl hover:bg-[#1E5CC6] flex items-center gap-1.5 transition-all shadow-sm shadow-blue-900/20">
+              ＋ Request Leave
+            </button>
           </div>
         </div>
 
-        <div className="sticky bottom-0 bg-white px-5 py-4 border-t border-gray-100 flex gap-3 rounded-b-2xl">
-          <button onClick={onClose} className="flex-1 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-all">
-            Cancel
-          </button>
-          <button onClick={handleSubmit}
-            className="flex-1 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-bold hover:bg-[#1E5CC6] transition-all shadow-sm">
-            Submit Request
-          </button>
-        </div>
+        {/* Summary cards */}
+        {loading ? <Spinner className="h-24" /> : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <StatCard label="Hak Cuti Tahunan"   value={summary.entitlement  || 12} icon="📋" color="#0B3D91" />
+            <StatCard label="Cuti Bersama"        value={summary.joint_leave  || 0}  icon="🤝" color="#7c3aed" />
+            <StatCard label="Cuti Diambil"        value={summary.annual_taken || 0}  icon="✈️" color="#d97706" />
+            <StatCard label="Saldo Tersisa"       value={summary.balance      ?? 0}  icon="💚" color="#059669" highlight />
+          </div>
+        )}
       </div>
-    </div>
-  );
-}
 
-// ─── DETAIL MODAL ─────────────────────────────────────────────────────────────
-function DetailModal({ request: r, onClose }) {
-  const lt = LEAVE_TYPES.find(t => t.value === r.leave_type);
-  const sc = STATUS_CONFIG[r.status];
-
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-base font-bold text-gray-900">Leave Details</h2>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500">✕</button>
-        </div>
-
-        <div className="p-5 space-y-4">
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
-            <span className="text-3xl">{lt?.icon || "📋"}</span>
-            <div>
-              <p className="font-bold text-gray-800">{lt?.label || r.leave_type}</p>
-              <p className="text-xs font-mono text-gray-400">{r.request_number}</p>
-            </div>
-            <span className="ml-auto text-xs font-bold px-3 py-1.5 rounded-full"
-              style={{ color: sc?.color, background: sc?.bg }}>
-              {sc?.icon} {sc?.label}
-            </span>
-          </div>
-
-          {[
-            { label: "Reason", value: r.reason || "-" },
-            { label: "Start Date", value: formatDate(r.start_date) },
-            { label: "End Date", value: formatDate(r.end_date) },
-            { label: "Total Days", value: `${r.total_days} day${r.total_days !== 1 ? "s" : ""}` },
-            { label: "Submitted", value: r.created_at ? new Date(r.created_at).toLocaleString("en-GB") : "-" },
-            ...(r.approved_by_name ? [{ label: "Approved By", value: r.approved_by_name }] : []),
-            ...(r.rejection_reason ? [{ label: "Rejection Reason", value: r.rejection_reason }] : []),
-            ...(r.notes ? [{ label: "Notes", value: r.notes }] : []),
-          ].map(row => (
-            <div key={row.label} className="flex justify-between gap-3 py-1 border-b border-gray-50 last:border-0">
-              <span className="text-xs text-gray-400 font-semibold">{row.label}</span>
-              <span className="text-xs text-gray-700 font-medium text-right">{row.value}</span>
-            </div>
+      {/* ── Content card ───────────────────────────────────────────────────── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {/* Tab bar */}
+        <div className="border-b border-gray-100 px-4 lg:px-5 flex gap-1 overflow-x-auto py-3 scrollbar-none">
+          {TABS.map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2 text-xs font-black rounded-xl transition-all
+                ${tab === t.id
+                  ? "bg-[#0B3D91] text-white shadow-sm shadow-blue-900/20"
+                  : "text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                }`}>
+              {t.icon} {t.label}
+              {t.id === "approvals" && pendingReqs.length > 0 && (
+                <span className="w-4 h-4 rounded-full bg-red-500 text-[9px] font-black flex items-center justify-center ml-0.5">
+                  {pendingReqs.length}
+                </span>
+              )}
+            </button>
           ))}
         </div>
 
-        <div className="px-5 py-4 border-t border-gray-100">
-          <button onClick={onClose} className="w-full py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 transition-all">
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── APPROVAL MODAL ───────────────────────────────────────────────────────────
-function ApprovalModal({ request: r, onClose, onDecide }) {
-  const [rejReason, setRejReason] = useState("");
-  const [mode, setMode] = useState(null); // "approve" | "reject"
-  const lt = LEAVE_TYPES.find(t => t.value === r.leave_type);
-
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-base font-bold text-gray-900">Review Leave Request</h2>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500">✕</button>
-        </div>
-
-        <div className="p-5 space-y-3">
-          <div className="p-4 rounded-xl bg-amber-50 border border-amber-100">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xl">{lt?.icon || "📋"}</span>
-              <span className="font-bold text-gray-800 text-sm">{lt?.label}</span>
-            </div>
-            <p className="text-xs text-gray-600 mb-1">Reason: <span className="font-semibold">{r.reason}</span></p>
-            <p className="text-xs text-gray-600">Duration: <span className="font-semibold">{formatDate(r.start_date)} – {formatDate(r.end_date)} ({r.total_days} days)</span></p>
-            <p className="text-xs font-mono text-gray-400 mt-1">{r.request_number}</p>
-          </div>
-
-          {mode === "reject" && (
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">Rejection Reason *</label>
-              <textarea value={rejReason} onChange={e => setRejReason(e.target.value)}
-                rows={3} placeholder="Please provide reason for rejection..."
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-400 resize-none" />
-            </div>
-          )}
-
-          {!mode ? (
-            <div className="flex gap-3">
-              <button onClick={() => setMode("reject")}
-                className="flex-1 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-xl text-sm font-bold hover:bg-red-100 transition-all">
-                ❌ Reject
-              </button>
-              <button onClick={() => onDecide(true, "")}
-                className="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition-all">
-                ✅ Approve
-              </button>
-            </div>
-          ) : (
-            <div className="flex gap-3">
-              <button onClick={() => setMode(null)}
-                className="flex-1 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-all">
-                Back
-              </button>
-              <button onClick={() => { if (!rejReason.trim()) return alert("Please enter rejection reason"); onDecide(false, rejReason); }}
-                className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700 transition-all">
-                Confirm Reject
-              </button>
-            </div>
+        <div className="p-4 lg:p-6">
+          {loading ? <Spinner /> : (
+            <>
+              {tab === "overview"  && <OverviewTab myReqs={myReqs} summary={summary} />}
+              {tab === "history"   && <HistoryTab myReqs={myReqs} allReqs={allReqs} isAdmin={isAdmin} onDetail={setShowDetail} onDelete={cancelRequest} />}
+              {tab === "joint"     && <JointLeaveTab schedule={jointSched} isAdmin={isAdmin} onAdd={() => setShowJointModal(true)} onDelete={deleteJoint} year={year} />}
+              {tab === "approvals" && isAdmin && <ApprovalsTab pending={pendingReqs} onReview={setShowApproval} />}
+            </>
           )}
         </div>
       </div>
+
+      {/* ── Modals ─────────────────────────────────────────────────────────── */}
+      {showRequest  && <RequestModal onClose={() => setShowRequest(false)}  onSubmit={submitRequest} balance={summary.balance ?? 0} />}
+      {showDetail   && <DetailModal  req={showDetail}  onClose={() => setShowDetail(null)} />}
+      {showApproval && <ApprovalModal req={showApproval} onClose={() => setShowApproval(null)} onDecide={decideRequest} />}
+      {showJointModal && <JointScheduleModal onClose={() => setShowJointModal(false)} onSaved={fetchAll} year={year} />}
+      {showEntitle && <EntitlementModal users={allUsers} year={year} onClose={() => setShowEntitle(false)} onSaved={fetchAll} />}
+
+      <ToastContainer toasts={toasts} />
     </div>
   );
 }

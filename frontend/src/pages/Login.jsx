@@ -3,10 +3,10 @@ import API from "../services/api";
 import { useNavigate } from "react-router-dom";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState("");
   const navigate = useNavigate();
 
   const handleLogin = async () => {
@@ -14,29 +14,28 @@ export default function Login() {
     setLoading(true); setError("");
     try {
       const res = await API.post("/auth/login", { email, password });
-      localStorage.setItem("token", res.data.access_token);
-      localStorage.setItem("user_name", res.data.name || "User");
+      localStorage.setItem("token",     res.data.access_token);
+      localStorage.setItem("user_name", res.data.name  || "User");
+      localStorage.setItem("user_role", res.data.role  || "engineer");  // ← save role
+      localStorage.setItem("user_id",   String(res.data.id || ""));
       navigate("/dashboard");
-    } catch { setError("Email atau password salah"); }
-    finally { setLoading(false); }
+    } catch {
+      setError("Email atau password salah");
+    } finally { setLoading(false); }
   };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#0a1628] via-[#0d2347] to-[#0B3D91] px-4">
-      {/* Card */}
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 sm:p-10">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <img
-            src="/logo.png"
-            alt="Flotech Logo"
+          <img src="/logo.png" alt="Flotech Logo"
             className="h-16 w-auto object-contain mb-3"
             onError={(e) => {
               e.target.style.display = "none";
               e.target.nextElementSibling.style.display = "flex";
-            }}
-          />
-          <div className="w-16 h-16 bg-[#0B3D91] rounded-2xl items-center justify-center mb-3" style={{display:"none"}}>
+            }} />
+          <div className="w-16 h-16 bg-[#0B3D91] rounded-2xl items-center justify-center mb-3" style={{ display: "none" }}>
             <span className="text-white font-black text-2xl">F</span>
           </div>
           <p className="text-xs text-gray-400 tracking-widest uppercase font-semibold mt-1">Service Management System</p>
@@ -75,7 +74,6 @@ export default function Login() {
         </button>
       </div>
 
-      {/* Footer */}
       <p className="mt-6 text-[11px] text-blue-100 text-center opacity-60 select-none">
         Developed by PT Flotech Controls Indonesia &nbsp;·&nbsp; 2026 &nbsp;·&nbsp; All Rights Reserved
       </p>
