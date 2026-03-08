@@ -225,7 +225,7 @@ def build_surat_pdf(sid):
     hdr.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'MIDDLE')]))
     elements.append(hdr)
     elements.append(Spacer(1, 0.3*cm))
-    elements.append(HRFlowable(width="100%", thickness=2, color=primary))
+    elements.append(HRFlowable(width="100%", thickness=1, color=primary))
     elements.append(Spacer(1, 0.4*cm))
 
     # ── META TABLE (full width) ──────────────────────────────────
@@ -423,7 +423,7 @@ def build_surat_pdf(sid):
     def footer_canvas(cv, doc_obj):
         cv.saveState()
         pw, ph = A4
-        cv.setStrokeColor(primary); cv.setLineWidth(1.5)
+        cv.setStrokeColor(primary); cv.setLineWidth(1)
         cv.line(LEFT, 2.8*cm, pw - RIGHT, 2.8*cm)
         cv.setFont("Helvetica-Bold", 9); cv.setFillColor(primary)
         cv.drawCentredString(pw/2, 2.3*cm, FLOTECH_INFO["name"])

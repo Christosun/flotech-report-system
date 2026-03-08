@@ -417,11 +417,11 @@ def build_pdf(sid):
 
     # ── SEPARATOR LINES (full USABLE_W, same as content) ─────────
     elements.append(HRFlowable(
-        width=USABLE_W, thickness=2.5, color=primary,
+        width=USABLE_W, thickness=1, color=primary,
         spaceAfter=1, spaceBefore=0
     ))
     elements.append(HRFlowable(
-        width=USABLE_W, thickness=0.7, color=secondary,
+        width=USABLE_W, thickness=0.5, color=secondary,
         spaceAfter=0.4 * cm, spaceBefore=0
     ))
 
@@ -520,7 +520,7 @@ def build_pdf(sid):
         canvas.saveState()
         # Footer line exactly at MARGIN_L → PAGE_W - MARGIN_R
         canvas.setStrokeColor(primary)
-        canvas.setLineWidth(1.5)
+        canvas.setLineWidth(1)
         canvas.line(MARGIN_L, 2.95 * cm, PAGE_W - MARGIN_R, 2.95 * cm)
 
         canvas.setFont("Helvetica-Bold", 9)
