@@ -670,7 +670,7 @@ def build_quotation_pdf(q):
                leading=13, alignment=TA_RIGHT)),
         Spacer(1, 3),
         Paragraph("SALES QUOTATION",
-            ps("qt", fontName="Helvetica-Bold", fontSize=18, textColor=navy2,
+            ps("qt", fontName="Helvetica-Bold", fontSize=18, textColor=primary,
                leading=22, alignment=TA_RIGHT)),
     ]
 
@@ -1128,7 +1128,7 @@ def build_quotation_pdf(q):
               leading=13, alignment=TA_RIGHT)),
         Spacer(1, 2),
         Paragraph("SALES QUOTATION",
-            S("qt", fontName="Helvetica-Bold", fontSize=20, textColor=C_NAVY2,
+            S("qt", fontName="Helvetica-Bold", fontSize=20, textColor=C_PRIMARY,
               leading=24, alignment=TA_RIGHT)),
     ]
 

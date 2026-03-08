@@ -264,8 +264,8 @@ def build_report_pdf(report_id):
         d = dict(fontName='Helvetica', fontSize=10, textColor=text_color, leading=14)
         d.update(kw); return ParagraphStyle(name, **d)
 
-    title_style          = ps('Title', fontSize=18, fontName='Helvetica-Bold', textColor=colors.white, alignment=2)
-    subtitle_style       = ps('Subtitle', fontSize=9, textColor=colors.HexColor("#BFD3F5"), alignment=2)
+    title_style          = ps('Title', fontSize=18, fontName='Helvetica-Bold', textColor=primary_color, alignment=2)
+    subtitle_style       = ps('Subtitle', fontSize=9, textColor=colors.HexColor("#1a1a2e"), alignment=2)
     section_header_style = ps('SH', fontSize=10, fontName='Helvetica-Bold', textColor=primary_color, spaceBefore=12, spaceAfter=4)
     label_style          = ps('Label', fontSize=9, fontName='Helvetica-Bold', textColor=gray_color)
     value_style          = ps('Value', fontSize=10, textColor=dark_color)
@@ -315,7 +315,7 @@ def build_report_pdf(report_id):
 
     header_t = Table([[logo_img, header_right_block]], colWidths=[7*cm, 10*cm])
     header_t.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,-1), primary_color),
+        ('BACKGROUND', (0,0), (-1,-1), accent_color),
         ('PADDING', (0,0), (-1,-1), 12),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('ALIGN', (0,0), (0,0), 'LEFT'),
