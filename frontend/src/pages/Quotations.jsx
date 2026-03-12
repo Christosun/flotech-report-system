@@ -13,10 +13,8 @@ const STATUS_CFG = {
   cancel:   { label: "Cancelled", color: "bg-gray-100 text-gray-400",      dot: "bg-gray-300",     hex: "#d1d5db" },
 };
 
-const EMPTY_ITEM = { description:"", brand:"", model:"", unit:"Unit", qty:1, unit_price:0, discount:0, remarks:"" };
-
-const INDUSTRIES = ["Oil & Gas","Petrochemical","Power Plant","Mining","Water Treatment",
-  "Food & Beverage","Pharmaceutical","Pulp & Paper","Chemical","EPC Contractor","Others"];
+const EMPTY_ITEM = { description:"", brand:"", model:"", unit:"Unit", qty:1, unit_price:0, discount:0, remarks:"", sub_items:[] };
+const EMPTY_SUB  = { sub_label:"", qty:1, unit_price:0, discount:0 };
 
 const CATEGORIES = ["Flow Measurement","Level Measurement","Pressure Measurement",
   "Energy Measurement","Process Analyzer","Service / Repair","Lainnya"];
@@ -30,10 +28,15 @@ const fmtRp = (v, cur="IDR") => {
 };
 const fmtDT = iso => iso ? new Date(iso).toLocaleString("id-ID",{day:"2-digit",month:"short",year:"2-digit",hour:"2-digit",minute:"2-digit"}) : "-";
 const fmtD  = iso => iso ? new Date(iso).toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"}) : "-";
-const calcSub = it => (parseFloat(it.unit_price)||0)*(parseFloat(it.qty)||0)*(1-(parseFloat(it.discount)||0)/100);
 
-// ─── Floating Label Input ─────────────────────────────────────────────────────
-function Field({ label, type="text", value, onChange, placeholder, required, children, className="" }) {
+const calcSubItem = s => (parseFloat(s.unit_price)||0)*(parseFloat(s.qty)||0)*(1-(parseFloat(s.discount)||0)/100);
+const calcSub = it => {
+  if (it.sub_items && it.sub_items.length > 0) return it.sub_items.reduce((s,si)=>s+calcSubItem(si),0);
+  return (parseFloat(it.unit_price)||0)*(parseFloat(it.qty)||0)*(1-(parseFloat(it.discount)||0)/100);
+};
+
+// ─── Floating Label Field ─────────────────────────────────────────────────────
+function Field({ label, type="text", value, onChange, placeholder, required, children, className="", rows=3 }) {
   const base = "peer w-full border border-gray-200 rounded-xl px-3 pt-6 pb-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91] bg-white transition-all";
   const lbl  = "absolute left-3 top-2 text-[10px] font-bold text-gray-400 uppercase tracking-wide pointer-events-none select-none";
   return (
@@ -42,9 +45,8 @@ function Field({ label, type="text", value, onChange, placeholder, required, chi
         type === "select"
           ? <select value={value} onChange={onChange} className={`${base} cursor-pointer`}>{placeholder && <option value="">{placeholder}</option>}</select>
           : type === "textarea"
-          ? <textarea value={value} onChange={onChange} rows={3} placeholder=" " className={`${base} resize-none`}/>
-          : <input type={type} value={value} onChange={onChange} placeholder=" " required={required}
-              className={base} />
+          ? <textarea value={value} onChange={onChange} rows={rows} placeholder=" " className={`${base} resize-y`}/>
+          : <input type={type} value={value} onChange={onChange} placeholder=" " required={required} className={base}/>
       )}
       <label className={lbl}>{label}{required && <span className="text-red-400 ml-0.5">*</span>}</label>
     </div>
@@ -79,8 +81,8 @@ function CustomerModal({ onClose, onSelect }) {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const openAdd = () => { setEditTarget(null); setForm({company_name:"",address:"",phone:"",email:"",industry:"",notes:""}); setShowForm(true); };
-  const openEdit = c => { setEditTarget(c); setForm({company_name:c.company_name,address:c.address||"",phone:c.phone||"",email:c.email||"",industry:c.industry||"",notes:c.notes||""}); setShowForm(true); };
+  const openAdd  = () => { setEditTarget(null); setForm({company_name:"",address:"",phone:"",email:"",industry:"",notes:""}); setShowForm(true); };
+  const openEdit = c  => { setEditTarget(c); setForm({company_name:c.company_name,address:c.address||"",phone:c.phone||"",email:c.email||"",industry:c.industry||"",notes:c.notes||""}); setShowForm(true); };
 
   const save = async () => {
     if (!form.company_name.trim()) { toast.error("Nama perusahaan wajib"); return; }
@@ -88,45 +90,44 @@ function CustomerModal({ onClose, onSelect }) {
     try {
       if (editTarget) await API.put(`/customer/update/${editTarget.id}`, form);
       else await API.post("/customer/create", form);
-      toast.success(editTarget ? "Customer diperbarui" : "Customer ditambahkan 🎉");
+      toast.success(editTarget ? "Customer diperbarui ✅" : "Customer ditambahkan 🎉");
       setShowForm(false); load();
-    } catch(e) { toast.error(e.response?.data?.error || "Gagal menyimpan"); }
+    } catch { toast.error("Gagal menyimpan"); }
     finally { setSaving(false); }
   };
 
   const del = async id => {
-    try { await API.delete(`/customer/delete/${id}`); toast.success("Dihapus"); load(); } catch { toast.error("Gagal hapus"); }
+    if (!confirm("Hapus customer ini?")) return;
+    try { await API.delete(`/customer/delete/${id}`); load(); toast.success("Dihapus"); }
+    catch { toast.error("Gagal menghapus"); }
   };
 
   const filtered = list.filter(c => !search || c.company_name?.toLowerCase().includes(search.toLowerCase()) || c.email?.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[88vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
           <div><h2 className="text-lg font-bold text-gray-800">🏢 Customer Database</h2><p className="text-xs text-gray-400">{list.length} perusahaan</p></div>
-          <div className="flex items-center gap-2">
-            <button onClick={openAdd} className="flex items-center gap-1.5 px-4 py-2 bg-[#0B3D91] text-white rounded-xl text-xs font-bold hover:bg-[#1E5CC6]">+ Tambah</button>
+          <div className="flex gap-2">
+            <button onClick={openAdd} className="px-4 py-2 bg-[#0B3D91] text-white text-xs font-bold rounded-xl hover:bg-[#1E5CC6]">+ Tambah</button>
             <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 text-lg">✕</button>
           </div>
         </div>
 
         {showForm && (
-          <div className="px-6 py-4 bg-blue-50 border-b border-blue-100 shrink-0">
-            <h3 className="text-sm font-bold text-[#0B3D91] mb-3">{editTarget ? "✏️ Edit Customer" : "➕ Tambah Customer Baru"}</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="Nama Perusahaan" value={form.company_name} onChange={e=>setForm({...form,company_name:e.target.value})} required className="sm:col-span-2" />
-              <Field label="No. Telepon" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} />
-              <Field label="Email" type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} />
-              <SelectField label="Industri" value={form.industry} onChange={e=>setForm({...form,industry:e.target.value})} options={INDUSTRIES} placeholder="Pilih industri..." />
-              <Field label="Alamat" value={form.address} onChange={e=>setForm({...form,address:e.target.value})} />
-              <Field label="Catatan" value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} className="sm:col-span-2" />
+          <div className="px-6 py-4 border-b border-gray-100 bg-blue-50/30 shrink-0">
+            <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wide mb-3">{editTarget?"Edit":"Tambah"} Customer</h3>
+            <div className="grid grid-cols-2 gap-2.5">
+              <Field label="Nama Perusahaan" value={form.company_name} onChange={e=>setForm({...form,company_name:e.target.value})} required className="col-span-2"/>
+              <Field label="Alamat" value={form.address} onChange={e=>setForm({...form,address:e.target.value})} className="col-span-2"/>
+              <Field label="Telepon" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/>
+              <Field label="Email" type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/>
             </div>
-            <div className="flex gap-2 mt-3">
-              <button onClick={()=>setShowForm(false)} className="px-4 py-2 border border-gray-200 text-gray-600 rounded-xl text-xs font-semibold hover:bg-gray-50">Batal</button>
-              <button onClick={save} disabled={saving} className="flex items-center gap-1.5 px-5 py-2 bg-[#0B3D91] text-white rounded-xl text-xs font-bold hover:bg-[#1E5CC6] disabled:opacity-60">
-                {saving && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"/>}
-                {saving ? "Menyimpan..." : "Simpan"}
+            <div className="flex gap-2 mt-3 justify-end">
+              <button onClick={()=>setShowForm(false)} className="px-4 py-2 text-xs border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">Batal</button>
+              <button onClick={save} disabled={saving} className="px-5 py-2 bg-[#0B3D91] text-white text-xs font-bold rounded-xl hover:bg-[#1E5CC6] disabled:opacity-60">
+                {saving?"Menyimpan...":"Simpan"}
               </button>
             </div>
           </div>
@@ -192,7 +193,6 @@ function AnalyticsPanel({ onClose }) {
   const totalCount = data.reduce((s,d)=>s+statuses.reduce((ss,st)=>ss+(d[st]||0),0),0);
   const totalValue = data.reduce((s,d)=>s+statuses.reduce((ss,st)=>ss+(d[`${st}_val`]||0),0),0);
   const wonCount   = data.reduce((s,d)=>s+(d.won||0),0);
-  const winRate    = totalCount>0 ? Math.round(wonCount/totalCount*100) : 0;
 
   const fmtLabel = p => {
     if (p?.length===7) { const [y,m]=p.split("-"); return ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"][+m-1]+` '${y.slice(2)}`; }
@@ -223,33 +223,26 @@ function AnalyticsPanel({ onClose }) {
                 <button key={v} onClick={()=>setMetric(v)} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${metric===v?"bg-white shadow text-[#0B3D91]":"text-gray-500"}`}>{l}</button>
               ))}
             </div>
-            <button onClick={()=>setShowValue(v=>!v)} className={`px-3 py-1.5 rounded-xl border text-xs font-semibold ${showValue?"bg-[#0B3D91] text-white border-[#0B3D91]":"border-gray-200 text-gray-500"}`}>
-              🏷 {showValue?"Sembunyikan Nilai":"Tampilkan Nilai"}
+            <button onClick={()=>setShowValue(v=>!v)} className={`px-3 py-1.5 rounded-xl border text-xs font-semibold ${showValue?"bg-[#0B3D91] text-white border-[#0B3D91]":"bg-white border-gray-200 text-gray-600"}`}>
+              {showValue?"▲ Nilai":"▲ Sembunyi"}
             </button>
-          </div>
-          <div className="flex flex-wrap gap-2 items-center">
-            <span className="text-xs text-gray-400 font-semibold">Status:</span>
-            <button onClick={()=>setFilterStatus("all")} className={`px-3 py-1.5 text-xs font-bold rounded-full border ${filterStatus==="all"?"bg-[#0B3D91] text-white border-[#0B3D91]":"border-gray-200 text-gray-500"}`}>All</button>
-            {Object.entries(STATUS_CFG).map(([k,v])=>(
-              <button key={k} onClick={()=>setFilterStatus(k)} className={`px-3 py-1.5 text-xs font-bold rounded-full border transition-all ${filterStatus===k?"text-white border-transparent":"border-gray-200 text-gray-500"}`}
-                style={filterStatus===k?{backgroundColor:v.hex}:{}}>{v.label}</button>
-            ))}
-            {mode==="monthly" && (
-              <div className="flex items-center gap-2 ml-auto">
-                <input type="month" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#0B3D91]"/>
-                <span className="text-gray-400 text-xs">—</span>
-                <input type="month" value={dateTo}   onChange={e=>setDateTo(e.target.value)} className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#0B3D91]"/>
-                {(dateFrom||dateTo)&&<button onClick={()=>{setDateFrom("");setDateTo("");}} className="text-xs text-red-400 font-semibold">Reset</button>}
-              </div>
-            )}
+            <SelectField label="Status" value={filterStatus} onChange={e=>setFilterStatus(e.target.value)}
+              options={[{value:"all",label:"Semua Status"},...Object.entries(STATUS_CFG).map(([k,v])=>({value:k,label:v.label}))]}
+              className="w-36"/>
+            <input type="month" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#0B3D91]"/>
+            <input type="month" value={dateTo} onChange={e=>setDateTo(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#0B3D91]"/>
           </div>
 
-          {/* KPI */}
+          {/* Summary KPIs */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[{icon:"📄",label:"Total",val:totalCount},{icon:"💰",label:"Total Nilai",val:fmtRp(totalValue),sm:true},{icon:"✅",label:"Won",val:wonCount},{icon:"🎯",label:"Win Rate",val:`${winRate}%`}].map(s=>(
-              <div key={s.label} className="bg-gradient-to-br from-gray-50 to-white border border-gray-100 rounded-2xl p-4 shadow-sm">
-                <div className="text-xl mb-1">{s.icon}</div>
-                <div className={`font-black text-gray-800 leading-tight ${s.sm?"text-sm":"text-xl"}`}>{s.val}</div>
+            {[
+              {label:"Total Quotation",val:totalCount,color:"text-[#0B3D91]"},
+              {label:"Won",val:wonCount,color:"text-emerald-600"},
+              {label:"Win Rate",val:`${totalCount>0?Math.round(wonCount/totalCount*100):0}%`,color:"text-amber-600"},
+              {label:"Total Nilai",val:fmtShort(totalValue),color:"text-[#0B3D91]"},
+            ].map(s=>(
+              <div key={s.label} className="bg-gray-50 rounded-xl p-3 text-center">
+                <div className={`text-lg font-black ${s.color}`}>{s.val}</div>
                 <div className="text-[10px] text-gray-400 mt-1 font-semibold uppercase tracking-wide">{s.label}</div>
               </div>
             ))}
@@ -362,7 +355,7 @@ function FilterPanel({ quotations, filters, setFilters, onClose }) {
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 text-lg">✕</button>
         </div>
         <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Field label="Cari (No/Project/PIC)" value={local.search} onChange={e=>setLocal({...local,search:e.target.value})} className="sm:col-span-2"/>
+          <Field label="Cari (No/Customer/Project/PIC)" value={local.search} onChange={e=>setLocal({...local,search:e.target.value})} className="sm:col-span-2"/>
           <SelectField label="Status" value={local.status} onChange={e=>setLocal({...local,status:e.target.value})} options={Object.entries(STATUS_CFG).map(([k,v])=>({value:k,label:v.label}))} placeholder="Semua Status"/>
           <SelectField label="Sales Person" value={local.sales} onChange={e=>setLocal({...local,sales:e.target.value})} options={salesList} placeholder="Semua Sales"/>
           <SelectField label="Customer" value={local.customer} onChange={e=>setLocal({...local,customer:e.target.value})} options={custList} placeholder="Semua Customer"/>
@@ -393,7 +386,7 @@ function CreateModal({ onClose, onCreated }) {
   const [saving, setSaving]   = useState(false);
   const [loading, setLoading] = useState(true);
   const [showCustDB, setShowCustDB] = useState(false);
-  const f = form, sf = v => setForm({...form,...v});
+  const f = form, sf = v => setForm(p=>({...p,...v}));
 
   useEffect(() => {
     API.get("/quotation/next-number")
@@ -402,9 +395,13 @@ function CreateModal({ onClose, onCreated }) {
       .finally(()=>setLoading(false));
   }, []);
 
-  const addItem = () => sf({items:[...f.items,{...EMPTY_ITEM}]});
-  const rmItem  = i => sf({items:f.items.filter((_,idx)=>idx!==i)});
-  const upItem  = (i,k,v) => sf({items:f.items.map((it,idx)=>idx===i?{...it,[k]:v}:it)});
+  const addItem    = () => sf({items:[...f.items,{...EMPTY_ITEM}]});
+  const rmItem     = i  => sf({items:f.items.filter((_,idx)=>idx!==i)});
+  const upItem     = (i,k,v) => sf({items:f.items.map((it,idx)=>idx===i?{...it,[k]:v}:it)});
+  const addSubItem = i  => sf({items:f.items.map((it,idx)=>idx===i?{...it,sub_items:[...(it.sub_items||[]),{...EMPTY_SUB}]}:it)});
+  const rmSubItem  = (i,si) => sf({items:f.items.map((it,idx)=>idx===i?{...it,sub_items:it.sub_items.filter((_,s)=>s!==si)}:it)});
+  const upSubItem  = (i,si,k,v) => sf({items:f.items.map((it,idx)=>idx===i?{...it,sub_items:it.sub_items.map((s,sidx)=>sidx===si?{...s,[k]:v}:s)}:it)});
+
   const subtotal = f.items.reduce((s,it)=>s+calcSub(it),0);
   const vatAmt   = f.vat_include ? subtotal*(parseFloat(f.vat_pct)||0)/100 : 0;
 
@@ -449,31 +446,19 @@ function CreateModal({ onClose, onCreated }) {
                 <Field label="No. Quotation" value={f.base_number} onChange={e=>sf({base_number:e.target.value})} required/>
                 <Field label="Sales Person" value={f.sales_person} onChange={e=>sf({sales_person:e.target.value})}/>
                 <Field label="Ref. No." value={f.ref_no} onChange={e=>sf({ref_no:e.target.value})}/>
+                <Field label="Berlaku s/d" type="date" value={f.valid_until} onChange={e=>sf({valid_until:e.target.value})}/>
                 <SelectField label="Mata Uang" value={f.currency} onChange={e=>sf({currency:e.target.value})} options={["IDR","USD","SGD","EUR"]}/>
-                <Field label="Berlaku Hingga" type="date" value={f.valid_until} onChange={e=>sf({valid_until:e.target.value})}/>
-                <SelectField label="Kategori" value={f.category} onChange={e=>sf({category:e.target.value})} options={CATEGORIES} placeholder="Pilih kategori..."/>
-              </div>
-              {/* VAT toggle */}
-              <div className="flex items-center gap-3 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
-                <input type="checkbox" id="vat_c" checked={f.vat_include} onChange={e=>sf({vat_include:e.target.checked})} className="w-4 h-4 accent-[#0B3D91]"/>
-                <label htmlFor="vat_c" className="text-sm font-semibold text-gray-700 cursor-pointer flex-1">Sertakan VAT / PPN dalam quotation</label>
-                {f.vat_include && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">VAT</span>
-                    <input type="number" value={f.vat_pct} onChange={e=>sf({vat_pct:e.target.value})} className="w-14 border border-gray-200 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-[#0B3D91]" min="0" max="100"/>
-                    <span className="text-xs text-gray-500">%</span>
-                  </div>
-                )}
+                <SelectField label="Kategori" value={f.category} onChange={e=>sf({category:e.target.value})} options={CATEGORIES} placeholder="Pilih kategori"/>
               </div>
             </section>
 
-            {/* ② Customer */}
+            {/* ② Customer Info */}
             <section className={sectionCls}>
               <div className="flex items-center justify-between">
-                <h3 className={sectionHdr}>② Data Customer</h3>
-                <button onClick={()=>setShowCustDB(true)} className="text-xs font-semibold text-[#0B3D91] hover:underline flex items-center gap-1">🏢 Pilih dari Database</button>
+                <h3 className={sectionHdr}>② Informasi Customer</h3>
+                <button onClick={()=>setShowCustDB(true)} className="text-xs font-bold text-[#0B3D91] hover:underline">📋 Pilih dari Database</button>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <Field label="Nama PIC" value={f.customer_name} onChange={e=>sf({customer_name:e.target.value})} required/>
                 <Field label="Perusahaan" value={f.customer_company} onChange={e=>sf({customer_company:e.target.value})} required/>
                 <Field label="Email" type="email" value={f.customer_email} onChange={e=>sf({customer_email:e.target.value})}/>
@@ -489,6 +474,19 @@ function CreateModal({ onClose, onCreated }) {
                 <h3 className={sectionHdr}>③ Item & Harga</h3>
                 <button onClick={addItem} className="text-xs font-bold text-[#0B3D91] hover:underline">+ Tambah Item</button>
               </div>
+              {/* VAT toggle */}
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                <input type="checkbox" id="vat_create" checked={!!f.vat_include} onChange={e=>sf({vat_include:e.target.checked})} className="w-4 h-4 accent-[#0B3D91]"/>
+                <label htmlFor="vat_create" className="text-sm font-semibold text-gray-700 cursor-pointer flex-1">Sertakan VAT / PPN</label>
+                {f.vat_include&&(
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">VAT</span>
+                    <input type="number" value={f.vat_pct} onChange={e=>sf({vat_pct:e.target.value})}
+                      className="w-14 border border-gray-200 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-[#0B3D91]" min="0" max="100"/>
+                    <span className="text-xs text-gray-500">%</span>
+                  </div>
+                )}
+              </div>
               <div className="space-y-3">
                 {f.items.map((item,i)=>(
                   <div key={i} className="bg-gray-50/80 rounded-xl p-4 border border-gray-100">
@@ -497,25 +495,62 @@ function CreateModal({ onClose, onCreated }) {
                       {f.items.length>1 && <button onClick={()=>rmItem(i)} className="text-xs text-red-400 hover:text-red-600 font-semibold">Hapus</button>}
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                      <Field label="Deskripsi Produk / Jasa" value={item.description} onChange={e=>upItem(i,"description",e.target.value)} required className="col-span-2 sm:col-span-4"/>
+                      <Field label="Deskripsi Produk / Jasa" type="textarea" rows={2} value={item.description} onChange={e=>upItem(i,"description",e.target.value)} required className="col-span-2 sm:col-span-4"/>
                       <Field label="Brand" value={item.brand} onChange={e=>upItem(i,"brand",e.target.value)}/>
                       <Field label="Model / Part Number" value={item.model} onChange={e=>upItem(i,"model",e.target.value)}/>
-                      <Field label="Keterangan / Remarks" value={item.remarks} onChange={e=>upItem(i,"remarks",e.target.value)} className="col-span-2"/>
-                      <Field label="Qty" type="number" value={item.qty} onChange={e=>upItem(i,"qty",e.target.value)}/>
-                      <Field label="Satuan (UOM)" value={item.unit} onChange={e=>upItem(i,"unit",e.target.value)}/>
-                      <Field label="Harga Satuan" type="number" value={item.unit_price} onChange={e=>upItem(i,"unit_price",e.target.value)}/>
-                      <Field label="Diskon %" type="number" value={item.discount} onChange={e=>upItem(i,"discount",e.target.value)}/>
+                      <Field label="Keterangan / Spec" type="textarea" rows={2} value={item.remarks} onChange={e=>upItem(i,"remarks",e.target.value)} className="col-span-2"/>
                     </div>
-                    <div className="text-right mt-2">
-                      <span className="text-xs text-gray-400">Subtotal: </span>
-                      <span className="text-sm font-black text-[#0B3D91]">{fmtRp(calcSub(item),f.currency)}</span>
+
+                    {/* Sub-items or standard price fields */}
+                    {(!item.sub_items || item.sub_items.length === 0) ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-2.5">
+                        <Field label="Qty" type="number" value={item.qty} onChange={e=>upItem(i,"qty",e.target.value)}/>
+                        <Field label="Satuan (UOM)" value={item.unit} onChange={e=>upItem(i,"unit",e.target.value)}/>
+                        <Field label="Harga Satuan" type="number" value={item.unit_price} onChange={e=>upItem(i,"unit_price",e.target.value)}/>
+                        <Field label="Diskon %" type="number" value={item.discount} onChange={e=>upItem(i,"discount",e.target.value)}/>
+                      </div>
+                    ) : (
+                      <div className="mt-3 space-y-2">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Variants / Sub-Items</p>
+                        {item.sub_items.map((s,si)=>(
+                          <div key={si} className="flex items-center gap-2 bg-white rounded-lg p-2.5 border border-blue-100">
+                            <span className="text-[10px] font-bold text-blue-400 shrink-0">{i+1}.{si+1}</span>
+                            <input placeholder="Size / Label" value={s.sub_label} onChange={e=>upSubItem(i,si,"sub_label",e.target.value)}
+                              className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#0B3D91] min-w-0"/>
+                            <input placeholder="Qty" type="number" value={s.qty} onChange={e=>upSubItem(i,si,"qty",e.target.value)}
+                              className="w-14 border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-center focus:outline-none focus:ring-2 focus:ring-[#0B3D91]"/>
+                            <input placeholder="Harga" type="number" value={s.unit_price} onChange={e=>upSubItem(i,si,"unit_price",e.target.value)}
+                              className="w-28 border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#0B3D91]"/>
+                            <input placeholder="Disc%" type="number" value={s.discount} onChange={e=>upSubItem(i,si,"discount",e.target.value)}
+                              className="w-16 border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-center focus:outline-none focus:ring-2 focus:ring-[#0B3D91]"/>
+                            <span className="text-[10px] font-bold text-[#0B3D91] shrink-0 min-w-[60px] text-right">{fmtRp(calcSubItem(s),f.currency)}</span>
+                            <button onClick={()=>rmSubItem(i,si)} className="text-red-400 hover:text-red-600 shrink-0 text-xs font-bold px-1">✕</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between mt-2">
+                      <button onClick={()=>addSubItem(i)} className="text-[10px] font-bold text-blue-500 hover:text-blue-700 hover:underline">
+                        + {(!item.sub_items||item.sub_items.length===0)?"Tambah Variant (size berbeda)":"Tambah Variant"}
+                      </button>
+                      <div className="text-right">
+                        <span className="text-xs text-gray-400">Subtotal: </span>
+                        <span className="text-sm font-black text-[#0B3D91]">{fmtRp(calcSub(item),f.currency)}</span>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
               <div className="mt-2 p-4 bg-[#0B3D91]/5 rounded-xl border border-[#0B3D91]/10 text-right space-y-1">
-                {f.items.some(it=>parseFloat(it.discount)>0) && (
-                  <p><span className="text-xs text-orange-500">Total Diskon: </span><span className="text-sm font-bold text-orange-600">({fmtRp(f.items.reduce((s,it)=>{const g=(parseFloat(it.unit_price)||0)*(parseFloat(it.qty)||0);return s+g*(parseFloat(it.discount)||0)/100;},0),f.currency)})</span></p>
+                {f.items.some(it=>it.sub_items&&it.sub_items.length>0
+                  ? it.sub_items.some(s=>parseFloat(s.discount)>0)
+                  : parseFloat(it.discount)>0) && (
+                  <p><span className="text-xs text-orange-500">Total Diskon: </span>
+                  <span className="text-sm font-bold text-orange-600">({fmtRp(f.items.reduce((s,it)=>{
+                    if (it.sub_items&&it.sub_items.length>0) return s+it.sub_items.reduce((ss,si)=>(parseFloat(si.unit_price)||0)*(parseFloat(si.qty)||0)*(parseFloat(si.discount)||0)/100+ss,0);
+                    return s+(parseFloat(it.unit_price)||0)*(parseFloat(it.qty)||0)*(parseFloat(it.discount)||0)/100;
+                  },0),f.currency)})</span></p>
                 )}
                 <p><span className="text-xs text-gray-500">Subtotal: </span><span className="text-sm font-bold text-gray-700">{fmtRp(subtotal,f.currency)}</span></p>
                 {f.vat_include && <p><span className="text-xs text-gray-500">VAT {f.vat_pct}%: </span><span className="text-sm font-bold text-gray-700">{fmtRp(vatAmt,f.currency)}</span></p>}
@@ -570,40 +605,35 @@ function ExportMenu({ filteredIds, onClose }) {
     const setLoading = type==="excel" ? setExportingXls : setExportingPdf;
     setLoading(true);
     try {
-      const res = await API.post(`/quotation/export/${type}`, {ids: filteredIds}, {responseType:"blob"});
-      const mime = type==="excel"
-        ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        : "application/pdf";
-      const ext  = type==="excel" ? "xlsx" : "pdf";
-      const url  = URL.createObjectURL(new Blob([res.data],{type:mime}));
-      const date = new Date().toISOString().slice(0,10).replace(/-/g,"");
-      Object.assign(document.createElement("a"),{href:url, download:`Quotations_${date}.${ext}`}).click();
+      const r = await API.post(`/quotation/export/${type}`, {ids:filteredIds},{responseType:"blob"});
+      const ext = type==="excel"?"xlsx":"pdf";
+      const url = URL.createObjectURL(new Blob([r.data]));
+      Object.assign(document.createElement("a"),{href:url,download:`Quotations_Export.${ext}`}).click();
       setTimeout(()=>URL.revokeObjectURL(url),5000);
-      toast.success(`Export ${type.toUpperCase()} berhasil! 🎉`);
-      onClose();
+      toast.success(`Export ${type.toUpperCase()} berhasil!`);
     } catch { toast.error(`Gagal export ${type}`); }
-    finally { setLoading(false); }
+    finally { setLoading(false); onClose(); }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="text-base font-bold text-gray-800">📤 Export Quotations</h3>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400">✕</button>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h2 className="text-lg font-bold text-gray-800">📤 Export Data</h2>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 text-lg">✕</button>
         </div>
-        <p className="text-xs text-gray-500 mb-5">Export <span className="font-bold text-[#0B3D91]">{filteredIds.length} quotation</span> yang sedang ditampilkan.</p>
-        <div className="space-y-3">
-          <button onClick={()=>doExport("excel")} disabled={exportingXls||exportingPdf}
-            className="w-full flex items-center gap-3 px-5 py-3.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl font-bold text-sm hover:bg-emerald-100 transition-colors disabled:opacity-60">
+        <div className="p-6 space-y-3">
+          <p className="text-xs text-gray-400 mb-4">{filteredIds.length} quotation akan diekspor</p>
+          <button onClick={()=>doExport("excel")} disabled={exportingXls}
+            className="w-full flex items-center gap-3 px-5 py-3.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-sm font-bold hover:bg-emerald-100 disabled:opacity-60 transition-all">
             {exportingXls ? <div className="w-5 h-5 border-2 border-emerald-400/40 border-t-emerald-600 rounded-full animate-spin"/> : <span className="text-xl">📊</span>}
             <div className="text-left">
               <p className="font-bold">Export Excel (.xlsx)</p>
-              <p className="text-xs font-normal text-emerald-600">Tabel lengkap dengan ringkasan per status</p>
+              <p className="text-xs font-normal text-emerald-600">Spreadsheet dengan semua data</p>
             </div>
           </button>
-          <button onClick={()=>doExport("pdf")} disabled={exportingXls||exportingPdf}
-            className="w-full flex items-center gap-3 px-5 py-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl font-bold text-sm hover:bg-red-100 transition-colors disabled:opacity-60">
+          <button onClick={()=>doExport("pdf")} disabled={exportingPdf}
+            className="w-full flex items-center gap-3 px-5 py-3.5 bg-red-50 text-red-700 border border-red-200 rounded-xl text-sm font-bold hover:bg-red-100 disabled:opacity-60 transition-all">
             {exportingPdf ? <div className="w-5 h-5 border-2 border-red-400/40 border-t-red-600 rounded-full animate-spin"/> : <span className="text-xl">📄</span>}
             <div className="text-left">
               <p className="font-bold">Export PDF (.pdf)</p>

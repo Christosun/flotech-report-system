@@ -117,13 +117,13 @@ function SessionBadge({ onExpired, visible }) {
   let bg, tc, strokeCls, dotColor, label;
   if (totalSeconds > 1200) {
     bg = "bg-emerald-50 border-emerald-200"; tc = "text-emerald-700";
-    strokeCls = "stroke-emerald-500"; dotColor = "#10b981"; label = "Aktif";
+    strokeCls = "stroke-emerald-500"; dotColor = "#10b981"; label = "Active";
   } else if (totalSeconds > 300) {
     bg = "bg-amber-50 border-amber-200"; tc = "text-amber-700";
-    strokeCls = "stroke-amber-500"; dotColor = "#f59e0b"; label = "Segera habis";
+    strokeCls = "stroke-amber-500"; dotColor = "#f59e0b"; label = "Expiring soon";
   } else if (totalSeconds > 0) {
     bg = "bg-red-50 border-red-200"; tc = "text-red-600";
-    strokeCls = "stroke-red-500"; dotColor = "#ef4444"; label = "Hampir habis!";
+    strokeCls = "stroke-red-500"; dotColor = "#ef4444"; label = "About to expire!";
   } else {
     bg = "bg-gray-50 border-gray-200"; tc = "text-gray-400";
     strokeCls = "stroke-gray-400"; dotColor = "#9ca3af"; label = "Expired";
@@ -167,9 +167,9 @@ function SessionBadge({ onExpired, visible }) {
             <span className="font-bold">{label}</span>
           </div>
           <p className="text-gray-300 leading-relaxed">
-            Sesi login berakhir dalam{" "}
+            Login session ends in{" "}
             <span className="text-white font-bold font-mono">{text}</span>.{" "}
-            {totalSeconds > 0 ? "Simpan pekerjaan sebelum sesi habis." : "Silakan login kembali."}
+            {totalSeconds > 0 ? "Save your work before the session expires." : "Silakan login kembali."}
           </p>
           <div className="absolute -top-1.5 right-5 w-3 h-3 bg-gray-900 rotate-45 rounded-sm" />
         </div>
