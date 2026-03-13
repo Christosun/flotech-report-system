@@ -190,8 +190,8 @@ function LiveClock({ visible }) {
   // Gate display AFTER hooks
   if (!visible) return null;
 
-  const DAYS   = ["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
-  const MONTHS = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+  const DAYS   = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
   return (
     <div className="hidden md:flex flex-col items-end leading-none select-none">

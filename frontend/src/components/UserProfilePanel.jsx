@@ -177,7 +177,7 @@ export default function UserProfilePanel({ open, onClose }) {
     const next = { ...prefs, [key]: val };
     setPrefs(next);
     savePrefs(next);
-    showToast("Preferensi disimpan");
+    showToast("Preferences are saved");
   };
 
   /* Load profile when panel opens */
@@ -207,29 +207,29 @@ export default function UserProfilePanel({ open, onClose }) {
 
   /* Save profile */
   const saveProfile = async () => {
-    if (!form.name.trim()) { showToast("Nama tidak boleh kosong", "error"); return; }
+    if (!form.name.trim()) { showToast("Name cannot be empty", "error"); return; }
     setSaving(true);
     try {
       const res = await API.put("/auth/update-profile", { name: form.name.trim(), email: form.email.trim() });
       localStorage.setItem("user_name", res.data.name);
       setProfile(prev => prev ? { ...prev, name: res.data.name, email: res.data.email } : prev);
       window.dispatchEvent(new CustomEvent("profile-updated", { detail: { name: res.data.name } }));
-      showToast("Profil berhasil disimpan!");
+      showToast("Profile saved successfully!");
     } catch (e) {
-      showToast(e.response?.data?.error || "Gagal menyimpan profil", "error");
+      showToast(e.response?.data?.error || "Failed to save profile", "error");
     } finally { setSaving(false); }
   };
 
   /* Save password */
   const savePassword = async () => {
     if (!sec.current_password || !sec.new_password || !sec.confirm_password) {
-      showToast("Semua field harus diisi", "error"); return;
+      showToast("All fields must be filled in", "error"); return;
     }
     if (sec.new_password !== sec.confirm_password) {
-      showToast("Konfirmasi password tidak cocok", "error"); return;
+      showToast("Confirm password does not match", "error"); return;
     }
     if (sec.new_password.length < 6) {
-      showToast("Password minimal 6 karakter", "error"); return;
+      showToast("Password must be at least 6 characters", "error"); return;
     }
     setSaving(true);
     try {
@@ -238,18 +238,18 @@ export default function UserProfilePanel({ open, onClose }) {
         new_password:     sec.new_password,
       });
       setSec({ current_password: "", new_password: "", confirm_password: "" });
-      showToast("Password berhasil diubah!");
+      showToast("Password changed successfully!");
     } catch (e) {
-      showToast(e.response?.data?.error || "Gagal mengubah password", "error");
+      showToast(e.response?.data?.error || "Failed to change password", "error");
     } finally { setSaving(false); }
   };
 
   const displayName = form.name || localStorage.getItem("user_name") || "User";
 
   const TABS = [
-    { id: "profile",     label: "Profil",     icon: IC.user    },
-    { id: "security",    label: "Keamanan",   icon: IC.shield  },
-    { id: "preferences", label: "Preferensi", icon: IC.gear    },
+    { id: "profile",     label: "Profile",     icon: IC.user    },
+    { id: "security",    label: "Security",   icon: IC.shield  },
+    { id: "preferences", label: "Preferences", icon: IC.gear    },
   ];
 
   return (
@@ -311,21 +311,21 @@ export default function UserProfilePanel({ open, onClose }) {
           {loading ? (
             <div className="flex flex-col items-center justify-center h-40 gap-3">
               <div className="w-8 h-8 border-2 border-[#0B3D91] border-t-transparent rounded-full animate-spin" />
-              <p className="text-xs text-gray-400">Memuat profil…</p>
+              <p className="text-xs text-gray-400">Loading profile…</p>
             </div>
           ) : tab === "profile" ? (
 
             /* ── PROFILE ─────────────────────────────────────────────── */
             <div className="space-y-3.5">
-              <Sec icon={IC.user} label="Informasi Akun" />
-              <Field label="Nama Lengkap" icon={IC.user} value={form.name}
-                onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Nama lengkap Anda" />
-              <Field label="Alamat Email" icon={IC.mail} type="email" value={form.email}
+              <Sec icon={IC.user} label="Account Information" />
+              <Field label="Full Name" icon={IC.user} value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Your Full Name" />
+              <Field label="Email Address" icon={IC.mail} type="email" value={form.email}
                 onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="email@flotech.co.id" />
 
               {profile?.engineer ? (
                 <>
-                  <Sec icon={IC.badge} label="Profil Engineer (terhubung)" />
+                  <Sec icon={IC.badge} label="Engineer Profile (connected)" />
                   <div className="grid grid-cols-2 gap-2.5">
                     <Field label="Employee ID"   icon={IC.badge}  value={profile.engineer.employee_id      || "—"} readOnly />
                     <Field label="Pengalaman"    icon={IC.badge}  value={String(profile.engineer.years_experience ?? 0)} readOnly suffix="thn" />
@@ -340,7 +340,7 @@ export default function UserProfilePanel({ open, onClose }) {
                   <div className="flex items-center gap-2 mt-1 p-3 rounded-xl bg-blue-50 border border-blue-100">
                     <Ico d={IC.info} size={13} cls="text-blue-500 flex-shrink-0" />
                     <p className="text-[10px] text-blue-600 leading-relaxed">
-                      Edit detail engineer di menu{" "}
+                      Edit engineer details in the menu{" "}
                       <a href="/engineers" className="font-bold underline" onClick={onClose}>Engineers</a>
                     </p>
                   </div>
@@ -349,8 +349,8 @@ export default function UserProfilePanel({ open, onClose }) {
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-50 border border-amber-100 mt-1">
                   <Ico d={IC.info} size={13} cls="text-amber-500 flex-shrink-0" />
                   <p className="text-[10px] text-amber-600 leading-relaxed">
-                    Belum terhubung dengan profil engineer.{" "}
-                    <a href="/engineers" className="font-bold underline" onClick={onClose}>Hubungkan di Engineers</a>
+                    Not yet connected to engineer profile.{" "}
+                    <a href="/engineers" className="font-bold underline" onClick={onClose}>Connect at Engineers</a>
                   </p>
                 </div>
               )}
@@ -358,7 +358,7 @@ export default function UserProfilePanel({ open, onClose }) {
               <button onClick={saveProfile} disabled={saving}
                 className="w-full mt-2 flex items-center justify-center gap-2 py-3 rounded-xl bg-[#0B3D91] hover:bg-[#0a3280] text-white text-sm font-bold transition-all disabled:opacity-50 shadow-md shadow-blue-900/20">
                 {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Ico d={IC.save} size={15} />}
-                Simpan Perubahan
+                Save Changes
               </button>
             </div>
 
@@ -366,38 +366,38 @@ export default function UserProfilePanel({ open, onClose }) {
 
             /* ── SECURITY ─────────────────────────────────────────────── */
             <div className="space-y-3.5">
-              <Sec icon={IC.lock} label="Ubah Password" />
-              <Field label="Password Saat Ini" icon={IC.lock} type="password" value={sec.current_password}
-                onChange={e => setSec(s => ({ ...s, current_password: e.target.value }))} placeholder="Masukkan password lama" />
+              <Sec icon={IC.lock} label="Change Password" />
+              <Field label="Current Password" icon={IC.lock} type="password" value={sec.current_password}
+                onChange={e => setSec(s => ({ ...s, current_password: e.target.value }))} placeholder="Enter the old password" />
               <div>
-                <Field label="Password Baru" icon={IC.lock} type="password" value={sec.new_password}
-                  onChange={e => setSec(s => ({ ...s, new_password: e.target.value }))} placeholder="Minimal 6 karakter" />
+                <Field label="New Password" icon={IC.lock} type="password" value={sec.new_password}
+                  onChange={e => setSec(s => ({ ...s, new_password: e.target.value }))} placeholder="Minimum 6 characters" />
                 <PwStrength pw={sec.new_password} />
               </div>
-              <Field label="Konfirmasi Password Baru" icon={IC.lock} type="password" value={sec.confirm_password}
-                onChange={e => setSec(s => ({ ...s, confirm_password: e.target.value }))} placeholder="Ulangi password baru" />
+              <Field label="Confirm New Password" icon={IC.lock} type="password" value={sec.confirm_password}
+                onChange={e => setSec(s => ({ ...s, confirm_password: e.target.value }))} placeholder="Repeat the new password" />
               {sec.confirm_password && sec.confirm_password !== sec.new_password && (
                 <p className="text-[10px] text-red-500 px-1 flex items-center gap-1 -mt-2">
-                  <Ico d={IC.x} size={10} /> Password tidak cocok
+                  <Ico d={IC.x} size={10} /> Passwords do not match
                 </p>
               )}
               {sec.confirm_password && sec.confirm_password === sec.new_password && sec.new_password && (
                 <p className="text-[10px] text-emerald-600 px-1 flex items-center gap-1 -mt-2">
-                  <Ico d={IC.check} size={10} /> Password cocok
+                  <Ico d={IC.check} size={10} /> Passwords match
                 </p>
               )}
               <button onClick={savePassword} disabled={saving}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#0B3D91] hover:bg-[#0a3280] text-white text-sm font-bold transition-all disabled:opacity-50 shadow-md shadow-blue-900/20">
                 {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Ico d={IC.shield} size={15} />}
-                Ubah Password
+                Change Password
               </button>
 
-              <Sec icon={IC.info} label="Informasi Sesi" />
+              <Sec icon={IC.info} label="Session Information" />
               <div className="rounded-xl border border-gray-100 overflow-hidden">
                 {[
-                  ["Status sesi", <span key="s" className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/>Aktif</span>],
-                  ["Role akun",  <span key="r" className="text-xs font-bold text-gray-700 capitalize">{profile?.role || "engineer"}</span>],
-                  ["Bergabung",  <span key="j" className="text-xs text-gray-600">{profile?.created_at ? new Date(profile.created_at).toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"}) : "—"}</span>],
+                  ["Session state", <span key="s" className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/>Active</span>],
+                  ["Account roles",  <span key="r" className="text-xs font-bold text-gray-700 capitalize">{profile?.role || "engineer"}</span>],
+                  ["Join",  <span key="j" className="text-xs text-gray-600">{profile?.created_at ? new Date(profile.created_at).toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"}) : "—"}</span>],
                 ].map(([lbl, val], i) => (
                   <div key={i} className={`flex items-center justify-between px-3.5 py-2.5 ${i%2===0?"bg-gray-50":"bg-white"}`}>
                     <span className="text-[11px] text-gray-500 font-medium">{lbl}</span>{val}
@@ -408,7 +408,7 @@ export default function UserProfilePanel({ open, onClose }) {
               <button onClick={() => { localStorage.clear(); window.location.href = "/"; }}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-red-200 bg-red-50 hover:bg-red-100 text-red-600 text-sm font-bold transition-all">
                 <Ico d={IC.logout} size={14} />
-                Sign Out dari Aplikasi
+                Sign Out of the Application
               </button>
             </div>
 
@@ -416,35 +416,35 @@ export default function UserProfilePanel({ open, onClose }) {
 
             /* ── PREFERENCES ──────────────────────────────────────────── */
             <div>
-              <Sec icon={IC.bell} label="Notifikasi Sesi" />
+              <Sec icon={IC.bell} label="Session Notifications" />
               <div className="rounded-xl border border-gray-100 overflow-hidden px-3.5">
                 <Toggle
                   checked={prefs.notif_session}
                   onChange={v => setP("notif_session", v)}
-                  label="Timer sesi di topbar"
-                  description="Tampilkan countdown waktu login tersisa di kanan atas"
+                  label="Session timer in topbar"
+                  description="Display the remaining login time countdown at the top right."
                 />
                 <Toggle
                   checked={prefs.notif_sound}
                   onChange={v => setP("notif_sound", v)}
-                  label="Suara peringatan (5 menit tersisa)"
-                  description="Tiga bunyi nada saat sesi login tersisa kurang dari 5 menit"
+                  label="Warning sound (5 minutes remaining)"
+                  description="Three tones sound when the login session has less than 5 minutes remaining."
                 />
               </div>
 
-              <Sec icon={IC.palette} label="Tampilan" />
+              <Sec icon={IC.palette} label="Appearance" />
               <div className="rounded-xl border border-gray-100 overflow-hidden px-3.5">
                 <Toggle
                   checked={prefs.show_clock}
                   onChange={v => setP("show_clock", v)}
-                  label="Jam real-time di topbar"
-                  description="Tampilkan jam digital dan tanggal di area topbar kanan"
+                  label="Real-time clock in topbar"
+                  description="Display digital clock and date in the right topbar area"
                 />
                 <Toggle
                   checked={prefs.compact_sidebar}
                   onChange={v => setP("compact_sidebar", v)}
-                  label="Sidebar kompak (icon only)"
-                  description="Perkecil sidebar — tampilkan icon saja tanpa label teks"
+                  label="Compact sidebar (icon only)"
+                  description="Minimize sidebar — show icons only without text labels"
                 />
               </div>
 
@@ -453,9 +453,9 @@ export default function UserProfilePanel({ open, onClose }) {
                   <Ico d={IC.check} size={13} cls="text-white" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-[#0B3D91]">Tersimpan & diterapkan otomatis</p>
+                  <p className="text-xs font-bold text-[#0B3D91]">Saved & applied automatically</p>
                   <p className="text-[10px] text-blue-600 mt-0.5 leading-relaxed">
-                    Semua perubahan langsung diterapkan ke tampilan tanpa perlu reload halaman.
+                    All changes are immediately applied without the need to reload the page.
                   </p>
                 </div>
               </div>

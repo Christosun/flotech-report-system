@@ -175,7 +175,7 @@ export default function Engineers() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Engineers</h1>
-          <p className="text-gray-400 text-sm mt-0.5">Kelola profil engineer dan tanda tangan digital</p>
+          <p className="text-gray-400 text-sm mt-0.5">Manage engineer profiles and digital signatures</p>
         </div>
         <button
           onClick={() => { setForm(EMPTY_FORM); setEditId(null); setShowModal(true); }}
@@ -246,7 +246,7 @@ export default function Engineers() {
               <div className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg mb-4 w-fit
                 ${eng.has_signature ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-400"}`}>
                 <span>{eng.has_signature ? "✍️" : "○"}</span>
-                <span>{eng.has_signature ? "Signature tersimpan" : "Belum ada signature"}</span>
+                <span>{eng.has_signature ? "Signature saved" : "No signature yet"}</span>
               </div>
 
               {/* Actions */}
@@ -276,7 +276,7 @@ export default function Engineers() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="p-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl z-10">
-              <h2 className="text-lg font-bold text-gray-800">{editId ? "Edit Engineer" : "Tambah Engineer"}</h2>
+              <h2 className="text-lg font-bold text-gray-800">{editId ? "Edit Engineer" : "Add Engineer"}</h2>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
             </div>
             <div className="p-5 space-y-4">
@@ -344,8 +344,8 @@ export default function Engineers() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
             <div className="p-5 border-b border-gray-100 flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold text-gray-800">Tanda Tangan Digital</h2>
-                <p className="text-xs text-gray-400 mt-0.5">Gambar tanda tangan di kotak di bawah</p>
+                <h2 className="text-lg font-bold text-gray-800">Digital Signature</h2>
+                <p className="text-xs text-gray-400 mt-0.5">Draw a signature in the box below</p>
               </div>
               <button onClick={() => setShowSigModal(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
             </div>
@@ -354,17 +354,17 @@ export default function Engineers() {
                 <canvas ref={canvasRef} width={480} height={180}
                   className="w-full touch-none cursor-crosshair" style={{ display: "block" }} />
                 <p className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-gray-300 pointer-events-none select-none">
-                  Tanda tangan di sini
+                  Sign here
                 </p>
               </div>
               <div className="flex gap-3 mt-4">
                 <button onClick={clearSignature}
                   className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
-                  Hapus
+                  Delete
                 </button>
                 <button onClick={saveSignature} disabled={saving}
                   className="flex-1 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] disabled:opacity-60 flex items-center justify-center gap-2">
-                  {saving ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Menyimpan...</> : "✍️ Simpan Signature"}
+                  {saving ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Saving...</> : "✍️ Save Signature"}
                 </button>
               </div>
             </div>
