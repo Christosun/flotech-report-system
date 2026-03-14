@@ -177,7 +177,9 @@ export default function Reports() {
         .some(v => v?.toLowerCase().includes(s));
     const matchType   = !filters.type        || r.report_type === filters.type;
     const matchStatus = !filters.status      || r.status === filters.status;
-    const matchEng    = !filters.engineer_id || String(r.engineer_id) === filters.engineer_id;
+    const matchEng = !filters.engineer_id || 
+      String(r.engineer_id) === String(filters.engineer_id) ||
+      (r.engineer_name && engineers.find(e => String(e.id) === String(filters.engineer_id))?.name === r.engineer_name);
     const matchFrom   = !filters.date_from   || (r.report_date && r.report_date >= filters.date_from);
     const matchTo     = !filters.date_to     || (r.report_date && r.report_date <= filters.date_to);
     return matchSearch && matchType && matchStatus && matchEng && matchFrom && matchTo;
@@ -247,7 +249,7 @@ export default function Reports() {
           <button
             onClick={() => navigate("/reports/create")}
             className="flex items-center gap-2 px-4 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] transition-colors">
-            + New Report
+            + New Official Report
           </button>
         </div>
       </div>

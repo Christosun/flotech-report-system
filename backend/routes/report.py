@@ -117,6 +117,7 @@ def list_reports():
         result.append({
             "id": r.id, "report_number": r.report_number, "report_type": r.report_type,
             "client_name": r.client_name, "project_name": r.project_name,
+            "engineer_id": r.engineer_id,
             "engineer_name": engineer_name,
             "report_date": r.report_date.isoformat() if r.report_date else None,
             "status": r.status,

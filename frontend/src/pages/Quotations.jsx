@@ -408,7 +408,7 @@ function CreateModal({ onClose, onCreated }) {
                 <Field label="Shipment Terms"            value={f.shipment_terms} onChange={e=>sf({shipment_terms:e.target.value})}/>
                 <Field label="Payment Terms"             value={f.payment_terms}  onChange={e=>sf({payment_terms:e.target.value})}/>
                 <Field label="Delivery / Lead Time"      value={f.delivery}       onChange={e=>sf({delivery:e.target.value})}/>
-                <Field label="Note untuk Customer"       value={f.notes}          onChange={e=>sf({notes:e.target.value})}/>
+                <Field label="Note untuk Customer"       type="textarea" rows={4} value={f.notes} onChange={e=>sf({notes:e.target.value})} className="sm:col-span-2"/>
                 <Field label="Terms Tambahan (opsional)" type="textarea" value={f.terms} onChange={e=>sf({terms:e.target.value})} className="sm:col-span-2"/>
               </div>
             </section>
@@ -877,7 +877,7 @@ export default function Quotations() {
           </button>
           <button onClick={() => setShowCreate(true)}
             className="flex items-center gap-1.5 px-5 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-bold hover:bg-[#1E5CC6] shadow-sm">
-            + Buat Quotation
+            + New Quotation
           </button>
         </div>
       </div>

@@ -288,6 +288,8 @@ export default function ReportDetail() {
   const [editBase, setEditBase] = useState({});
   const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
+  // TAMBAH:
+  const [editSectionVis, setEditSectionVis] = useState({});
 
   // Delete report dialog
   const [deleteDialog, setDeleteDialog] = useState(false);
@@ -313,8 +315,14 @@ export default function ReportDetail() {
       status: report.status || "draft",
     });
     setEditData({ ...(report.data_json || {}) });
+    setEditSectionVis(report.data_json?._section_visibility || {});
     setEditMode(true);
   };
+
+  const toggleEditSection = (si) => {
+    setEditSectionVis(prev => ({ ...prev, [si]: !(prev[si] ?? true) }));
+  };
+  const isEditSectionIncluded = (si) => editSectionVis[si] ?? true;
 
   const handleSave = async () => {
     setSaving(true);
@@ -322,7 +330,10 @@ export default function ReportDetail() {
       await API.put(`/report/update/${id}`, {
         ...editBase,
         engineer_id: editBase.engineer_id ? parseInt(editBase.engineer_id) : null,
-        data_json: editData,
+        data_json: {
+          ...editData,
+          _section_visibility: editSectionVis,   // ← TAMBAH ini
+        },
       });
       toast.success("Report berhasil diperbarui! ✅");
       setEditMode(false);
@@ -504,30 +515,72 @@ export default function ReportDetail() {
           </div>
 
           {/* Dynamic fields per report type */}
-          {sections.map((sec, si) => (
-            <div key={si} className="mb-4">
-              <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3 flex items-center gap-2">
-                <span className="w-5 h-5 bg-[#0B3D91] text-white rounded-full flex items-center justify-center text-[10px] font-bold">{si + 1}</span>
-                {sec.section}
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {sec.fields.map(field => (
-                  <div key={field.name} className={field.type === "textarea" ? "sm:col-span-2" : ""}>
-                    <label className={labelClass}>{field.label}</label>
-                    {field.type === "textarea" ? (
-                      <textarea value={editData[field.name] || ""} rows={3}
-                        onChange={e => setEditData({ ...editData, [field.name]: e.target.value })}
-                        className={inputClass + " resize-none"} />
+          {sections.map((sec, si) => {
+            const included = isEditSectionIncluded(si);
+            return (
+              <div key={si} className={`mb-4 rounded-xl border p-4 transition-all ${
+                included ? "bg-white border-gray-100" : "bg-gray-50 border-gray-200 opacity-60"
+              }`}>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-5 h-5 bg-[#0B3D91] text-white rounded-full flex items-center justify-center text-[10px] font-bold">{si + 1}</span>
+                    {sec.section}
+                  </h4>
+                  {/* Toggle tombol — sama persis seperti CreateReport */}
+                  <button
+                    type="button"
+                    onClick={() => toggleEditSection(si)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                      included
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                        : "bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200"
+                    }`}
+                  >
+                    {included ? (
+                      <>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Tampilkan di PDF
+                      </>
                     ) : (
-                      <input type={field.type || "text"} value={editData[field.name] || ""}
-                        onChange={e => setEditData({ ...editData, [field.name]: e.target.value })}
-                        className={inputClass} />
+                      <>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 4.411m0 0L21 21" />
+                        </svg>
+                        Sembunyikan dari PDF
+                      </>
                     )}
+                  </button>
+                </div>
+
+                {/* Collapsed hint */}
+                {!included && (
+                  <p className="text-xs text-gray-400 italic">Seksi ini tidak akan tampil di PDF.</p>
+                )}
+
+                {/* Fields — hanya tampil jika included */}
+                {included && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {sec.fields.map(field => (
+                      <div key={field.name} className={field.type === "textarea" ? "sm:col-span-2" : ""}>
+                        <label className={labelClass}>{field.label}</label>
+                        {field.type === "textarea" ? (
+                          <textarea value={editData[field.name] || ""} rows={3}
+                            onChange={e => setEditData({ ...editData, [field.name]: e.target.value })}
+                            className={inputClass + " resize-none"} />
+                        ) : (
+                          <input type={field.type || "text"} value={editData[field.name] || ""}
+                            onChange={e => setEditData({ ...editData, [field.name]: e.target.value })}
+                            className={inputClass} />
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           <div className="flex gap-3 pt-2 border-t border-gray-100 mt-4">
             <button onClick={() => setEditMode(false)} className="px-5 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50">Batal</button>

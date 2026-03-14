@@ -492,7 +492,7 @@ export default function QuotationDetail() {
                   ["Delivery",q.delivery],["Notes",q.notes]].map(([l,v]) => v && (
                   <div key={`tc-${l}`}>
                     <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">{l}</p>
-                    <p className="text-gray-700">{v}</p>
+                    <p className={`text-gray-700 ${l === "Notes" ? "whitespace-pre-line" : ""}`}>{v}</p>
                   </div>
                 ))}
                 {q.terms && (
@@ -679,7 +679,7 @@ export default function QuotationDetail() {
                 <Field label="Shipment Terms"            value={form.shipment_terms} onChange={e => sf({ shipment_terms:e.target.value })}/>
                 <Field label="Payment Terms"             value={form.payment_terms}  onChange={e => sf({ payment_terms:e.target.value })}/>
                 <Field label="Delivery / Lead Time"      value={form.delivery}       onChange={e => sf({ delivery:e.target.value })}/>
-                <Field label="Note untuk Customer"       value={form.notes}          onChange={e => sf({ notes:e.target.value })}/>
+                <Field label="Note untuk Customer"       type="textarea" rows={4} value={form.notes} onChange={e => sf({ notes: e.target.value })} className="sm:col-span-2"/>
                 <Field label="Terms Tambahan (opsional)" value={form.terms}          onChange={e => sf({ terms:e.target.value })}
                   type="textarea" className="sm:col-span-2"/>
               </div>

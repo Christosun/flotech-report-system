@@ -881,7 +881,7 @@ def build_quotation_pdf(q):
         ("ALIGN",(5,1),(5,-1),"RIGHT"),    # Amount
         ("BOX",(0,0),(-1,-1),0.5,C_BORDER),
         ("INNERGRID",(0,0),(-1,-1),0.25,C_BORDER),
-        ("LINEBELOW",(0,-1),(-1,-1),2.0,C_PRIMARY),
+        ("LINEBELOW",(0,-1),(-1,-1),1.0,C_PRIMARY),
     ] + row_fills
 
     items_t = Table(rows, colWidths=CW, repeatRows=1)
@@ -893,9 +893,12 @@ def build_quotation_pdf(q):
 
     # ── SECTION 5: Note ──────────────────────────────────────────────────────
     if q.notes and q.notes.strip():
-        elements.append(Paragraph(
-            f"<i>Note : {q.notes}</i>",
-            S("note", fontSize=8, textColor=C_GRAY, leading=11)))
+        note_lines = q.notes.strip().split("\n")
+        for idx, line in enumerate(note_lines):
+            prefix = "Note : " if idx == 0 else "         "
+            elements.append(Paragraph(
+                f"<i>{prefix}{line}</i>" if line.strip() else " ",
+                S(f"note{idx}", fontSize=8, textColor=C_GRAY, leading=11)))
         elements.append(Spacer(1, 0.25*cm))
 
     elements.append(HRFlowable(width=UW, thickness=0.5, color=C_BORDER, spaceAfter=0.3*cm))
