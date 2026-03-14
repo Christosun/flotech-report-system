@@ -56,8 +56,8 @@ export default function SuratSerahTerima() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Surat Serah Terima</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Berita acara serah terima dan penerimaan barang</p>
+          <h1 className="text-2xl font-bold text-gray-800">Material Handover</h1>
+          <p className="text-sm text-gray-400 mt-0.5">Minutes of handover and receipt of goods</p>
         </div>
         <button onClick={() => navigate("/surat/create")}
           className="flex items-center gap-2 px-5 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] transition-colors shadow-sm">

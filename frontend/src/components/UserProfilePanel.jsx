@@ -159,7 +159,7 @@ export default function UserProfilePanel({ open, onClose }) {
   const [toastData, setToastData] = useState(null);
   const toastTimer = useRef(null);
 
-  const [form, setForm] = useState({ name: "", email: "" });
+  const [form, setForm] = useState({ name: "", username: "" });
   const [sec,  setSec]  = useState({ current_password: "", new_password: "", confirm_password: "" });
 
   // ← prefs stored in component state — no reading localStorage at render time
@@ -188,10 +188,10 @@ export default function UserProfilePanel({ open, onClose }) {
     API.get("/auth/me")
       .then(r => {
         setProfile(r.data);
-        setForm({ name: r.data.name || "", email: r.data.email || "" });
+        setForm({ name: r.data.name || "", username: r.data.username || "" });
       })
       .catch(() => {
-        setForm({ name: localStorage.getItem("user_name") || "", email: "" });
+        setForm({ name: localStorage.getItem("user_name") || "", username: "" });  // ← username
       })
       .finally(() => setLoading(false));
   }, [open]);
@@ -210,9 +210,9 @@ export default function UserProfilePanel({ open, onClose }) {
     if (!form.name.trim()) { showToast("Name cannot be empty", "error"); return; }
     setSaving(true);
     try {
-      const res = await API.put("/auth/update-profile", { name: form.name.trim(), email: form.email.trim() });
+      const res = await API.put("/auth/update-profile", { name: form.name.trim(), username: form.username.trim() });
       localStorage.setItem("user_name", res.data.name);
-      setProfile(prev => prev ? { ...prev, name: res.data.name, email: res.data.email } : prev);
+      setProfile(prev => prev ? { ...prev, name: res.data.name, username: res.data.username } : prev);
       window.dispatchEvent(new CustomEvent("profile-updated", { detail: { name: res.data.name } }));
       showToast("Profile saved successfully!");
     } catch (e) {
@@ -278,7 +278,7 @@ export default function UserProfilePanel({ open, onClose }) {
             <Avatar name={displayName} size={58} />
             <div className="min-w-0 flex-1">
               <p className="text-white font-bold text-sm leading-tight truncate">{displayName}</p>
-              <p className="text-blue-300 text-[11px] mt-0.5 truncate">{profile?.email || form.email || "—"}</p>
+              <p className="text-blue-300 text-[11px] mt-0.5 truncate">@{profile?.username || form.username || "—"}</p>
               <div className="flex flex-wrap items-center gap-1.5 mt-2">
                 <span className="px-2 py-0.5 rounded-full bg-white/15 text-blue-200 text-[9px] font-bold uppercase tracking-wide">
                   {profile?.role || "engineer"}
@@ -320,8 +320,9 @@ export default function UserProfilePanel({ open, onClose }) {
               <Sec icon={IC.user} label="Account Information" />
               <Field label="Full Name" icon={IC.user} value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Your Full Name" />
-              <Field label="Email Address" icon={IC.mail} type="email" value={form.email}
-                onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="email@flotech.co.id" />
+              <Field label="Username" icon={IC.user} type="text" value={form.username}
+                onChange={e => setForm(f => ({ ...f, username: e.target.value.toLowerCase().replace(/\s/g, '') }))}
+                placeholder="username (lowercase, no spaces)" />
 
               {profile?.engineer ? (
                 <>

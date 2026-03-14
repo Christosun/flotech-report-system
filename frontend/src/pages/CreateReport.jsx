@@ -262,7 +262,7 @@ export default function CreateReport() {
   const sections = selectedType ? FIELD_MAP[selectedType] : [];
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="w-full">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Create New Report</h1>
         <p className="text-gray-500 text-sm mt-1">Fill in the details to generate a professional engineering report</p>

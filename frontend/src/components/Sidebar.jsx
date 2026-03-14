@@ -11,7 +11,7 @@ const navGroups = [
   {
     label: "Operations",
     items: [
-      { to: "/quotations",      label: "Quotations",          icon: "📄" },
+      { to: "/quotations",      label: "Quotations",           icon: "📄" },
       { to: "/reports",         label: "Official Reports",     icon: "📋", exclude: ["/reports/create"] },
       { to: "/reports/create",  label: "New Official Report",  icon: "✏️", exact: true },
       { to: "/onsite",          label: "Onsite Reports",       icon: "🔧" },
@@ -20,8 +20,8 @@ const navGroups = [
   {
     label: "Documents",
     items: [
-      { to: "/surat",       label: "Serah Terima",                   icon: "📜", exact: true, matchPaths: ["/surat", "/surat/create", "/surat/"] },
-      { to: "/surat-resmi", label: "Surat Rekomendasi/Pernyataan",   icon: "📋" },
+      { to: "/surat",       label: "Material Handover",                      icon: "📜", exact: true, matchPaths: ["/surat", "/surat/create", "/surat/"] },
+      { to: "/surat-resmi", label: "Letter of Recommendation & Statement",   icon: "📋" },
     ]
   },
   {
@@ -36,6 +36,7 @@ const navGroups = [
     items: [
       { to: "/engineers", label: "Engineers",        icon: "👷" },
       { to: "/leave",     label: "Leave Management", icon: "🏖️" },
+      { to: "/users",     label: "User Management",  icon: "👥", adminOnly: true },
     ]
   }
 ];
@@ -140,7 +141,9 @@ export default function Sidebar({ open, onClose }) {
               )}
 
               <div className={`space-y-0.5 ${compact ? "px-2" : "px-3"}`}>
-                {group.items.map((item) => {
+                {group.items
+                .filter(item => !item.adminOnly || localStorage.getItem("user_role") === "admin")
+                .map((item) => {
                   const active = isActive(item);
                   return (
                     <Link

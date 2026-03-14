@@ -94,7 +94,7 @@ export default function Dashboard() {
 
   const userName = localStorage.getItem("user_name") || "User";
   const hour = new Date().getHours();
-  const greeting = hour < 11 ? "Selamat pagi" : hour < 15 ? "Selamat siang" : hour < 18 ? "Selamat sore" : "Selamat malam";
+  const greeting = hour < 11 ? "Good morning" : hour < 15 ? "Good afternoon" : hour < 18 ? "Good evening" : "Good night";
 
   if (loading) return (
     <div className="flex justify-center items-center h-64">
@@ -112,12 +112,12 @@ export default function Dashboard() {
 
       {/* ── MAIN STATS (6 cards, 2 rows) ────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-        <StatCard icon="📋" label="Field Reports" value={stats.reports} sub="Total laporan" color="bg-blue-50" onClick={() => navigate("/reports")} />
+        <StatCard icon="📋" label="Official Reports" value={stats.reports} sub="Total official report" color="bg-blue-50" onClick={() => navigate("/reports")} />
         <StatCard icon="🔧" label="Onsite Reports" value={stats.onsite} sub={`${stats.onsiteDraft} draft`} color="bg-cyan-50" onClick={() => navigate("/onsite")} />
         <StatCard icon="📄" label="Quotations" value={stats.quotations} sub="Total quotation" color="bg-indigo-50" onClick={() => navigate("/quotations")} />
-        <StatCard icon="📜" label="Serah Terima" value={stats.surat} sub="Total surat" color="bg-purple-50" onClick={() => navigate("/surat")} />
-        <StatCard icon="📦" label="Stock & Demo" value={stats.stock} sub="Unit terdaftar" color="bg-orange-50" onClick={() => navigate("/stock")} />
-        <StatCard icon="📚" label="Katalog" value={stats.catalog} sub="Dokumen" color="bg-teal-50" onClick={() => navigate("/catalog")} />
+        <StatCard icon="📜" label="Material Handover" value={stats.surat} sub="Total letters" color="bg-purple-50" onClick={() => navigate("/surat")} />
+        <StatCard icon="📦" label="Stock & Demo" value={stats.stock} sub="Registered units" color="bg-orange-50" onClick={() => navigate("/stock")} />
+        <StatCard icon="📚" label="Katalog" value={stats.catalog} sub="Document" color="bg-teal-50" onClick={() => navigate("/catalog")} />
       </div>
 
       {/* ── REVENUE CARDS ────────────────────────────────────── */}
@@ -125,12 +125,12 @@ export default function Dashboard() {
         <div className="bg-gradient-to-r from-[#0B3D91] to-[#1E5CC6] rounded-2xl p-5 text-white">
           <p className="text-xs font-bold text-blue-200 uppercase tracking-wider mb-1">💰 Won Revenue</p>
           <p className="text-2xl font-black">{formatRupiah(stats.wonValue)}</p>
-          <p className="text-blue-300 text-xs mt-1">Total nilai quotation yang berhasil ditutup</p>
+          <p className="text-blue-300 text-xs mt-1">Total value of quotations that were successfully closed</p>
         </div>
         <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-5 text-white">
           <p className="text-xs font-bold text-orange-100 uppercase tracking-wider mb-1">📈 Pipeline Value</p>
           <p className="text-2xl font-black">{formatRupiah(stats.pipeline)}</p>
-          <p className="text-orange-100 text-xs mt-1">Nilai quotation sedang dalam proses</p>
+          <p className="text-orange-100 text-xs mt-1">Quotation value is in process</p>
         </div>
       </div>
 
@@ -139,12 +139,12 @@ export default function Dashboard() {
         <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Quick Actions</p>
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
           {[
-            { icon: "✏️", label: "Buat Report",   link: "/reports/create", color: "bg-blue-50 hover:bg-blue-100 text-blue-700" },
+            { icon: "✏️", label: "Official Report",   link: "/reports/create", color: "bg-blue-50 hover:bg-blue-100 text-blue-700" },
             { icon: "🔧", label: "Onsite Report", link: "/onsite/create",  color: "bg-cyan-50 hover:bg-cyan-100 text-cyan-700" },
             { icon: "📄", label: "Quotation",     link: "/quotations",     color: "bg-indigo-50 hover:bg-indigo-100 text-indigo-700" },
-            { icon: "📜", label: "Serah Terima",  link: "/surat/create",   color: "bg-purple-50 hover:bg-purple-100 text-purple-700" },
-            { icon: "📦", label: "Tambah Unit",   link: "/stock",          color: "bg-orange-50 hover:bg-orange-100 text-orange-700" },
-            { icon: "📚", label: "Upload Katalog",link: "/catalog",        color: "bg-teal-50 hover:bg-teal-100 text-teal-700" },
+            { icon: "📜", label: "Material Handover",  link: "/surat/create",   color: "bg-purple-50 hover:bg-purple-100 text-purple-700" },
+            { icon: "📦", label: "Add Unit",   link: "/stock",          color: "bg-orange-50 hover:bg-orange-100 text-orange-700" },
+            { icon: "📚", label: "Upload Catalog",link: "/catalog",        color: "bg-teal-50 hover:bg-teal-100 text-teal-700" },
           ].map(a => (
             <button key={a.label} onClick={() => navigate(a.link)}
               className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl font-semibold text-xs transition-all ${a.color}`}>
@@ -160,7 +160,7 @@ export default function Dashboard() {
 
         {/* Recent Field Reports */}
         <RecentCard
-          title="📋 Field Reports Terbaru"
+          title="📋 Latest Official Reports"
           link="/reports"
           empty={recentReports.length === 0}
         >
@@ -180,10 +180,10 @@ export default function Dashboard() {
 
         {/* Recent Onsite Reports */}
         <RecentCard
-          title="🔧 Onsite Reports Terbaru"
+          title="🔧 Latest Onsite Reports"
           link="/onsite"
           empty={recentOnsite.length === 0}
-          emptyMsg="Belum ada onsite report"
+          emptyMsg="There is no onsite report yet"
         >
           {recentOnsite.map(r => (
             <div key={r.id} onClick={() => navigate(`/onsite/${r.id}`)}
@@ -210,7 +210,7 @@ export default function Dashboard() {
 
         {/* Recent Quotations */}
         <RecentCard
-          title="📄 Quotations Terbaru"
+          title="📄 Latest Quotations"
           link="/quotations"
           empty={recentQuotations.length === 0}
         >
@@ -233,10 +233,10 @@ export default function Dashboard() {
 
         {/* Recent Surat Serah Terima */}
         <RecentCard
-          title="📜 Surat Serah Terima Terbaru"
+          title="📜 Latest Material Handover Letter"
           link="/surat"
           empty={recentSurat.length === 0}
-          emptyMsg="Belum ada surat serah terima"
+          emptyMsg="There is no material handover letter yet"
         >
           {recentSurat.map(s => (
             <div key={s.id} onClick={() => navigate(`/surat/${s.id}`)}
@@ -251,7 +251,7 @@ export default function Dashboard() {
               </div>
               <div className="flex-shrink-0 ml-2 text-right">
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full block ${SURAT_COLORS[s.surat_type] || "bg-gray-100 text-gray-600"}`}>
-                  {s.surat_type === "serah" ? "Serah" : "Terima"}
+                  {s.surat_type === "serah" ? "Handover" : "Receive"}
                 </span>
                 {s.surat_date && (
                   <p className="text-[10px] text-gray-400 mt-0.5">
@@ -269,14 +269,14 @@ export default function Dashboard() {
 }
 
 /* ── Reusable Recent Card ─────────────────────────────────── */
-function RecentCard({ title, link, empty, emptyMsg = "Belum ada data", children }) {
+function RecentCard({ title, link, empty, emptyMsg = "No data yet", children }) {
   const navigate = useNavigate();
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="px-4 py-3.5 border-b border-gray-50 flex items-center justify-between">
         <h2 className="font-bold text-gray-800 text-sm">{title}</h2>
         <button onClick={() => navigate(link)} className="text-xs text-[#0B3D91] font-semibold hover:underline">
-          Lihat semua →
+          See all →
         </button>
       </div>
       {empty ? (

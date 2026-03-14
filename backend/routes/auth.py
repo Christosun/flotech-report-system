@@ -11,48 +11,55 @@ auth_bp = Blueprint('auth', __name__)
 # ── REGISTER ──────────────────────────────────────────────────────────────────
 @auth_bp.route('/register', methods=['POST'])
 def register():
-    data = request.get_json()
-    username = data.get('username')
-    email    = data.get('email')
+    data     = request.get_json()
+    username = (data.get('username') or '').strip().lower()
+    name     = data.get('name') or username
     password = data.get('password')
 
-    if User.query.filter_by(email=email).first():
-        return jsonify({"message": "Email already exists"}), 400
+    if not username:
+        return jsonify({"message": "Username wajib diisi"}), 400
+    if not password or len(password) < 6:
+        return jsonify({"message": "Password minimal 6 karakter"}), 400
+    if User.query.filter_by(username=username).first():
+        return jsonify({"message": "Username sudah digunakan"}), 400
 
     new_user = User(
-        name=username,
-        email=email,
+        name=name,
+        username=username,
+        email=data.get('email') or None,   # email opsional
         password_hash=generate_password_hash(password),
-        role=data.get('role', 'engineer'),   # allow role on register
+        role=data.get('role', 'engineer'),
     )
     db.session.add(new_user)
     db.session.commit()
     return jsonify({"message": "User registered successfully"}), 201
 
 
-# ── LOGIN ─────────────────────────────────────────────────────────────────────
+# ── LOGIN — pakai username ─────────────────────────────────────────────────────
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data     = request.get_json()
-    email    = data.get('email')
-    password = data.get('password')
+    username = (data.get('username') or '').strip().lower()
+    password = data.get('password') or ''
 
-    user = User.query.filter_by(email=email).first()
+    if not username or not password:
+        return jsonify({"message": "Username dan password harus diisi"}), 400
+
+    user = User.query.filter_by(username=username).first()
     if not user or not check_password_hash(user.password_hash, password):
-        return jsonify({"message": "Invalid credentials"}), 401
+        return jsonify({"message": "Username atau password salah"}), 401
 
     access_token = create_access_token(identity=str(user.id))
-
     return jsonify({
         "access_token": access_token,
-        "name":  user.name,
-        "role":  user.role or "engineer",   # ← PENTING: frontend butuh ini
-        "email": user.email,
-        "id":    user.id,
+        "name":         user.name,
+        "username":     user.username,
+        "role":         user.role or "engineer",
+        "id":           user.id,
     }), 200
 
 
-# ── GET CURRENT USER ─────────────────────────────────────────────────────────
+# ── GET CURRENT USER ──────────────────────────────────────────────────────────
 @auth_bp.route('/me', methods=['GET'])
 @jwt_required()
 def get_me():
@@ -65,7 +72,7 @@ def get_me():
     return jsonify({
         "id":         user.id,
         "name":       user.name,
-        "email":      user.email,
+        "username":   user.username,
         "role":       user.role or "engineer",
         "created_at": user.created_at.isoformat() if user.created_at else None,
         "engineer": {
@@ -92,16 +99,19 @@ def update_profile():
 
     data = request.get_json()
 
-    # Name / email
-    if 'name' in data and data['name'].strip():
+    # Update display name
+    if data.get('name') and data['name'].strip():
         user.name = data['name'].strip()
-    if 'email' in data and data['email'].strip():
-        existing = User.query.filter_by(email=data['email'].strip()).first()
-        if existing and existing.id != user_id:
-            return jsonify({"error": "Email sudah digunakan akun lain"}), 400
-        user.email = data['email'].strip()
 
-    # Password change
+    # Update username (harus unik)
+    if data.get('username') and data['username'].strip():
+        new_uname = data['username'].strip().lower()
+        existing  = User.query.filter_by(username=new_uname).first()
+        if existing and existing.id != user_id:
+            return jsonify({"error": "Username sudah digunakan akun lain"}), 400
+        user.username = new_uname
+
+    # Ganti password
     if data.get('new_password'):
         if not data.get('current_password'):
             return jsonify({"error": "Password lama harus diisi"}), 400
@@ -113,27 +123,121 @@ def update_profile():
 
     db.session.commit()
     return jsonify({
-        "message": "Profil berhasil diperbarui",
-        "name":    user.name,
-        "email":   user.email,
-        "role":    user.role or "engineer",
+        "message":  "Profil berhasil diperbarui",
+        "name":     user.name,
+        "username": user.username,
+        "role":     user.role or "engineer",
     }), 200
 
-
-# ── LIST ALL USERS (Admin only) ───────────────────────────────────────────────
+# UPDATE list_users — semua authenticated user bisa lihat, tapi detail terbatas
 @auth_bp.route('/users', methods=['GET'])
 @jwt_required()
 def list_users():
-    """Return all users — used by leave admin to set entitlements."""
     user_id = int(get_jwt_identity())
     me      = User.query.get(user_id)
-    if not me or me.role not in ("admin", "hr", "manager"):
+    if not me:
         return jsonify({"error": "Access denied"}), 403
 
     users = User.query.order_by(User.name).all()
     return jsonify([{
-        "id":    u.id,
-        "name":  u.name,
-        "email": u.email,
-        "role":  u.role or "engineer",
+        "id":       u.id,
+        "name":     u.name,
+        "username": u.username,
+        "role":     u.role or "engineer",
     } for u in users]), 200
+
+# ── CREATE USER (Admin only) ──────────────────────────────────────────────────
+@auth_bp.route('/users/create', methods=['POST'])
+@jwt_required()
+def create_user():
+    user_id = int(get_jwt_identity())
+    me      = User.query.get(user_id)
+    if not me or me.role != "admin":
+        return jsonify({"error": "Access denied — admin only"}), 403
+
+    data     = request.get_json()
+    username = (data.get('username') or '').strip().lower()
+    name     = (data.get('name') or '').strip()
+    email    = (data.get('email') or '').strip() or None
+    password = data.get('password') or ''
+    role     = data.get('role', 'engineer')
+
+    if not username:
+        return jsonify({"error": "Username wajib diisi"}), 400
+    if not name:
+        return jsonify({"error": "Nama lengkap wajib diisi"}), 400
+    if len(password) < 6:
+        return jsonify({"error": "Password minimal 6 karakter"}), 400
+    if role not in ("admin", "engineer", "manager", "hr"):
+        return jsonify({"error": "Role tidak valid"}), 400
+    if User.query.filter_by(username=username).first():
+        return jsonify({"error": f"Username '{username}' sudah digunakan"}), 400
+
+    new_user = User(
+        name=name,
+        username=username,
+        email=email,
+        password_hash=generate_password_hash(password),
+        role=role,
+    )
+    db.session.add(new_user)
+    db.session.commit()
+    return jsonify({
+        "message":  f"User '{username}' berhasil dibuat",
+        "id":       new_user.id,
+        "name":     new_user.name,
+        "username": new_user.username,
+        "role":     new_user.role,
+    }), 201
+
+
+# ── DELETE USER (Admin only) ──────────────────────────────────────────────────
+@auth_bp.route('/users/delete/<int:uid>', methods=['DELETE'])
+@jwt_required()
+def delete_user(uid):
+    user_id = int(get_jwt_identity())
+    me      = User.query.get(user_id)
+    if not me or me.role != "admin":
+        return jsonify({"error": "Access denied — admin only"}), 403
+    if uid == user_id:
+        return jsonify({"error": "Tidak bisa menghapus akun sendiri"}), 400
+
+    target = User.query.get(uid)
+    if not target:
+        return jsonify({"error": "User tidak ditemukan"}), 404
+
+    db.session.delete(target)
+    db.session.commit()
+    return jsonify({"message": f"User '{target.username}' berhasil dihapus"}), 200
+
+
+# ── UPDATE USER ROLE (Admin only) ─────────────────────────────────────────────
+@auth_bp.route('/users/update/<int:uid>', methods=['PUT'])
+@jwt_required()
+def update_user(uid):
+    user_id = int(get_jwt_identity())
+    me      = User.query.get(user_id)
+    if not me or me.role != "admin":
+        return jsonify({"error": "Access denied — admin only"}), 403
+
+    target = User.query.get(uid)
+    if not target:
+        return jsonify({"error": "User tidak ditemukan"}), 404
+
+    data = request.get_json()
+    if data.get('role') and data['role'] in ("admin", "engineer", "manager", "hr"):
+        target.role = data['role']
+    if data.get('name') and data['name'].strip():
+        target.name = data['name'].strip()
+    # Reset password jika dikirim
+    if data.get('new_password') and len(data['new_password']) >= 6:
+        target.password_hash = generate_password_hash(data['new_password'])
+
+    db.session.commit()
+    return jsonify({
+        "message":  "User berhasil diperbarui",
+        "id":       target.id,
+        "name":     target.name,
+        "username": target.username,
+        "role":     target.role,
+    }), 200

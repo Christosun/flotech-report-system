@@ -3,19 +3,20 @@ import { useState, useEffect, useRef } from "react";
 import UserProfilePanel from "./UserProfilePanel";
 
 const PAGE_TITLES = {
-  "/dashboard":      { title: "Dashboard",           sub: "Overview & Analytics" },
-  "/reports":        { title: "Field Reports",        sub: "Engineering site reports" },
-  "/reports/create": { title: "New Report",           sub: "Create field report" },
-  "/engineers":      { title: "Engineers",            sub: "Team & profiles" },
+  "/dashboard":      { title: "Dashboard",            sub: "Overview & Analytics" },
+  "/reports":        { title: "Official Reports",     sub: "Engineering site reports" },
+  "/reports/create": { title: "New Report",           sub: "Create official report" },
+  "/engineers":      { title: "Engineers",            sub: "Team & profile engineers" },
   "/quotations":     { title: "Quotations",           sub: "Sales & proposals" },
   "/stock":          { title: "Stock & Demo Units",   sub: "Inventory management" },
   "/catalog":        { title: "Catalogs & Manuals",   sub: "Product documents" },
   "/leave":          { title: "Leave Management",     sub: "Leave requests & approvals" },
   "/onsite":         { title: "Onsite Reports",       sub: "Field service records" },
   "/onsite/create":  { title: "New Onsite Report",    sub: "Create onsite record" },
-  "/surat":          { title: "Serah Terima",         sub: "Dokumen serah terima" },
+  "/surat":          { title: "Material Handover",    sub: "Handover documents" },
   "/surat/create":   { title: "Buat Surat",           sub: "Surat serah terima baru" },
-  "/surat-resmi":    { title: "Surat Resmi",          sub: "Rekomendasi & pernyataan" },
+  "/surat-resmi":    { title: "Official Letter",      sub: "Rekomendasi & pernyataan" },
+  "/users":          { title: "User Management",      sub: "PT Flotech Controls Indonesia" },
 };
 
 function readPrefs() {
@@ -265,9 +266,9 @@ export default function Topbar({ onMenuClick }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <div className="min-w-0">
-            <h2 className="text-sm font-bold text-gray-800 leading-tight truncate">{current.title}</h2>
-            <p className="text-[11px] text-gray-400 hidden sm:block truncate">{current.sub}</p>
+          <div className="min-w-0 flex flex-col justify-center">
+            <h2 className="text-sm font-bold text-gray-800 leading-snug truncate">{current.title}</h2>
+            <p className="text-[11px] text-gray-400 hidden sm:block truncate leading-snug mt-0">{current.sub}</p>
           </div>
         </div>
 

@@ -456,3 +456,74 @@ def export_csv():
         as_attachment=True,
         download_name=f"Leave_Report_{user.name.replace(' ','_')}_{year}.csv"
     )
+
+# ─── SUMMARY ALL USERS (Admin/HR/Manager) ─────────────────────────────────────
+@leave_bp.route('/summary/all', methods=['GET'])
+@jwt_required()
+def get_summary_all():
+    from models import LeaveRequest, LeaveEntitlement, JointLeaveSchedule
+    from models import User as UserModel
+
+    user_id = int(get_jwt_identity())
+    me      = UserModel.query.get(user_id)
+    if not me or me.role not in ("admin", "manager", "hr"):
+        return jsonify({"error": "Access denied"}), 403
+
+    year            = request.args.get('year', datetime.utcnow().year, type=int)
+    joint_schedules = JointLeaveSchedule.query.filter_by(year=year).all()
+    joint_count     = len(joint_schedules)
+
+    users  = UserModel.query.order_by(UserModel.name).all()
+    result = []
+
+    for u in users:
+        ent          = LeaveEntitlement.query.filter_by(user_id=u.id, year=year).first()
+        entitlement  = ent.entitlement_days if ent else 12
+
+        annual_taken = db.session.query(
+            db.func.sum(LeaveRequest.total_days)
+        ).filter(
+            LeaveRequest.user_id    == u.id,
+            LeaveRequest.leave_type == 'annual',
+            LeaveRequest.status     == 'approved',
+            LeaveRequest.is_joint_leave == False,
+            db.extract('year', LeaveRequest.start_date) == year
+        ).scalar() or 0
+
+        # Other leave types taken (sick, etc)
+        other_taken = db.session.query(
+            db.func.sum(LeaveRequest.total_days)
+        ).filter(
+            LeaveRequest.user_id    == u.id,
+            LeaveRequest.leave_type != 'annual',
+            LeaveRequest.status     == 'approved',
+            db.extract('year', LeaveRequest.start_date) == year
+        ).scalar() or 0
+
+        # Pending count
+        pending_count = LeaveRequest.query.filter(
+            LeaveRequest.user_id == u.id,
+            LeaveRequest.status  == 'pending',
+            db.extract('year', LeaveRequest.start_date) == year
+        ).count()
+
+        balance = entitlement - annual_taken - joint_count
+
+        result.append({
+            "user_id":      u.id,
+            "name":         u.name,
+            "username":     u.username,
+            "role":         u.role or "engineer",
+            "entitlement":  entitlement,
+            "joint_leave":  joint_count,
+            "annual_taken": annual_taken,
+            "other_taken":  other_taken,
+            "balance":      balance,
+            "pending":      pending_count,
+        })
+
+    return jsonify({
+        "year":   year,
+        "users":  result,
+        "joint_schedules": [{"name": j.name, "date": j.leave_date.isoformat()} for j in joint_schedules],
+    }), 200

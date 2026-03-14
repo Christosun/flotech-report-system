@@ -448,8 +448,8 @@ export default function SuratResmi() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Surat Resmi</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Surat Rekomendasi & Surat Pernyataan PT Flotech Controls Indonesia</p>
+          <h1 className="text-2xl font-bold text-gray-800">Official Letter</h1>
+          <p className="text-sm text-gray-400 mt-0.5">Letter of Recommendation & Statement PT Flotech Controls Indonesia</p>
         </div>
         <button onClick={() => { setForm(EMPTY_FORM); setView("create"); }}
           className="self-start sm:self-auto flex items-center gap-2 px-5 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] transition-colors shadow-md">

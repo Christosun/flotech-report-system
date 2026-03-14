@@ -754,6 +754,204 @@ function ApprovalsTab({ pending, onReview }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
+
+
+// ─── TAB: REKAP KARYAWAN ──────────────────────────────────────────────────────
+function RekapTab({ data, year, onEntitle }) {
+  const [search, setSearch] = useState("");
+
+  const filtered = data.filter(u =>
+    !search ||
+    u.name?.toLowerCase().includes(search.toLowerCase()) ||
+    u.username?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const totalEntitlement  = data.reduce((s, u) => s + (u.entitlement  || 0), 0);
+  const totalTaken        = data.reduce((s, u) => s + (u.annual_taken || 0), 0);
+  const totalBalance      = data.reduce((s, u) => s + (u.balance      || 0), 0);
+  const totalPending      = data.reduce((s, u) => s + (u.pending      || 0), 0);
+
+  const balanceColor = (bal, ent) => {
+    const pct = ent > 0 ? bal / ent : 1;
+    if (pct > 0.6)  return "text-emerald-600 bg-emerald-50";
+    if (pct > 0.3)  return "text-amber-600 bg-amber-50";
+    return "text-red-600 bg-red-50";
+  };
+
+  return (
+    <div className="space-y-4">
+
+      {/* Summary row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Total Hak Cuti", val: totalEntitlement, icon: "📋", color: "text-[#0B3D91] bg-blue-50"   },
+          { label: "Total Diambil",  val: totalTaken,        icon: "✈️", color: "text-amber-600 bg-amber-50"  },
+          { label: "Total Saldo",    val: totalBalance,      icon: "💚", color: "text-emerald-600 bg-emerald-50" },
+          { label: "Menunggu",       val: totalPending,      icon: "⏳", color: "text-purple-600 bg-purple-50" },
+        ].map(s => (
+          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm mb-2 ${s.color.split(" ")[1]}`}>
+              {s.icon}
+            </div>
+            <p className={`text-xl font-black ${s.color.split(" ")[0]}`}>{s.val}</p>
+            <p className="text-xs font-semibold text-gray-500 mt-0.5">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div className="relative flex-1 max-w-sm">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <input type="text" placeholder="Cari nama atau username..."
+            value={search} onChange={e => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91] bg-white" />
+        </div>
+        <button onClick={onEntitle}
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#0B3D91] text-white rounded-xl text-xs font-bold hover:bg-[#1E5CC6] transition-colors flex-shrink-0">
+          ⚙️ Atur Hak Cuti
+        </button>
+      </div>
+
+      {/* Desktop Table */}
+      <div className="hidden md:block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-[#0B3D91] text-white">
+              <th className="px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wide">Karyawan</th>
+              <th className="px-4 py-3.5 text-center text-xs font-bold uppercase tracking-wide">Hak Cuti</th>
+              <th className="px-4 py-3.5 text-center text-xs font-bold uppercase tracking-wide">Cuti Bersama</th>
+              <th className="px-4 py-3.5 text-center text-xs font-bold uppercase tracking-wide">Diambil</th>
+              <th className="px-4 py-3.5 text-center text-xs font-bold uppercase tracking-wide">Saldo</th>
+              <th className="px-4 py-3.5 text-center text-xs font-bold uppercase tracking-wide">Pending</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="text-center py-10 text-gray-400">
+                  <p className="text-3xl mb-2">👥</p>
+                  <p className="text-sm">Tidak ada data</p>
+                </td>
+              </tr>
+            ) : filtered.map((u, i) => (
+              <tr key={u.user_id}
+                className={`border-b border-gray-50 transition-colors hover:bg-blue-50/30 ${i % 2 === 0 ? "bg-white" : "bg-gray-50/40"}`}>
+                <td className="px-5 py-3.5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-br from-[#0B3D91] to-[#1E5CC6] rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-white text-xs font-black">{u.name.charAt(0).toUpperCase()}</span>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-800 text-sm leading-tight">{u.name}</p>
+                      <p className="text-[10px] text-gray-400 font-mono">@{u.username}</p>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-3.5 text-center">
+                  <span className="text-sm font-black text-gray-700">{u.entitlement}</span>
+                  <span className="text-xs text-gray-400 ml-1">hari</span>
+                </td>
+                <td className="px-4 py-3.5 text-center">
+                  <span className="text-sm font-bold text-purple-600">{u.joint_leave}</span>
+                  <span className="text-xs text-gray-400 ml-1">hari</span>
+                </td>
+                <td className="px-4 py-3.5 text-center">
+                  <span className="text-sm font-bold text-amber-600">{u.annual_taken}</span>
+                  <span className="text-xs text-gray-400 ml-1">hari</span>
+                </td>
+                <td className="px-4 py-3.5 text-center">
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-black ${balanceColor(u.balance, u.entitlement)}`}>
+                    {u.balance} hari
+                  </span>
+                </td>
+                <td className="px-4 py-3.5 text-center">
+                  {u.pending > 0 ? (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700">
+                      {u.pending} pending
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-300">—</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* Bar progress visual footer */}
+        <div className="px-5 py-3 border-t border-gray-50 bg-gray-50/50">
+          <p className="text-xs text-gray-400">
+            {filtered.length} karyawan · Tahun <span className="font-bold text-gray-600">{year}</span>
+          </p>
+        </div>
+      </div>
+
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-3">
+        {filtered.map(u => (
+          <div key={u.user_id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-[#0B3D91] to-[#1E5CC6] rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-white text-sm font-black">{u.name.charAt(0).toUpperCase()}</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-gray-800 text-sm leading-tight truncate">{u.name}</p>
+                <p className="text-[10px] text-gray-400 font-mono">@{u.username}</p>
+              </div>
+              {u.pending > 0 && (
+                <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full flex-shrink-0">
+                  {u.pending} pending
+                </span>
+              )}
+            </div>
+
+            {/* Stats grid */}
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { label: "Hak Cuti",   val: u.entitlement,  color: "text-[#0B3D91]", bg: "bg-blue-50"    },
+                { label: "Bersama",    val: u.joint_leave,  color: "text-purple-600",bg: "bg-purple-50"  },
+                { label: "Diambil",    val: u.annual_taken, color: "text-amber-600", bg: "bg-amber-50"   },
+                { label: "Saldo",      val: u.balance,      color: balanceColor(u.balance, u.entitlement).split(" ")[0],
+                                                            bg:    balanceColor(u.balance, u.entitlement).split(" ")[1] },
+              ].map(s => (
+                <div key={s.label} className={`${s.bg} rounded-xl p-2.5 text-center`}>
+                  <p className={`text-lg font-black ${s.color}`}>{s.val}</p>
+                  <p className="text-[9px] text-gray-500 font-semibold mt-0.5 leading-tight">{s.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Balance progress bar */}
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] text-gray-400">Penggunaan cuti tahunan</span>
+                <span className="text-[10px] font-bold text-gray-500">
+                  {u.annual_taken + u.joint_leave}/{u.entitlement} hari
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    u.balance <= 0 ? "bg-red-400" :
+                    u.balance <= u.entitlement * 0.3 ? "bg-amber-400" : "bg-emerald-400"
+                  }`}
+                  style={{ width: `${Math.min(100, ((u.annual_taken + u.joint_leave) / Math.max(1, u.entitlement)) * 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function LeaveManagement() {
   const [tab,          setTab]          = useState("overview");
   const [year,         setYear]         = useState(YEAR);
@@ -761,6 +959,7 @@ export default function LeaveManagement() {
   const [myReqs,       setMyReqs]       = useState([]);
   const [allReqs,      setAllReqs]      = useState([]);
   const [allUsers,     setAllUsers]     = useState([]);
+  const [allSummary, setAllSummary] = useState([]);
   const [summary,      setSummary]      = useState({ entitlement: 12, joint_leave: 0, annual_taken: 0, balance: 12 });
   const [jointSched,   setJointSched]   = useState([]);
   const [isAdmin,      setIsAdmin]      = useState(isAdminRole(localStorage.getItem("user_role") || "engineer"));
@@ -795,12 +994,14 @@ export default function LeaveManagement() {
       setJointSched(jRes.data);
 
       if (admin) {
-        const [allReqRes, usersRes] = await Promise.all([
+        const [allReqRes, usersRes, summaryAllRes] = await Promise.all([
           API.get("/leave/requests/all"),
           API.get("/auth/users"),
+          API.get(`/leave/summary/all?year=${year}`),
         ]);
         setAllReqs(allReqRes.data);
         setAllUsers(usersRes.data);
+        setAllSummary(summaryAllRes.data?.users || []);
       }
     } catch (e) {
       toast("Gagal memuat data cuti", "error");
@@ -860,7 +1061,11 @@ export default function LeaveManagement() {
     { id: "overview",  label: "Overview",        icon: "📊" },
     { id: "history",   label: "Riwayat",         icon: "📋" },
     { id: "joint",     label: "Cuti Bersama",    icon: "🤝" },
-    ...(isAdmin ? [{ id: "approvals", label: pendingReqs.length > 0 ? `Approval (${pendingReqs.length})` : "Approval", icon: "⏳" }] : []),
+    ...(isAdmin ? [
+      { id: "rekap",     label: "Rekap",       icon: "👥" },
+      { id: "approvals", label: pendingReqs.length > 0 
+        ? `Approval (${pendingReqs.length})` : "Approval", icon: "⏳" },
+      ] : []),
   ];
 
   return (
@@ -935,6 +1140,9 @@ export default function LeaveManagement() {
               {tab === "history"   && <HistoryTab myReqs={myReqs} allReqs={allReqs} isAdmin={isAdmin} onDetail={setShowDetail} onDelete={cancelRequest} />}
               {tab === "joint"     && <JointLeaveTab schedule={jointSched} isAdmin={isAdmin} onAdd={() => setShowJointModal(true)} onDelete={deleteJoint} year={year} />}
               {tab === "approvals" && isAdmin && <ApprovalsTab pending={pendingReqs} onReview={setShowApproval} />}
+              {tab === "rekap" && isAdmin && (
+                <RekapTab data={allSummary} year={year} onEntitle={() => setShowEntitle(true)} />
+              )}
             </>
           )}
         </div>
