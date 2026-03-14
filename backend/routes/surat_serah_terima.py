@@ -269,9 +269,9 @@ def build_surat_pdf(sid):
     p1_name = s.pihak_pertama_nama or "Pihak Pertama"
     p2_name = s.pihak_kedua_nama   or "Pihak Kedua"
     opening = (
-        f"Yang bertanda tangan di bawah ini, <b>{p1_name}</b> selaku pihak pertama "
-        f"menyatakan bahwa telah {opening_action} barang-barang kepada <b>{p2_name}</b> "
-        f"selaku pihak kedua, dengan rincian sebagaimana tercantum di bawah ini."
+        f"Yang bertanda tangan di bawah ini, <b>Pihak Pertama</b> "
+        f"menyatakan bahwa telah {opening_action} barang-barang kepada <b>Pihak Kedua</b>, "
+        f"dengan rincian sebagaimana tercantum di bawah ini."
     )
     elements.append(Paragraph(opening, ps('Op', fontSize=10, textColor=text_clr, leading=15)))
     elements.append(Spacer(1, 0.5*cm))

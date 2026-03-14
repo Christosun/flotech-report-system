@@ -200,7 +200,7 @@ function LiveClock({ visible }) {
         <span className="text-gray-400 text-xs font-normal">:{String(time.getSeconds()).padStart(2,"0")}</span>
       </span>
       <span className="text-[10px] text-gray-400 font-medium mt-0.5">
-        {DAYS[time.getDay()]}, {time.getDate()} {MONTHS[time.getMonth()]}
+        {DAYS[time.getDay()]}, {time.getDate()} {MONTHS[time.getMonth()]} {time.getFullYear()}
       </span>
     </div>
   );
