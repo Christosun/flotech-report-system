@@ -77,6 +77,9 @@ app.register_blueprint(surat_resmi_bp, url_prefix="/api/surat-resmi")
 from routes.leave import leave_bp
 app.register_blueprint(leave_bp, url_prefix='/api/leave')
 
+from routes.notification import notification_bp
+app.register_blueprint(notification_bp, url_prefix='/api/notification')
+
 # ── Static uploads ───────────────────────────────────────────
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):

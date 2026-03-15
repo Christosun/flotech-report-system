@@ -103,3 +103,16 @@ class JointLeaveSchedule(db.Model):
     name       = db.Column(db.String(200), nullable=False)
     leave_date = db.Column(db.Date, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Notification(db.Model):
+    __tablename__ = "notifications"
+ 
+    id         = db.Column(db.Integer, primary_key=True)
+    user_id    = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    actor_id   = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    type       = db.Column(db.String(50))
+    title      = db.Column(db.String(200))
+    message    = db.Column(db.String(500))
+    link       = db.Column(db.String(200))
+    is_read    = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

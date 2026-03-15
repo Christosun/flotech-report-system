@@ -398,7 +398,7 @@ export default function UserProfilePanel({ open, onClose }) {
                 {[
                   ["Session state", <span key="s" className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"/>Active</span>],
                   ["Account roles",  <span key="r" className="text-xs font-bold text-gray-700 capitalize">{profile?.role || "engineer"}</span>],
-                  ["Join",  <span key="j" className="text-xs text-gray-600">{profile?.created_at ? new Date(profile.created_at).toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"}) : "—"}</span>],
+                  ["Join",  <span key="j" className="text-xs text-gray-600">{profile?.created_at ? new Date(profile.created_at).toLocaleDateString("en-EN",{day:"numeric",month:"long",year:"numeric"}) : "—"}</span>],
                 ].map(([lbl, val], i) => (
                   <div key={i} className={`flex items-center justify-between px-3.5 py-2.5 ${i%2===0?"bg-gray-50":"bg-white"}`}>
                     <span className="text-[11px] text-gray-500 font-medium">{lbl}</span>{val}

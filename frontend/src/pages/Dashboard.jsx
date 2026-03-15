@@ -200,7 +200,7 @@ export default function Dashboard() {
                 </span>
                 {r.visit_date && (
                   <p className="text-[10px] text-gray-400 mt-0.5">
-                    {new Date(r.visit_date).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })}
+                    {new Date(r.visit_date).toLocaleDateString("en-EN", { day: "2-digit", month: "short" })}
                   </p>
                 )}
               </div>
@@ -255,7 +255,7 @@ export default function Dashboard() {
                 </span>
                 {s.surat_date && (
                   <p className="text-[10px] text-gray-400 mt-0.5">
-                    {new Date(s.surat_date).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })}
+                    {new Date(s.surat_date).toLocaleDateString("en-EG", { day: "2-digit", month: "short" })}
                   </p>
                 )}
               </div>

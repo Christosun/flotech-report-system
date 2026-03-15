@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import UserProfilePanel from "./UserProfilePanel";
+import NotificationPanel from "./NotificationPanel";
 
 const PAGE_TITLES = {
   "/dashboard":      { title: "Dashboard",            sub: "Overview & Analytics" },
@@ -287,6 +288,11 @@ export default function Topbar({ onMenuClick }) {
           />
 
           {showSession && <div className="hidden sm:block w-px h-6 bg-gray-200" />}
+
+          {/* Notification Bell */}
+          <NotificationPanel />
+
+          <div className="w-px h-6 bg-gray-200" />
 
           {/* User chip → open panel */}
           <button
