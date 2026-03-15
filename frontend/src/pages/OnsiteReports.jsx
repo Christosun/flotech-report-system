@@ -70,49 +70,94 @@ function Pagination({ total, page, pageSize, setPage, setPageSize }) {
   );
 }
 
+// ─── Delete Dialog ────────────────────────────────────────────────────────────
+function DeleteDialog({ title, description, onConfirm, onCancel, loading }) {
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+        <div className="bg-gradient-to-br from-red-50 to-rose-100 px-6 pt-6 pb-4 text-center">
+          <div className="w-14 h-14 bg-red-100 border-4 border-red-200 rounded-full flex items-center justify-center mx-auto mb-3">
+            <svg className="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </div>
+          <h3 className="text-base font-bold text-gray-900">{title}</h3>
+          <p className="text-sm text-gray-500 mt-1">{description}</p>
+        </div>
+        <div className="px-6 py-4 flex gap-3">
+          <button onClick={onCancel} disabled={loading}
+            className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
+            Batal
+          </button>
+          <button onClick={onConfirm} disabled={loading}
+            className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-60">
+            {loading
+              ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
+              : null}
+            {loading ? "Menghapus..." : "Hapus Permanen"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Bulk Action Bar ──────────────────────────────────────────────────────────
 function BulkActionBar({ selectedIds, allIds, onSelectAll, onClearAll, onBulkDeleted }) {
-  const [deleting, setDeleting] = useState(false);
+  const [deleting, setDeleting]                   = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const isAllSelected = allIds.length > 0 && selectedIds.length === allIds.length;
 
   const handleDelete = async () => {
-    if (!confirm(`Hapus ${selectedIds.length} onsite report yang dipilih? Tindakan ini tidak dapat dibatalkan.`)) return;
     setDeleting(true);
     try {
       await Promise.all(selectedIds.map(id => API.delete(`/onsite/delete/${id}`)));
-      toast.success(`${selectedIds.length} report dihapus`);
+      toast.success(`${selectedIds.length} onsite report dihapus`);
+      setShowDeleteConfirm(false);
       onBulkDeleted();
     } catch { toast.error("Sebagian gagal dihapus"); }
     finally { setDeleting(false); }
   };
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2.5 bg-[#0B3D91]/5 border border-[#0B3D91]/20 rounded-xl mb-4 flex-wrap">
-      <label className="flex items-center gap-2 cursor-pointer select-none">
-        <input type="checkbox" checked={isAllSelected} onChange={isAllSelected ? onClearAll : onSelectAll}
-          className="w-4 h-4 accent-[#0B3D91] cursor-pointer"/>
-        <span className="text-xs font-bold text-[#0B3D91]">
-          {isAllSelected ? "Batal Pilih Semua" : `Pilih Semua (${allIds.length})`}
+    <>
+      {showDeleteConfirm && (
+        <DeleteDialog
+          title={`Hapus ${selectedIds.length} Onsite Report?`}
+          description="Semua onsite report yang dipilih akan dihapus permanen. Tindakan ini tidak dapat dibatalkan."
+          onConfirm={handleDelete}
+          onCancel={() => setShowDeleteConfirm(false)}
+          loading={deleting}
+        />
+      )}
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-[#0B3D91]/5 border border-[#0B3D91]/20 rounded-xl mb-4 flex-wrap">
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input type="checkbox" checked={isAllSelected} onChange={isAllSelected ? onClearAll : onSelectAll}
+            className="w-4 h-4 accent-[#0B3D91] cursor-pointer"/>
+          <span className="text-xs font-bold text-[#0B3D91]">
+            {isAllSelected ? "Batal Pilih Semua" : `Pilih Semua (${allIds.length})`}
+          </span>
+        </label>
+        <div className="h-4 w-px bg-[#0B3D91]/20 mx-1"/>
+        <span className="text-xs font-semibold text-[#0B3D91] bg-[#0B3D91]/10 px-2.5 py-1 rounded-full">
+          {selectedIds.length} dipilih
         </span>
-      </label>
-      <div className="h-4 w-px bg-[#0B3D91]/20 mx-1"/>
-      <span className="text-xs font-semibold text-[#0B3D91] bg-[#0B3D91]/10 px-2.5 py-1 rounded-full">
-        {selectedIds.length} dipilih
-      </span>
-      <div className="flex items-center gap-2 ml-auto">
-        <button onClick={handleDelete} disabled={deleting}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-red-500 border border-red-200 rounded-lg text-xs font-bold hover:bg-red-50 disabled:opacity-60 transition-all">
-          {deleting
-            ? <div className="w-3.5 h-3.5 border-2 border-red-400/40 border-t-red-500 rounded-full animate-spin"/>
-            : "🗑"}
-          {deleting ? "Menghapus..." : "Hapus Terpilih"}
-        </button>
-        <button onClick={onClearAll}
-          className="px-3 py-1.5 text-gray-400 hover:text-gray-600 text-xs font-semibold rounded-lg hover:bg-gray-100 transition-all">
-          ✕ Batal
-        </button>
+        <div className="flex items-center gap-2 ml-auto">
+          <button onClick={() => setShowDeleteConfirm(true)} disabled={deleting}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-red-500 border border-red-200 rounded-lg text-xs font-bold hover:bg-red-50 disabled:opacity-60 transition-all">
+            {deleting
+              ? <div className="w-3.5 h-3.5 border-2 border-red-400/40 border-t-red-500 rounded-full animate-spin"/>
+              : "🗑"}
+            {deleting ? "Menghapus..." : "Hapus Terpilih"}
+          </button>
+          <button onClick={onClearAll}
+            className="px-3 py-1.5 text-gray-400 hover:text-gray-600 text-xs font-semibold rounded-lg hover:bg-gray-100 transition-all">
+            ✕ Batal
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

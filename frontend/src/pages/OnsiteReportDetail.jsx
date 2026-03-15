@@ -28,7 +28,7 @@ function PDFModal({ url, name, onClose }) {
 /* ─── Delete Dialog ─────────────────────────────────────────── */
 function DeleteDialog({ title, onConfirm, onCancel, loading }) {
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
         <p className="text-lg font-bold text-gray-800 mb-2">{title}</p>
         <p className="text-sm text-gray-500 mb-5">Tindakan ini tidak dapat dibatalkan.</p>

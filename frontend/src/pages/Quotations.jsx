@@ -94,6 +94,39 @@ function SelectField({ label, value, onChange, options, placeholder, required, c
 }
 
 // ─── Customer Manager Modal (ORIGINAL) ───────────────────────────────────────
+// ─── Delete Dialog (reusable) ─────────────────────────────────────────────────
+function DeleteDialog({ title, description, onConfirm, onCancel, loading }) {
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+        <div className="bg-gradient-to-br from-red-50 to-rose-100 px-6 pt-6 pb-4 text-center">
+          <div className="w-14 h-14 bg-red-100 border-4 border-red-200 rounded-full flex items-center justify-center mx-auto mb-3">
+            <svg className="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </div>
+          <h3 className="text-base font-bold text-gray-900">{title}</h3>
+          <p className="text-sm text-gray-500 mt-1">{description}</p>
+        </div>
+        <div className="px-6 py-4 flex gap-3">
+          <button onClick={onCancel} disabled={loading}
+            className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
+            Batal
+          </button>
+          <button onClick={onConfirm} disabled={loading}
+            className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-60">
+            {loading
+              ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
+              : null}
+            {loading ? "Menghapus..." : "Hapus Permanen"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CustomerModal({ onClose, onSelect }) {
   const [list, setList]           = useState([]);
   const [search, setSearch]       = useState("");
@@ -125,10 +158,19 @@ function CustomerModal({ onClose, onSelect }) {
     finally { setSaving(false); }
   };
 
-  const del = async id => {
-    if (!confirm("Hapus customer ini?")) return;
-    try { await API.delete(`/customer/delete/${id}`); toast.success("Dihapus"); load(); }
-    catch { toast.error("Gagal menghapus"); }
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting]         = useState(false);
+
+  const del = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await API.delete(`/customer/delete/${deleteTarget.id}`);
+      toast.success("Customer dihapus");
+      setDeleteTarget(null);
+      load();
+    } catch { toast.error("Gagal menghapus"); }
+    finally { setDeleting(false); }
   };
 
   const filtered = list.filter(c =>
@@ -137,6 +179,15 @@ function CustomerModal({ onClose, onSelect }) {
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+      {deleteTarget && (
+        <DeleteDialog
+          title="Hapus Customer?"
+          description={`"${deleteTarget.company_name}" akan dihapus permanen.`}
+          onConfirm={del}
+          onCancel={() => setDeleteTarget(null)}
+          loading={deleting}
+        />
+      )}
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
           <h2 className="text-lg font-bold text-gray-800">🏢 Database Customer</h2>
@@ -181,7 +232,7 @@ function CustomerModal({ onClose, onSelect }) {
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 text-xs">✏️</button>
-                    <button onClick={() => del(c.id)}   className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 text-xs">🗑</button>
+                    <button onClick={() => setDeleteTarget(c)}   className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 text-xs">🗑</button>
                   </div>
                 </div>
               ))
@@ -649,16 +700,17 @@ function FilterPanel({ quotations, filters, setFilters, onClose }) {
 
 // ─── Bulk Action Bar (NEW feature) ───────────────────────────────────────────
 function BulkActionBar({ selectedIds, allIds, onSelectAll, onClearAll, onBulkDeleted }) {
-  const [deleting, setDeleting] = useState(false);
-  const [pdfing,   setPdfing]   = useState(false);
+  const [deleting, setDeleting]             = useState(false);
+  const [pdfing,   setPdfing]               = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const isAllSelected = allIds.length > 0 && selectedIds.length === allIds.length;
 
   const handleDelete = async () => {
-    if (!confirm(`Hapus ${selectedIds.length} quotation yang dipilih? Tindakan ini tidak dapat dibatalkan.`)) return;
     setDeleting(true);
     try {
       await Promise.all(selectedIds.map(id => API.delete(`/quotation/delete/${id}`)));
       toast.success(`${selectedIds.length} quotation dihapus`);
+      setShowDeleteConfirm(false);
       onBulkDeleted();
     } catch { toast.error("Sebagian gagal dihapus"); }
     finally { setDeleting(false); }
@@ -687,7 +739,17 @@ function BulkActionBar({ selectedIds, allIds, onSelectAll, onClearAll, onBulkDel
   };
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2.5 bg-[#0B3D91]/5 border border-[#0B3D91]/20 rounded-xl mb-3 flex-wrap">
+    <>
+      {showDeleteConfirm && (
+        <DeleteDialog
+          title={`Hapus ${selectedIds.length} Quotation?`}
+          description="Semua quotation yang dipilih akan dihapus permanen. Tindakan ini tidak dapat dibatalkan."
+          onConfirm={handleDelete}
+          onCancel={() => setShowDeleteConfirm(false)}
+          loading={deleting}
+        />
+      )}
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-[#0B3D91]/5 border border-[#0B3D91]/20 rounded-xl mb-3 flex-wrap">
       <label className="flex items-center gap-2 cursor-pointer select-none">
         <input type="checkbox" checked={isAllSelected} onChange={isAllSelected ? onClearAll : onSelectAll}
           className="w-4 h-4 accent-[#0B3D91] cursor-pointer"/>
@@ -709,7 +771,7 @@ function BulkActionBar({ selectedIds, allIds, onSelectAll, onClearAll, onBulkDel
           className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-all">
           📊 Export Excel
         </button>
-        <button onClick={handleDelete} disabled={deleting}
+        <button onClick={() => setShowDeleteConfirm(true)} disabled={deleting}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-red-500 border border-red-200 rounded-lg text-xs font-bold hover:bg-red-50 disabled:opacity-60 transition-all">
           {deleting ? <div className="w-3.5 h-3.5 border-2 border-red-400/40 border-t-red-500 rounded-full animate-spin"/> : "🗑"}
           {deleting ? "Menghapus..." : "Hapus Terpilih"}
@@ -720,6 +782,7 @@ function BulkActionBar({ selectedIds, allIds, onSelectAll, onClearAll, onBulkDel
         </button>
       </div>
     </div>
+    </>
   );
 }
 
@@ -929,7 +992,7 @@ export default function Quotations() {
         <button onClick={() => selectMode ? onClearAll() : setSelectMode(true)}
           className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold border transition-all
             ${selectMode ? "bg-[#0B3D91] text-white border-[#0B3D91]" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
-          ☑️ {selectMode ? "Mode Pilih" : "Pilih"}
+          ☑️ {selectMode ? "Pilih" : "Pilih"}
         </button>
       </div>
 
