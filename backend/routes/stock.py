@@ -115,13 +115,12 @@ def delete_unit(uid):
     db.session.commit()
     return jsonify({"message": "Deleted"}), 200
 
-
 FLOTECH_INFO = {
-    "name":    "PT FLOTECH CONTROLS INDONESIA",
-    "address": "Jl. Raya Cakung No.123, Jakarta Timur",
-    "city":    "Jakarta 13910, Indonesia",
-    "telp":    "Telp: +62 21 XXXX XXXX",
-    "email":   "info@flotech.co.id",
+    "name": "PT FLOTECH CONTROLS INDONESIA",
+    "address": "Rukan Artha Gading Niaga, Blok F/7",
+    "city": "Jl. Boulevard Artha Gading, Jakarta 14240",
+    "telp": "Telp: +6221 45850778 / Fax: +6221 45850779",
+    "email": "e-Mail: salesjkt@flotech.co.id / Website: www.flotech.com.sg",
 }
 
 _PRIMARY   = "#0B3D91"
