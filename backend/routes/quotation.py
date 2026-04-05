@@ -1,0 +1,986 @@
+from flask import Blueprint, request, jsonify, send_file, Response
+from extensions import db
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from datetime import datetime, timezone, timedelta
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable, KeepTogether
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import cm, mm
+from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
+from reportlab.platypus import Image as RLImage
+from PIL import Image as PILImage
+from io import BytesIO
+import os, re
+
+# ── openpyxl for Excel export ──────────────────────────────────────────────────
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, GradientFill
+from openpyxl.utils import get_column_letter
+
+quotation_bp = Blueprint('quotation', __name__)
+
+# ── Jakarta timezone ───────────────────────────────────────────────────────────
+WIB = timezone(timedelta(hours=7))
+
+def now_wib():
+    return datetime.now(WIB)
+
+def fmt_wib(dt):
+    """Format datetime as Jakarta time string."""
+    if dt is None:
+        return "-"
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    wib_dt = dt.astimezone(WIB)
+    months = ["","Januari","Februari","Maret","April","Mei","Juni",
+              "Juli","Agustus","September","Oktober","November","Desember"]
+    return f"{wib_dt.day} {months[wib_dt.month]} {wib_dt.year}"
+
+# ── Model ──────────────────────────────────────────────────────────────────────
+class Quotation(db.Model):
+    __tablename__ = "quotations"
+    id               = db.Column(db.Integer, primary_key=True)
+    quotation_number = db.Column(db.String(60), unique=True)
+    base_number      = db.Column(db.String(30))
+    revision         = db.Column(db.Integer, default=0)
+    customer_name    = db.Column(db.String(150))
+    customer_company = db.Column(db.String(200))
+    customer_email   = db.Column(db.String(120))
+    customer_phone   = db.Column(db.String(30))
+    customer_address = db.Column(db.Text)
+    project_name     = db.Column(db.String(200))
+    category         = db.Column(db.String(100))
+    status           = db.Column(db.String(30), default="draft")
+    valid_until      = db.Column(db.Date)
+    currency         = db.Column(db.String(10), default="IDR")
+    total_amount     = db.Column(db.Float, default=0)
+    notes            = db.Column(db.Text)
+    terms            = db.Column(db.Text)
+    items            = db.Column(db.JSON)
+    sales_person     = db.Column(db.String(100))
+    ref_no           = db.Column(db.String(100))
+    shipment_terms   = db.Column(db.String(200))
+    delivery         = db.Column(db.String(200))
+    payment_terms    = db.Column(db.String(200))
+    vat_pct          = db.Column(db.Float, default=11.0)
+    vat_include      = db.Column(db.Boolean, default=False)
+    created_by       = db.Column(db.Integer, db.ForeignKey("users.id"))
+    created_at       = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at       = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# ── Constants ──────────────────────────────────────────────────────────────────
+FLOTECH_INFO = {
+    "name":    "PT. FLOTECH CONTROLS INDONESIA",
+    "address": "Rukan Artha Gading Niaga, Blok F/7",
+    "city":    "Jl. Boulevard Artha Gading, Jakarta 14240",
+    "telp":    "Telp: (021) 4585 0778 / 4586 0625  |  Fax: (021) 4585 0779",
+    "email":   "Email: salesjkt@flotech.co.id  |  Website: www.flotech.co.id",
+}
+
+# ── Helpers ────────────────────────────────────────────────────────────────────
+def format_currency(amount, currency="IDR"):
+    try:
+        n = float(amount or 0)
+        if currency == "IDR":
+            return f"Rp {n:,.0f}".replace(",", ".")
+        return f"{currency} {n:,.2f}"
+    except:
+        return "-"
+
+def calc_item(item):
+    price = float(item.get("unit_price") or 0)
+    qty   = float(item.get("qty") or 0)
+    disc  = float(item.get("discount") or 0)
+    gross = price * qty
+    disc_amt = gross * disc / 100
+    net   = gross - disc_amt
+    return gross, disc_amt, net
+
+def _find_logo():
+    base = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        os.path.join(base, "..", "frontend", "public", "logo.png"),
+        os.path.join(base, "static", "logo.png"),
+        os.path.join(base, "static", "flotech_logo.png"),
+        os.path.join(base, "..", "..", "frontend", "public", "logo.png"),
+    ]
+    for p in candidates:
+        n = os.path.normpath(p)
+        if os.path.isfile(n):
+            return n
+    return None
+
+# ── Auto-number generator ──────────────────────────────────────────────────────
+def generate_quotation_number():
+    now = now_wib()
+    yy, mm_str = now.strftime("%y"), now.strftime("%m")
+    prefix = f"SQ{yy}{mm_str}"
+    year_prefix = f"SQ{yy}"
+    existing = Quotation.query.filter(
+        Quotation.base_number.like(f"{year_prefix}%")
+    ).order_by(Quotation.id.desc()).all()
+    max_seq = 0
+    for q in existing:
+        if q.base_number:
+            try:
+                seq = int(q.base_number[6:])
+                if seq > max_seq:
+                    max_seq = seq
+            except:
+                pass
+    return f"{prefix}{max_seq + 1:03d}"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ROUTES
+# ═══════════════════════════════════════════════════════════════════════════════
+@quotation_bp.route('/next-number', methods=['GET'])
+@jwt_required()
+def get_next_number():
+    return jsonify({"number": generate_quotation_number()}), 200
+
+@quotation_bp.route('/list', methods=['GET'])
+@jwt_required()
+def list_quotations():
+    qs = Quotation.query.order_by(Quotation.created_at.desc()).all()
+    result = []
+    for q in qs:
+        result.append({
+            "id": q.id, "quotation_number": q.quotation_number,
+            "base_number": q.base_number, "revision": q.revision or 0,
+            "customer_name": q.customer_name, "customer_company": q.customer_company,
+            "project_name": q.project_name, "category": q.category,
+            "status": q.status, "total_amount": q.total_amount, "currency": q.currency,
+            "sales_person": q.sales_person,
+            "created_at": q.created_at.isoformat() if q.created_at else None,
+            "updated_at": q.updated_at.isoformat() if q.updated_at else None,
+            "valid_until": q.valid_until.isoformat() if q.valid_until else None,
+        })
+    return jsonify(result), 200
+
+@quotation_bp.route('/analytics', methods=['GET'])
+@jwt_required()
+def get_analytics():
+    qs = Quotation.query.all()
+    monthly, yearly = {}, {}
+    for q in qs:
+        dt = q.created_at or datetime.utcnow()
+        mk, yk = dt.strftime("%Y-%m"), dt.strftime("%Y")
+        for store, key in [(monthly, mk), (yearly, yk)]:
+            if key not in store:
+                store[key] = {"period": key, "draft": 0, "sent": 0, "followup": 0, "won": 0, "lost": 0, "cancel": 0,
+                              "draft_val": 0, "sent_val": 0, "followup_val": 0, "won_val": 0, "lost_val": 0, "cancel_val": 0, "total": 0}
+            st = q.status or "draft"
+            val = q.total_amount or 0
+            store[key][st] = store[key].get(st, 0) + 1
+            store[key][f"{st}_val"] = store[key].get(f"{st}_val", 0) + val
+            store[key]["total"] += 1
+    return jsonify({
+        "monthly": sorted(monthly.values(), key=lambda x: x["period"]),
+        "yearly":  sorted(yearly.values(),  key=lambda x: x["period"]),
+    }), 200
+
+@quotation_bp.route('/create', methods=['POST'])
+@jwt_required()
+def create_quotation():
+    user_id = int(get_jwt_identity())
+    data = request.get_json()
+    valid_until = None
+    if data.get("valid_until"):
+        try: valid_until = datetime.strptime(data["valid_until"], "%Y-%m-%d").date()
+        except: pass
+    base_num = data.get("base_number") or generate_quotation_number()
+    q = Quotation(
+        quotation_number=base_num, base_number=base_num, revision=0,
+        customer_name=data.get("customer_name"), customer_company=data.get("customer_company"),
+        customer_email=data.get("customer_email"), customer_phone=data.get("customer_phone"),
+        customer_address=data.get("customer_address"), project_name=data.get("project_name"),
+        category=data.get("category"), status=data.get("status", "draft"),
+        valid_until=valid_until, currency=data.get("currency", "IDR"),
+        total_amount=data.get("total_amount", 0), notes=data.get("notes"), terms=data.get("terms"),
+        items=data.get("items", []), sales_person=data.get("sales_person"), ref_no=data.get("ref_no"),
+        shipment_terms=data.get("shipment_terms"), delivery=data.get("delivery"),
+        payment_terms=data.get("payment_terms"),
+        vat_pct=float(data.get("vat_pct") or 11), vat_include=bool(data.get("vat_include", False)),
+        created_by=user_id,
+    )
+    db.session.add(q); db.session.commit()
+    return jsonify({"message": "Created", "id": q.id, "quotation_number": q.quotation_number}), 201
+
+@quotation_bp.route('/detail/<int:qid>', methods=['GET'])
+@jwt_required()
+def get_quotation(qid):
+    q = Quotation.query.get(qid)
+    if not q: return jsonify({"error": "Not found"}), 404
+    return jsonify({
+        "id": q.id, "quotation_number": q.quotation_number,
+        "base_number": q.base_number, "revision": q.revision or 0,
+        "customer_name": q.customer_name, "customer_company": q.customer_company,
+        "customer_email": q.customer_email, "customer_phone": q.customer_phone,
+        "customer_address": q.customer_address, "project_name": q.project_name,
+        "category": q.category, "status": q.status,
+        "valid_until": q.valid_until.isoformat() if q.valid_until else None,
+        "currency": q.currency, "total_amount": q.total_amount,
+        "notes": q.notes, "terms": q.terms, "items": q.items or [],
+        "sales_person": q.sales_person, "ref_no": q.ref_no,
+        "shipment_terms": q.shipment_terms, "delivery": q.delivery,
+        "payment_terms": q.payment_terms,
+        "vat_pct": q.vat_pct or 11, "vat_include": q.vat_include or False,
+        "created_at": q.created_at.isoformat() if q.created_at else None,
+        "updated_at": q.updated_at.isoformat() if q.updated_at else None,
+    }), 200
+
+@quotation_bp.route('/update/<int:qid>', methods=['PUT'])
+@jwt_required()
+def update_quotation(qid):
+    q = Quotation.query.get(qid)
+    if not q: return jsonify({"error": "Not found"}), 404
+    data = request.get_json()
+    REVISION_FIELDS = {"items", "total_amount", "notes", "terms", "payment_terms",
+                       "shipment_terms", "delivery", "currency"}
+    bump = data.get("bump_revision", False)
+    if not bump:
+        for rf in REVISION_FIELDS:
+            if rf in data and str(getattr(q, rf, None)) != str(data[rf]):
+                bump = True; break
+    for f in ["customer_name","customer_company","customer_email","customer_phone","customer_address",
+              "project_name","category","currency","notes","terms","items","total_amount","status",
+              "sales_person","ref_no","shipment_terms","delivery","payment_terms","vat_pct","vat_include"]:
+        if f in data: setattr(q, f, data[f])
+    if data.get("valid_until"):
+        try: q.valid_until = datetime.strptime(data["valid_until"], "%Y-%m-%d").date()
+        except: pass
+    if bump:
+        new_rev = (q.revision or 0) + 1
+        q.revision = new_rev
+        base = q.base_number or q.quotation_number
+        q.base_number = base
+        q.quotation_number = f"{base}-Rev{new_rev}"
+    q.updated_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify({"message": "Updated", "quotation_number": q.quotation_number, "revision": q.revision}), 200
+
+@quotation_bp.route('/status/<int:qid>', methods=['PUT'])
+@jwt_required()
+def update_status(qid):
+    q = Quotation.query.get(qid)
+    if not q: return jsonify({"error": "Not found"}), 404
+    q.status = request.get_json().get("status", q.status)
+    q.updated_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify({"message": "Updated"}), 200
+
+@quotation_bp.route('/delete/<int:qid>', methods=['DELETE'])
+@jwt_required()
+def delete_quotation(qid):
+    q = Quotation.query.get(qid)
+    if not q: return jsonify({"error": "Not found"}), 404
+    db.session.delete(q); db.session.commit()
+    return jsonify({"message": "Deleted"}), 200
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# EXPORT — Excel
+# ═══════════════════════════════════════════════════════════════════════════════
+@quotation_bp.route('/export/excel', methods=['POST'])
+@jwt_required()
+def export_excel():
+    data = request.get_json() or {}
+    ids  = data.get("ids")
+    if ids:
+        qs = Quotation.query.filter(Quotation.id.in_(ids)).order_by(Quotation.created_at.desc()).all()
+    else:
+        qs = Quotation.query.order_by(Quotation.created_at.desc()).all()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Quotations"
+
+    navy="0B3D91"; navy2="1E5CC6"; green="D1FAE5"; amber="FEF3C7"; red="FEE2E2"; gray="F9FAFB"; white="FFFFFF"
+    status_fill = {"draft":"F3F4F6","sent":"DBEAFE","followup":"FEF3C7","won":"D1FAE5","lost":"FEE2E2","cancel":"F3F4F6"}
+    status_fc   = {"draft":"374151","sent":"1D4ED8","followup":"92400E","won":"065F46","lost":"991B1B","cancel":"6B7280"}
+
+    def hf(h): return PatternFill("solid", fgColor=h)
+    def bf(bold=False,size=9,color="1F2937",name="Arial"): return Font(name=name,size=size,bold=bold,color=color)
+    thin = Side(style="thin", color="D1D5DB")
+    border_all = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    ws.merge_cells("A1:K1"); ws["A1"]="PT. FLOTECH CONTROLS INDONESIA"
+    ws["A1"].font=Font(name="Arial",size=14,bold=True,color=white); ws["A1"].fill=hf(navy)
+    ws["A1"].alignment=Alignment(horizontal="center",vertical="center"); ws.row_dimensions[1].height=26
+
+    ws.merge_cells("A2:K2"); ws["A2"]="Sales Quotation Report"
+    ws["A2"].font=Font(name="Arial",size=10,color="BFDBFE"); ws["A2"].fill=hf(navy2)
+    ws["A2"].alignment=Alignment(horizontal="center",vertical="center"); ws.row_dimensions[2].height=18
+
+    wib_now = now_wib()
+    ws.merge_cells("A3:K3")
+    ws["A3"]=f"Generated: {wib_now.strftime('%d %B %Y %H:%M')} WIB  |  Total: {len(qs)} quotations"
+    ws["A3"].font=Font(name="Arial",size=8,italic=True,color="6B7280"); ws["A3"].fill=hf("F8FAFC")
+    ws["A3"].alignment=Alignment(horizontal="center",vertical="center"); ws.row_dimensions[3].height=14
+    ws.row_dimensions[4].height=6
+
+    headers=["No.","No. Quotation","Customer / Perusahaan","Nama PIC","Project / Subject","Sales Person","Currency","Total Nilai","Status","Berlaku s/d","Dibuat"]
+    header_widths=[5,20,30,22,35,20,10,18,12,14,18]
+    for col_idx,(h,w) in enumerate(zip(headers,header_widths),start=1):
+        cell=ws.cell(row=5,column=col_idx,value=h)
+        cell.font=Font(name="Arial",size=9,bold=True,color=white); cell.fill=hf(navy)
+        cell.alignment=Alignment(horizontal="center",vertical="center",wrap_text=True); cell.border=border_all
+        ws.column_dimensions[get_column_letter(col_idx)].width=w
+    ws.row_dimensions[5].height=24
+
+    for i,q in enumerate(qs):
+        row=6+i; bg=gray if i%2==0 else white; st=(q.status or "draft").lower()
+        vals=[i+1,q.quotation_number,q.customer_company or "",q.customer_name or "",q.project_name or "",
+              q.sales_person or "",q.currency or "IDR",q.total_amount or 0,(q.status or "draft").title(),
+              q.valid_until.strftime("%d-%b-%Y") if q.valid_until else "",
+              q.created_at.strftime("%d-%b-%Y") if q.created_at else ""]
+        for col_idx,val in enumerate(vals,start=1):
+            cell=ws.cell(row=row,column=col_idx,value=val)
+            cell.font=bf(size=9); cell.alignment=Alignment(vertical="center"); cell.border=border_all
+            if col_idx==1: cell.alignment=Alignment(horizontal="center",vertical="center"); cell.fill=hf(bg)
+            elif col_idx==2: cell.font=Font(name="Arial",size=9,bold=True,color=navy); cell.fill=hf(bg)
+            elif col_idx==8:
+                cell.number_format='#,##0' if (q.currency or "IDR")=="IDR" else '#,##0.00'
+                cell.alignment=Alignment(horizontal="right",vertical="center"); cell.fill=hf(bg)
+            elif col_idx==9:
+                cell.fill=hf(status_fill.get(st,"F3F4F6")); cell.font=Font(name="Arial",size=9,bold=True,color=status_fc.get(st,"374151"))
+                cell.alignment=Alignment(horizontal="center",vertical="center")
+            else: cell.fill=hf(bg)
+        ws.row_dimensions[row].height=18
+
+    sr=6+len(qs)+2
+    ws.merge_cells(f"A{sr}:G{sr}"); ws[f"A{sr}"]="RINGKASAN"
+    ws[f"A{sr}"].font=Font(name="Arial",size=9,bold=True,color=white); ws[f"A{sr}"].fill=hf(navy)
+    ws[f"A{sr}"].alignment=Alignment(horizontal="center")
+    for j,(label,key,fc,bg_hex) in enumerate([("Won","won","065F46",green),("Sent","sent","1D4ED8","DBEAFE"),("Follow Up","followup","92400E",amber),("Draft","draft","374151",gray),("Lost","lost","991B1B",red)]):
+        r=sr+1+j; cnt=sum(1 for q in qs if (q.status or "draft")==key); val=sum((q.total_amount or 0) for q in qs if (q.status or "draft")==key)
+        ws.merge_cells(f"A{r}:C{r}"); ws[f"A{r}"]=label
+        ws[f"A{r}"].font=Font(name="Arial",size=9,bold=True,color=fc); ws[f"A{r}"].fill=hf(bg_hex); ws[f"A{r}"].alignment=Alignment(horizontal="left")
+        ws[f"D{r}"]=cnt; ws[f"D{r}"].font=Font(name="Arial",size=9,bold=True,color=fc); ws[f"D{r}"].fill=hf(bg_hex); ws[f"D{r}"].alignment=Alignment(horizontal="center")
+        ws[f"E{r}"]=val; ws[f"E{r}"].number_format='#,##0'; ws[f"E{r}"].font=Font(name="Arial",size=9,color=fc); ws[f"E{r}"].fill=hf(bg_hex); ws[f"E{r}"].alignment=Alignment(horizontal="right")
+
+    ws.freeze_panes="A6"
+    buf=BytesIO(); wb.save(buf); buf.seek(0)
+    return send_file(buf,as_attachment=True,download_name=f"Quotations_{wib_now.strftime('%Y%m%d')}.xlsx",
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# EXPORT — PDF List
+# ═══════════════════════════════════════════════════════════════════════════════
+@quotation_bp.route('/export/pdf', methods=['POST'])
+@jwt_required()
+def export_pdf_list():
+    data = request.get_json() or {}
+    ids  = data.get("ids")
+    if ids:
+        qs = Quotation.query.filter(Quotation.id.in_(ids)).order_by(Quotation.created_at.desc()).all()
+    else:
+        qs = Quotation.query.order_by(Quotation.created_at.desc()).all()
+
+    buffer = BytesIO()
+    L = R = 1.8 * cm
+    usable = A4[0] - L - R
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+        topMargin=2*cm, bottomMargin=3.5*cm, leftMargin=L, rightMargin=R,
+        title="Quotation List Report")
+
+    primary = colors.HexColor("#0B3D91"); navy2=colors.HexColor("#1E5CC6")
+    accent=colors.HexColor("#E8EEF9"); gray=colors.HexColor("#F9FAFB")
+    text_c=colors.HexColor("#374151"); gray_c=colors.HexColor("#6B7280")
+    white=colors.white; border=colors.HexColor("#D1D5DB")
+    status_fill={"draft":colors.HexColor("#F3F4F6"),"sent":colors.HexColor("#DBEAFE"),
+        "followup":colors.HexColor("#FEF3C7"),"won":colors.HexColor("#D1FAE5"),
+        "lost":colors.HexColor("#FEE2E2"),"cancel":colors.HexColor("#F3F4F6")}
+    status_fc={"draft":colors.HexColor("#374151"),"sent":colors.HexColor("#1D4ED8"),
+        "followup":colors.HexColor("#92400E"),"won":colors.HexColor("#065F46"),
+        "lost":colors.HexColor("#991B1B"),"cancel":colors.HexColor("#6B7280")}
+
+    def ps(name,**kw):
+        d=dict(fontName="Helvetica",fontSize=9,leading=12,textColor=text_c); d.update(kw); return ParagraphStyle(name,**d)
+
+    elements=[]
+    logo_path=_find_logo()
+    if logo_path:
+        try:
+            pil=PILImage.open(logo_path); lw=4.5*cm; lh=lw*pil.size[1]/pil.size[0]
+            logo_cell=RLImage(logo_path,width=lw,height=lh)
+        except: logo_cell=Paragraph("<b>FLOTECH</b>",ps("lg",fontSize=18,fontName="Helvetica-Bold",textColor=primary))
+    else: logo_cell=Paragraph("<b>FLOTECH</b>",ps("lg2",fontSize=18,fontName="Helvetica-Bold",textColor=primary))
+
+    wib_now=now_wib()
+    title_cell=[
+        Paragraph("SALES QUOTATION LIST",ps("t",fontSize=14,fontName="Helvetica-Bold",textColor=primary,leading=18)),
+        Paragraph("PT. FLOTECH CONTROLS INDONESIA",ps("s",fontSize=9,textColor=gray_c)),
+        Paragraph(f"Generated: {wib_now.strftime('%d %B %Y %H:%M')} WIB  |  {len(qs)} quotations",ps("s2",fontSize=8,textColor=gray_c)),
+    ]
+    top=Table([[logo_cell,title_cell]],colWidths=[6*cm,usable-6*cm])
+    top.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'MIDDLE'),('ALIGN',(1,0),(1,0),'RIGHT')]))
+    elements.append(top)
+    elements.append(HRFlowable(width=usable,thickness=1,color=primary,spaceAfter=0.3*cm))
+
+    th=ps("th",fontSize=8,fontName="Helvetica-Bold",textColor=white,alignment=TA_CENTER)
+    td=ps("td",fontSize=8,leading=11); td_r=ps("tdr",fontSize=8,leading=11,alignment=TA_RIGHT)
+    td_c=ps("tdc",fontSize=8,leading=11,alignment=TA_CENTER); td_b=ps("tdb",fontSize=8,fontName="Helvetica-Bold",leading=11,textColor=primary)
+
+    col_w=[0.6*cm,3.2*cm,4.2*cm,4.0*cm,2.4*cm,2.5*cm,1.7*cm]
+    col_w=[w*usable/sum(col_w) for w in col_w]
+
+    tbl_data=[[Paragraph("No",th),Paragraph("No. Quotation",th),Paragraph("Customer",th),
+               Paragraph("Project",th),Paragraph("Sales",th),Paragraph("Nilai",th),Paragraph("Status",th)]]
+    row_styles=[('BACKGROUND',(0,0),(-1,0),primary),('TEXTCOLOR',(0,0),(-1,0),white),
+        ('ALIGN',(0,0),(-1,0),'CENTER'),('VALIGN',(0,0),(-1,-1),'MIDDLE'),
+        ('TOPPADDING',(0,0),(-1,-1),4),('BOTTOMPADDING',(0,0),(-1,-1),4),
+        ('LEFTPADDING',(0,0),(-1,-1),4),('RIGHTPADDING',(0,0),(-1,-1),4),
+        ('INNERGRID',(0,0),(-1,-1),0.3,border),('BOX',(0,0),(-1,-1),0.5,colors.HexColor("#CBD5E1")),
+        ('ROWBACKGROUNDS',(0,1),(-1,-1),[white,gray])]
+
+    for i,q in enumerate(qs):
+        st=(q.status or "draft").lower()
+        st_label={"draft":"Draft","sent":"Sent","followup":"Follow Up","won":"Won","lost":"Lost","cancel":"Cancelled"}.get(st,st.title())
+        tbl_data.append([Paragraph(str(i+1),td_c),Paragraph(q.quotation_number or "-",td_b),
+            Paragraph(f"<b>{q.customer_company or '-'}</b><br/><font size='7' color='#6B7280'>{q.customer_name or ''}</font>",td),
+            Paragraph(q.project_name or "-",td),Paragraph(q.sales_person or "-",td),
+            Paragraph(format_currency(q.total_amount,q.currency or "IDR"),td_r),
+            Paragraph(f"<b>{st_label}</b>",ps(f"st_{i}",fontSize=7,fontName="Helvetica-Bold",textColor=status_fc.get(st,text_c),alignment=TA_CENTER))])
+        row_styles.append(('BACKGROUND',(6,i+1),(6,i+1),status_fill.get(st,gray)))
+
+    tbl=Table(tbl_data,colWidths=col_w,repeatRows=1)
+    tbl.setStyle(TableStyle(row_styles))
+    elements.append(tbl); elements.append(Spacer(1,0.5*cm))
+
+    total_all=sum((q.total_amount or 0) for q in qs)
+    won_all=sum((q.total_amount or 0) for q in qs if q.status=="won")
+    won_cnt=sum(1 for q in qs if q.status=="won")
+    summ_data=[[Paragraph("RINGKASAN",ps("sh",fontName="Helvetica-Bold",fontSize=9,textColor=white)),"",""],
+        [Paragraph("Total Quotation",ps("sl")),Paragraph(str(len(qs)),ps("sv",fontName="Helvetica-Bold")),""],
+        [Paragraph("Total Nilai",ps("sl")),Paragraph(format_currency(total_all),ps("sv",fontName="Helvetica-Bold")),""],
+        [Paragraph("Won",ps("sl")),Paragraph(f"{won_cnt} qt  |  {format_currency(won_all)}",ps("sv",fontName="Helvetica-Bold",textColor=colors.HexColor("#065F46"))),""],]
+    summ_t=Table(summ_data,colWidths=[4*cm,7*cm,usable-11*cm])
+    summ_t.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,0),primary),('SPAN',(0,0),(-1,0)),
+        ('ALIGN',(0,0),(-1,0),'CENTER'),('VALIGN',(0,0),(-1,-1),'MIDDLE'),
+        ('BACKGROUND',(0,1),(-1,-1),accent),('BOX',(0,0),(-1,-1),0.5,border),
+        ('INNERGRID',(0,0),(-1,-1),0.3,border),('TOPPADDING',(0,0),(-1,-1),4),
+        ('BOTTOMPADDING',(0,0),(-1,-1),4),('LEFTPADDING',(0,0),(-1,-1),6),('RIGHTPADDING',(0,0),(-1,-1),6)]))
+    elements.append(summ_t)
+
+    def footer_cb(cv, doc_obj):
+        _draw_standard_footer(cv, doc_obj, L, R)
+
+    doc.build(elements, onFirstPage=footer_cb, onLaterPages=footer_cb)
+    buffer.seek(0)
+    return send_file(buffer,as_attachment=True,download_name=f"QuotationList_{wib_now.strftime('%Y%m%d')}.pdf",mimetype="application/pdf")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STANDARD FOOTER — same style as Reports & Onsite
+# ═══════════════════════════════════════════════════════════════════════════════
+def _draw_standard_footer(cv, doc_obj, L, R):
+    """Draw the standard Flotech footer on any PDF page."""
+    from reportlab.lib.pagesizes import A4
+    PW, PH = A4
+    C_PRIMARY = colors.HexColor("#0B3D91")
+
+    cv.saveState()
+    # Divider line
+    y_line = 3.0 * cm
+    cv.setStrokeColor(C_PRIMARY)
+    cv.setLineWidth(1)
+    cv.line(L, y_line, PW - R, y_line)
+
+    # Company name
+    cv.setFont("Helvetica-Bold", 9)
+    cv.setFillColor(C_PRIMARY)
+    cv.drawCentredString(PW / 2, y_line - 0.45 * cm, FLOTECH_INFO["name"])
+
+    # Address / contact
+    cv.setFont("Helvetica", 7.5)
+    cv.setFillColor(colors.HexColor("#6B7280"))
+    cv.drawCentredString(PW / 2, y_line - 0.82 * cm,
+        f"{FLOTECH_INFO['address']}  |  {FLOTECH_INFO['city']}")
+    cv.drawCentredString(PW / 2, y_line - 1.14 * cm, FLOTECH_INFO["telp"])
+    cv.drawCentredString(PW / 2, y_line - 1.46 * cm, FLOTECH_INFO["email"])
+
+    # Page number
+    cv.setFont("Helvetica", 7)
+    cv.setFillColor(colors.HexColor("#9CA3AF"))
+    cv.drawRightString(PW - R, 0.65 * cm, f"Page {doc_obj.page}")
+    cv.restoreState()
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PDF BUILDER — Single Quotation
+# Layout: A4 | L/R = 1.8cm → usable ≈ 17.4cm
+# Items table: NO Disc% column — only shown below subtotal if discount exists
+# ═══════════════════════════════════════════════════════════════════════════════
+def build_quotation_pdf(q):
+    buffer = BytesIO()
+
+    PW, PH  = A4
+    L = R   = 1.8 * cm
+    TOP     = 2.0 * cm
+    BOT     = 3.6 * cm   # enough space for footer
+    UW      = PW - L - R  # ≈ 17.39 cm
+
+    doc = SimpleDocTemplate(
+        buffer, pagesize=A4,
+        topMargin=TOP, bottomMargin=BOT,
+        leftMargin=L, rightMargin=R,
+        title=f"Quotation {q.quotation_number}",
+        author="PT. Flotech Controls Indonesia",
+    )
+
+    # ── Palette ──────────────────────────────────────────────────────────────
+    C_PRIMARY  = colors.HexColor("#0B3D91")
+    C_NAVY2    = colors.HexColor("#1E5CC6")
+    C_ACCENT   = colors.HexColor("#EEF3FB")
+    C_DARK     = colors.HexColor("#111827")
+    C_TEXT     = colors.HexColor("#374151")
+    C_GRAY     = colors.HexColor("#6B7280")
+    C_LTGRAY   = colors.HexColor("#F3F4F6")
+    C_BORDER   = colors.HexColor("#D1D5DB")
+    C_WHITE    = colors.white
+    C_DISC_BG  = colors.HexColor("#FFF7ED")
+    C_DISC_FC  = colors.HexColor("#B45309")
+    C_GRANDROW = colors.HexColor("#0B3D91")
+    C_SUBROW   = colors.HexColor("#EFF6FF")
+
+    def S(name, **kw):
+        d = dict(fontName="Helvetica", fontSize=9, leading=12, textColor=C_TEXT)
+        d.update(kw)
+        return ParagraphStyle(name, **d)
+
+    cur    = q.currency or "IDR"
+    is_idr = (cur == "IDR")
+
+    def fmt(v):
+        n = float(v or 0)
+        return f"{n:,.0f}".replace(",", ".") if is_idr else f"{n:,.2f}"
+
+    elements = []
+
+    # ── SECTION 1: Header ────────────────────────────────────────────────────
+    logo_path = _find_logo()
+    if logo_path:
+        try:
+            pil = PILImage.open(logo_path)
+            lw  = 5.2 * cm
+            lh  = lw * pil.size[1] / pil.size[0]
+            logo_c = RLImage(logo_path, width=lw, height=lh)
+        except:
+            logo_c = Paragraph("<b>FLOTECH</b>",
+                S("lf", fontName="Helvetica-Bold", fontSize=20, textColor=C_PRIMARY))
+    else:
+        logo_c = Paragraph(
+            "<b>FLOTECH</b><br/><font size='7'>PROCESS CONTROL &amp; INSTRUMENTATION</font>",
+            S("lf2", fontName="Helvetica-Bold", fontSize=18, textColor=C_PRIMARY, leading=22))
+
+    right_c = [
+        Paragraph("PT. FLOTECH CONTROLS INDONESIA",
+            S("cn", fontName="Helvetica-Bold", fontSize=9.5, textColor=C_PRIMARY,
+              leading=13, alignment=TA_RIGHT)),
+        Spacer(1, 2),
+        Paragraph("SALES QUOTATION",
+            S("qt", fontName="Helvetica-Bold", fontSize=20, textColor=C_PRIMARY,
+              leading=24, alignment=TA_RIGHT)),
+    ]
+    hdr_t = Table([[logo_c, right_c]], colWidths=[6.0*cm, UW - 6.0*cm])
+    hdr_t.setStyle(TableStyle([
+        ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+        ("LEFTPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(-1,-1),0),
+        ("TOPPADDING",(0,0),(-1,-1),0),("BOTTOMPADDING",(0,0),(-1,-1),0),
+    ]))
+    elements.append(hdr_t)
+    elements.append(HRFlowable(width=UW, thickness=1, color=C_PRIMARY, spaceBefore=10, spaceAfter=20))
+
+    # ── SECTION 2: Meta Band ─────────────────────────────────────────────────
+    q_date  = fmt_wib(q.created_at)
+    rev_str = f"Rev. {q.revision}" if (q.revision or 0) > 0 else "Original"
+    cw6     = UW / 6
+
+    def mcell(lbl, val):
+        return [
+            Paragraph(lbl, S(f"ml{lbl}", fontSize=7, fontName="Helvetica-Bold",
+                             textColor=C_GRAY, leading=9, alignment=TA_LEFT)),
+            Paragraph(str(val), S(f"mv{lbl}", fontSize=9, fontName="Helvetica-Bold",
+                                  textColor=C_DARK, leading=12, alignment=TA_LEFT)),
+        ]
+
+    meta_cols = [
+        mcell("QUOTATION NO.",  q.quotation_number or "-"),
+        mcell("DATE",           q_date),
+        mcell("SALES PERSON",   q.sales_person or "-"),
+        mcell("REVISION",       rev_str),
+        mcell("REF. NO.",       q.ref_no or "-"),
+        mcell("CURRENCY",       cur),
+    ]
+    meta_t = Table(
+        [[c[0] for c in meta_cols], [c[1] for c in meta_cols]],
+        colWidths=[cw6]*6,
+    )
+    meta_t.setStyle(TableStyle([
+        ("BACKGROUND",(0,0),(-1,-1),C_ACCENT),
+        ("BOX",(0,0),(-1,-1),0.5,C_BORDER),("LINEAFTER",(0,0),(4,1),0.3,C_BORDER),
+        ("TOPPADDING",(0,0),(-1,-1),5),("BOTTOMPADDING",(0,0),(-1,-1),5),
+        ("LEFTPADDING",(0,0),(-1,-1),7),("RIGHTPADDING",(0,0),(-1,-1),4),
+        ("VALIGN",(0,0),(-1,-1),"TOP"),
+    ]))
+    elements.append(meta_t)
+    elements.append(Spacer(1, 0.4*cm))
+
+    # ── SECTION 3: Customer + Project ────────────────────────────────────────
+    GAP    = 0.3 * cm
+    cust_w = UW * 0.56 - GAP / 2
+    proj_w = UW * 0.44 - GAP / 2
+
+    def cust_block():
+        rows = [[Paragraph("CUSTOMER / RECIPIENT",
+            S("ch", fontName="Helvetica-Bold", fontSize=7.5, textColor=C_WHITE, leading=10))]]
+        if q.customer_company:
+            rows.append([Paragraph(q.customer_company,
+                S("cc", fontName="Helvetica-Bold", fontSize=10.5, textColor=C_DARK, leading=14))])
+        for ln in (q.customer_address or "").split("\n"):
+            if ln.strip():
+                rows.append([Paragraph(ln.strip(), S("ca", fontSize=8.5, textColor=C_GRAY, leading=12))])
+        if q.customer_name:
+            rows.append([Paragraph(f"Attn : {q.customer_name}", S("cn2", fontSize=9, textColor=C_TEXT))])
+        if q.customer_email:
+            rows.append([Paragraph(f"Email : {q.customer_email}", S("ce", fontSize=8.5, textColor=C_GRAY))])
+        if q.customer_phone:
+            rows.append([Paragraph(f"Phone : {q.customer_phone}", S("cp", fontSize=8.5, textColor=C_GRAY))])
+        t = Table(rows, colWidths=[cust_w])
+        t.setStyle(TableStyle([
+            ("BACKGROUND",(0,0),(0,0),C_PRIMARY),("BACKGROUND",(0,1),(-1,-1),C_ACCENT),
+            ("BOX",(0,0),(-1,-1),0.5,C_BORDER),("TOPPADDING",(0,0),(-1,-1),6),
+            ("BOTTOMPADDING",(0,0),(-1,-1),6),("LEFTPADDING",(0,0),(-1,-1),8),
+            ("RIGHTPADDING",(0,0),(-1,-1),8),("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+        ]))
+        return t
+
+    def proj_block():
+        rows = [[Paragraph("PROJECT DETAILS",
+            S("ph", fontName="Helvetica-Bold", fontSize=7.5, textColor=C_WHITE, leading=10))]]
+        rows.append([Paragraph(q.project_name or "-",
+            S("pn", fontName="Helvetica-Bold", fontSize=10.5, textColor=C_DARK, leading=14))])
+        if q.category:
+            rows.append([Paragraph(f"Category : {q.category}", S("pc", fontSize=8.5, textColor=C_GRAY))])
+        if q.valid_until:
+            months=["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+            vd=q.valid_until; vd_str=f"{vd.day} {months[vd.month]} {vd.year}"
+            rows.append([Paragraph(f"Valid Until : {vd_str}", S("pv", fontSize=8.5, textColor=C_GRAY))])
+        t = Table(rows, colWidths=[proj_w])
+        t.setStyle(TableStyle([
+            ("BACKGROUND",(0,0),(0,0),C_PRIMARY),("BACKGROUND",(0,1),(-1,-1),C_ACCENT),
+            ("BOX",(0,0),(-1,-1),0.5,C_BORDER),("TOPPADDING",(0,0),(-1,-1),6),
+            ("BOTTOMPADDING",(0,0),(-1,-1),6),("LEFTPADDING",(0,0),(-1,-1),8),
+            ("RIGHTPADDING",(0,0),(-1,-1),8),("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+        ]))
+        return t
+
+    two_col = Table([[cust_block(), proj_block()]], colWidths=[cust_w+GAP/2, proj_w+GAP/2])
+    two_col.setStyle(TableStyle([
+        ("VALIGN",(0,0),(-1,-1),"TOP"),("LEFTPADDING",(0,0),(-1,-1),0),
+        ("RIGHTPADDING",(0,0),(-1,-1),0),("TOPPADDING",(0,0),(-1,-1),0),
+        ("BOTTOMPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(0,0),GAP/2),
+        ("LEFTPADDING",(1,0),(1,0),GAP/2),
+    ]))
+    elements.append(two_col)
+    elements.append(Spacer(1, 0.4*cm))
+
+    # ── SECTION 4: Items Table ────────────────────────────────────────────────
+    # Columns: S/N | Description | UOM | Qty | Unit Price | Amount
+    # NO Disc% column — discount shown below subtotal if applicable
+    CW = [0.75*cm, 7.55*cm, 1.3*cm, 1.1*cm, 3.5*cm, 3.5*cm]
+    CW[-1] = UW - sum(CW[:-1])  # adjust last col exactly
+
+    TH  = S("th",  fontName="Helvetica-Bold", fontSize=8,   textColor=C_WHITE, leading=11, alignment=TA_CENTER)
+    TD  = S("td",  fontSize=8.5, leading=12)
+    TDS = S("tds", fontSize=7.5, textColor=C_GRAY, leading=10)
+    TDC = S("tdc", fontSize=8.5, leading=12, alignment=TA_CENTER)
+    TDR = S("tdr", fontSize=8.5, leading=12, alignment=TA_RIGHT)
+
+    rows       = [[
+        Paragraph("No",                      TH),
+        Paragraph("Description / Inventory", TH),
+        Paragraph("UOM",                     TH),
+        Paragraph("Qty",                     TH),
+        Paragraph(f"Unit Price\n({cur})",    TH),
+        Paragraph(f"Amount\n({cur})",        TH),
+    ]]
+    row_fills  = []
+    subtotal   = 0.0
+    total_disc = 0.0
+    items_list = q.items or []
+    row_idx    = 1
+
+    for i, item in enumerate(items_list):
+        sub_items = item.get("sub_items") or []
+        has_subs  = len(sub_items) > 0
+
+        # Description flowable — multiline via <br/>
+        desc_flow = []
+        raw_desc  = (item.get("description") or "").replace("\n", "<br/>")
+        if raw_desc:
+            desc_flow.append(Paragraph(f"<b>{raw_desc}</b>", TD))
+        bm = "  |  ".join(filter(None, [item.get("brand"), item.get("model")]))
+        if bm:
+            desc_flow.append(Paragraph(bm, TDS))
+        raw_rem = (item.get("remarks") or "").replace("\n", "<br/>")
+        if raw_rem:
+            desc_flow.append(Paragraph(f"<i>{raw_rem}</i>", TDS))
+
+        if has_subs:
+            # Main row — description only, price cols empty
+            sub_net = sub_disc_amt = 0.0
+            for s in sub_items:
+                sp = float(s.get("unit_price") or 0)
+                sq = float(s.get("qty") or 0)
+                sd = float(s.get("discount") or 0)
+                sg = sp * sq
+                sn = sg * (1 - sd / 100)
+                sub_net      += sn
+                sub_disc_amt += (sg - sn)
+            subtotal   += sub_net
+            total_disc += sub_disc_amt
+
+            rows.append([
+                Paragraph(str(i + 1), TDC),
+                desc_flow,
+                Paragraph("", TDC),
+                Paragraph("", TDC),
+                Paragraph("", TDR),
+                Paragraph("", TDR),
+            ])
+            if row_idx % 2 == 1:
+                row_fills.append(("BACKGROUND", (0, row_idx), (-1, row_idx), C_LTGRAY))
+            row_idx += 1
+
+            # Sub-item rows
+            for si, s in enumerate(sub_items):
+                sp   = float(s.get("unit_price") or 0)
+                sq   = float(s.get("qty") or 0)
+                sd   = float(s.get("discount") or 0)
+                sn   = sp * sq * (1 - sd / 100)
+                sq_s = str(int(sq)) if sq == int(sq) else f"{sq:g}"
+                unit = item.get("unit") or "Unit"
+                sub_label = s.get("sub_label") or ""
+
+                # Show amount with small disc note if applicable
+                if sd > 0:
+                    amt_p = Paragraph(
+                        f"{fmt(sn)}<br/><font size='7' color='#B45309'>(-{sd:.0f}%)</font>",
+                        TDR)
+                else:
+                    amt_p = Paragraph(fmt(sn), TDR)
+
+                rows.append([
+                    Paragraph(f"{i+1}.{si+1}",
+                        S(f"sn{i}_{si}", fontSize=7.5, textColor=C_GRAY,
+                          leading=10, alignment=TA_CENTER)),
+                    Paragraph(f"  \u21b3 {sub_label}",
+                        S(f"sl{i}_{si}", fontSize=8, textColor=C_NAVY2, leading=11)),
+                    Paragraph(unit, TDC),
+                    Paragraph(sq_s, TDC),
+                    Paragraph(fmt(sp), TDR),
+                    amt_p,
+                ])
+                row_fills.append(("BACKGROUND", (0, row_idx), (-1, row_idx), C_SUBROW))
+                row_idx += 1
+
+        else:
+            # Standard item
+            gross, d_amt, net = calc_item(item)
+            subtotal   += net
+            total_disc += d_amt
+
+            qty  = float(item.get("qty") or 0)
+            disc = float(item.get("discount") or 0)
+            up   = float(item.get("unit_price") or 0)
+            unit = item.get("unit") or "Unit"
+            qty_s = str(int(qty)) if qty == int(qty) else f"{qty:g}"
+
+            # Amount with small disc note
+            if disc > 0:
+                amt_p = Paragraph(
+                    f"{fmt(net)}<br/><font size='7' color='#B45309'>(-{disc:.0f}%)</font>",
+                    TDR)
+            else:
+                amt_p = Paragraph(fmt(net), TDR)
+
+            rows.append([
+                Paragraph(str(i + 1), TDC),
+                desc_flow,
+                Paragraph(unit,  TDC),
+                Paragraph(qty_s, TDC),
+                Paragraph(fmt(up), TDR),
+                amt_p,
+            ])
+            if row_idx % 2 == 1:
+                row_fills.append(("BACKGROUND", (0, row_idx), (-1, row_idx), C_LTGRAY))
+            row_idx += 1
+
+    # ── Totals sub-table ──────────────────────────────────────────────────────
+    vat_pct     = float(q.vat_pct or 11) if (q.vat_include or False) else 0.0
+    vat_include = bool(q.vat_include)
+    vat_amt     = subtotal * vat_pct / 100 if vat_include else 0.0
+    grand_total = subtotal + vat_amt
+    has_disc    = total_disc > 0.005
+
+    lbl_w = sum(CW[:4])   # S/N + Desc + UOM + Qty
+    val_w = sum(CW[4:])   # Unit Price + Amount
+
+    SL = S("sl", fontName="Helvetica-Bold", fontSize=9,  textColor=C_GRAY,    alignment=TA_RIGHT)
+    SV = S("sv", fontName="Helvetica-Bold", fontSize=9,  textColor=C_DARK,    alignment=TA_RIGHT)
+    GL = S("gl", fontName="Helvetica-Bold", fontSize=10, textColor=C_WHITE,   alignment=TA_RIGHT)
+    GV = S("gv", fontName="Helvetica-Bold", fontSize=10, textColor=C_WHITE,   alignment=TA_RIGHT)
+    DL = S("dl", fontName="Helvetica-Bold", fontSize=9,  textColor=C_DISC_FC, alignment=TA_RIGHT)
+    DV = S("dv", fontName="Helvetica-Bold", fontSize=9,  textColor=C_DISC_FC, alignment=TA_RIGHT)
+
+    tot_rows   = []
+    tot_styles = [
+        ("LEFTPADDING",(0,0),(-1,-1),8),("RIGHTPADDING",(0,0),(-1,-1),8),
+        ("TOPPADDING",(0,0),(-1,-1),5),("BOTTOMPADDING",(0,0),(-1,-1),5),
+        ("VALIGN",(0,0),(-1,-1),"MIDDLE"),("LINEBELOW",(0,0),(-1,0),0.5,C_BORDER),
+    ]
+
+    tot_rows.append([Paragraph(f"Sub Total ({cur}) :", SL), Paragraph(fmt(subtotal), SV)])
+
+    if has_disc:
+        r_idx = len(tot_rows)
+        tot_rows.append([Paragraph("Total Discount :", DL), Paragraph(f"({fmt(total_disc)})", DV)])
+        tot_styles += [
+            ("BACKGROUND",(0,r_idx),(-1,r_idx),C_DISC_BG),
+            ("LINEABOVE",(0,r_idx),(-1,r_idx),0.5,C_BORDER),
+            ("LINEBELOW",(0,r_idx),(-1,r_idx),0.5,C_BORDER),
+        ]
+
+    if vat_include:
+        r_idx = len(tot_rows)
+        tot_rows.append([Paragraph(f"VAT {vat_pct:.0f}% :", SL), Paragraph(fmt(vat_amt), SV)])
+        tot_styles.append(("LINEBELOW",(0,r_idx),(-1,r_idx),0.3,C_BORDER))
+
+    r_grand = len(tot_rows)
+    tot_rows.append([Paragraph(f"GRAND TOTAL ({cur}) :", GL), Paragraph(fmt(grand_total), GV)])
+    tot_styles += [
+        ("BACKGROUND",(0,r_grand),(-1,r_grand),C_GRANDROW),
+        ("TOPPADDING",(0,r_grand),(-1,r_grand),7),
+        ("BOTTOMPADDING",(0,r_grand),(-1,r_grand),7),
+    ]
+
+    tot_t = Table(tot_rows, colWidths=[lbl_w, val_w])
+    tot_t.setStyle(TableStyle(tot_styles))
+
+    tbl_style = [
+        ("BACKGROUND",(0,0),(-1,0),C_PRIMARY),
+        ("TEXTCOLOR",(0,0),(-1,0),C_WHITE),
+        ("ALIGN",(0,0),(-1,0),"CENTER"),
+        ("VALIGN",(0,0),(-1,-1),"TOP"),
+        ("TOPPADDING",(0,0),(-1,-1),5),("BOTTOMPADDING",(0,0),(-1,-1),5),
+        ("LEFTPADDING",(0,0),(-1,-1),5),("RIGHTPADDING",(0,0),(-1,-1),5),
+        ("ALIGN",(0,1),(0,-1),"CENTER"),   # S/N
+        ("ALIGN",(2,1),(2,-1),"CENTER"),   # UOM
+        ("ALIGN",(3,1),(3,-1),"CENTER"),   # Qty
+        ("ALIGN",(4,1),(4,-1),"RIGHT"),    # Unit Price
+        ("ALIGN",(5,1),(5,-1),"RIGHT"),    # Amount
+        ("BOX",(0,0),(-1,-1),0.5,C_BORDER),
+        ("INNERGRID",(0,0),(-1,-1),0.25,C_BORDER),
+        ("LINEBELOW",(0,-1),(-1,-1),1.0,C_PRIMARY),
+    ] + row_fills
+
+    items_t = Table(rows, colWidths=CW, repeatRows=1)
+    items_t.setStyle(TableStyle(tbl_style))
+
+    elements.append(items_t)
+    elements.append(tot_t)
+    elements.append(Spacer(1, 0.35*cm))
+
+    # ── SECTION 5: Note ──────────────────────────────────────────────────────
+    if q.notes and q.notes.strip():
+        note_lines = q.notes.strip().split("\n")
+        for idx, line in enumerate(note_lines):
+            prefix = "Note : " if idx == 0 else "         "
+            elements.append(Paragraph(
+                f"<i>{prefix}{line}</i>" if line.strip() else " ",
+                S(f"note{idx}", fontSize=8, textColor=C_GRAY, leading=11)))
+        elements.append(Spacer(1, 0.25*cm))
+
+    elements.append(HRFlowable(width=UW, thickness=0.5, color=C_BORDER, spaceAfter=0.3*cm))
+
+    # ── SECTION 6: Terms + Regards ───────────────────────────────────────────
+    vat_note = f"Include VAT {vat_pct:.0f}%" if vat_include else "Exclude VAT"
+
+    TLH = S("tlh", fontName="Helvetica-Bold", fontSize=8.5, textColor=C_DARK)
+    TLV = S("tlv", fontSize=8.5, textColor=C_TEXT, leading=12)
+    COL = S("col", fontSize=8.5, textColor=C_GRAY, alignment=TA_CENTER)
+
+    def tc_row(lbl, val):
+        return [Paragraph(f"<b>{lbl}</b>", TLH), Paragraph(":", COL), Paragraph(str(val), TLV)]
+
+    tc_data = [
+        tc_row("Currency",       f"{cur}  —  {vat_note}"),
+        tc_row("Shipment Terms", q.shipment_terms or "-"),
+        tc_row("Validity",       "20 Days from quotation date"),
+        tc_row("Delivery",       q.delivery       or "-"),
+        tc_row("Payment Terms",  q.payment_terms  or "-"),
+    ]
+    if q.terms and q.terms.strip():
+        tc_data.append(tc_row("Additional Terms", q.terms.replace("\n", "<br/>")))
+
+    tc_lbl_w = 3.4 * cm
+    tc_colon = 0.4 * cm
+    tc_val_w = UW * 0.58 - tc_lbl_w - tc_colon
+    tc_t = Table(tc_data, colWidths=[tc_lbl_w, tc_colon, tc_val_w])
+    tc_t.setStyle(TableStyle([
+        ("VALIGN",(0,0),(-1,-1),"TOP"),("TOPPADDING",(0,0),(-1,-1),2),
+        ("BOTTOMPADDING",(0,0),(-1,-1),2),("LEFTPADDING",(0,0),(-1,-1),0),
+        ("RIGHTPADDING",(0,0),(-1,-1),0),
+    ]))
+
+    sig_items = [
+        Paragraph("Regards,", S("rg", fontSize=8.5, textColor=C_GRAY)),
+        Spacer(1, 1.0*cm),
+    ]
+    if q.sales_person:
+        sig_items.append(Paragraph(f"<u><b>{q.sales_person}</b></u>",
+            S("sp", fontName="Helvetica-Bold", fontSize=9.5, textColor=C_DARK)))
+    sig_items.append(Paragraph("PT. Flotech Controls Indonesia",
+        S("spc", fontSize=8.5, textColor=C_GRAY)))
+
+    terms_w = tc_lbl_w + tc_colon + tc_val_w
+    sig_w   = UW - terms_w
+    side_t  = Table([[tc_t, sig_items]], colWidths=[terms_w, sig_w])
+    side_t.setStyle(TableStyle([
+        ("VALIGN",(0,0),(-1,-1),"TOP"),("LEFTPADDING",(0,0),(-1,-1),0),
+        ("RIGHTPADDING",(0,0),(-1,-1),0),("TOPPADDING",(0,0),(-1,-1),0),
+        ("BOTTOMPADDING",(0,0),(-1,-1),0),("LEFTPADDING",(1,0),(1,0),0.5*cm),
+    ]))
+
+    elements.append(Paragraph("<b><u>General Terms &amp; Conditions</u></b>",
+        S("tch", fontName="Helvetica-Bold", fontSize=9, textColor=C_DARK)))
+    elements.append(Spacer(1, 0.2*cm))
+    elements.append(side_t)
+
+    # ── Footer (canvas callback — same as Reports & Onsite) ──────────────────
+    def footer_cb(cv, doc_obj):
+        _draw_standard_footer(cv, doc_obj, L, R)
+
+    doc.build(elements, onFirstPage=footer_cb, onLaterPages=footer_cb)
+    buffer.seek(0)
+    return buffer
+
+# ── PDF endpoints ──────────────────────────────────────────────────────────────
+@quotation_bp.route('/pdf/<int:qid>', methods=['GET'])
+@jwt_required()
+def quotation_pdf(qid):
+    q = Quotation.query.get(qid)
+    if not q: return jsonify({"error": "Not found"}), 404
+    buf = build_quotation_pdf(q)
+    return send_file(buf, as_attachment=True,
+        download_name=f"Quotation_{q.quotation_number}.pdf",
+        mimetype="application/pdf")
+
+@quotation_bp.route('/pdf/preview/<int:qid>', methods=['GET'])
+@jwt_required()
+def quotation_pdf_preview(qid):
+    q = Quotation.query.get(qid)
+    if not q: return jsonify({"error": "Not found"}), 404
+    buf = build_quotation_pdf(q)
+    return Response(buf, mimetype="application/pdf",
+        headers={"Content-Disposition": f"inline; filename=Quotation_{q.quotation_number}.pdf"})

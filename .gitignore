@@ -1,0 +1,42 @@
+# Python Virtual Environment
+venv/
+env/
+.venv/
+backend/venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+instance/
+
+# Environment variables
+.env
+.env.*
+frontend/.env
+frontend/.env.production
+
+# Upload files
+uploads/
+
+# Node
+node_modules/
+
+# Build outputs
+dist/
+build/
+frontend/dist/
+
+# Vite cache
+.vite/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
