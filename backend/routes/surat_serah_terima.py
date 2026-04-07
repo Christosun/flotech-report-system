@@ -184,7 +184,7 @@ def build_surat_pdf(sid):
         p1_sig_label   = "PIHAK PERTAMA\n(Yang Menyerahkan)"
         p2_sig_label   = "PIHAK KEDUA\n(Yang Menerima)"
         p1_header_color = primary
-        p2_header_color = emerald
+        p2_header_color = primary
     else:
         title_text    = "BERITA ACARA PENERIMAAN BARANG"
         p1_role       = "PIHAK PERTAMA (Yang Menerima)"
@@ -192,7 +192,7 @@ def build_surat_pdf(sid):
         opening_action = "menerima dari pihak kedua"
         p1_sig_label   = "PIHAK PERTAMA\n(Yang Menerima)"
         p2_sig_label   = "PIHAK KEDUA\n(Yang Menyerahkan)"
-        p1_header_color = emerald
+        p1_header_color = primary
         p2_header_color = primary
 
     # ── HEADER ──────────────────────────────────────────────────
@@ -364,7 +364,7 @@ def build_surat_pdf(sid):
         ]
         note_t = Table(note_data, colWidths=[USABLE_W])
         note_t.setStyle(TableStyle([
-            ('BACKGROUND',(0,0),(-1,0), secondary),
+            ('BACKGROUND',(0,0),(-1,0), primary),
             ('BACKGROUND',(0,1),(-1,-1), accent),
             ('BOX',(0,0),(-1,-1), 0.5, border),
             ('PADDING',(0,0),(-1,-1), 9),

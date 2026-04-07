@@ -279,7 +279,7 @@ export default function Catalog() {
           {!hasFilter && (
             <button onClick={() => setShowUpload(true)}
               className="mt-4 px-5 py-2 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold">
-              Upload Pertama
+              First Upload
             </button>
           )}
         </div>
