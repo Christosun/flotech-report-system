@@ -21,19 +21,19 @@ const TYPE_CFG = {
   report_created:     { icon: "📋", color: "bg-purple-100 text-purple-600", label: "Report" },
   onsite_created:     { icon: "🔧", color: "bg-orange-100 text-orange-600", label: "Onsite" },
   onsite_approved:    { icon: "✅", color: "bg-emerald-100 text-emerald-600", label: "Approved" },
-  leave_approved:     { icon: "🏖️", color: "bg-teal-100 text-teal-600",    label: "Cuti" },
-  leave_rejected:     { icon: "❌", color: "bg-red-100 text-red-500",      label: "Cuti" },
-  leave_pending:      { icon: "⏳", color: "bg-amber-100 text-amber-600",  label: "Cuti" },
+  leave_approved:     { icon: "🏖️", color: "bg-teal-100 text-teal-600",    label: "Leave" },
+  leave_rejected:     { icon: "❌", color: "bg-red-100 text-red-500",      label: "Leave" },
+  leave_pending:      { icon: "⏳", color: "bg-amber-100 text-amber-600",  label: "Leave" },
   general:            { icon: "🔔", color: "bg-gray-100 text-gray-600",    label: "Info" },
 };
 
 // ── Relative time helper ──────────────────────────────────────────────────────
 function timeAgo(isoStr) {
   const diff = Math.floor((Date.now() - new Date(isoStr)) / 1000);
-  if (diff < 60)       return "Baru saja";
-  if (diff < 3600)     return `${Math.floor(diff / 60)} mnt lalu`;
-  if (diff < 86400)    return `${Math.floor(diff / 3600)} jam lalu`;
-  if (diff < 604800)   return `${Math.floor(diff / 86400)} hari lalu`;
+  if (diff < 60)       return "Just now";
+  if (diff < 3600)     return `${Math.floor(diff / 60)} minutes ago`;
+  if (diff < 86400)    return `${Math.floor(diff / 3600)} hours ago`;
+  if (diff < 604800)   return `${Math.floor(diff / 86400)} days ago`;
   return new Date(isoStr).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
 }
 

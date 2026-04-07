@@ -16,6 +16,7 @@ from reportlab.lib.units import inch, cm
 from reportlab.pdfgen import canvas as rl_canvas
 from io import BytesIO
 from PIL import Image as PILImage
+from routes.notification import broadcast_notification
 
 report_bp = Blueprint('report', __name__)
 
@@ -84,6 +85,24 @@ def create_report():
     )
     db.session.add(report)
     db.session.commit()
+
+    # ── Broadcast to all other users ─────────────────────────────────────
+    type_labels = {
+        "commissioning": "Commissioning Report",
+        "investigation": "Investigation Report",
+        "troubleshooting": "Troubleshooting Report",
+        "service": "Service Report",
+    }
+    rtype_label = type_labels.get(report_type, "Field Report")
+    broadcast_notification(
+        exclude_user_id=user_id,
+        type="report_created",
+        title=f"New {rtype_label} Created",
+        message=f"{report.report_number} — Client: {report.client_name or '-'}",
+        link=f"/reports/{report.id}",
+        actor_id=user_id,
+    )
+
     return jsonify({"message": "Report created", "id": report.id, "report_id": report.id}), 201
 
 

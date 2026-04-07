@@ -12,6 +12,7 @@ from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from extensions import db
 from models import User
+from routes.notification import create_notification, broadcast_notification
 from datetime import datetime, date
 from io import BytesIO
 import json
@@ -203,6 +204,29 @@ def create_request():
     )
     db.session.add(new_req)
     db.session.commit()
+
+    # ── Notify all admin/hr/manager about the new leave request ──────────
+    requester = User.query.get(user_id)
+    leave_type_label = {
+        'annual': 'Annual Leave', 'sick': 'Sick Leave',
+        'emergency': 'Emergency Leave', 'marriage': 'Marriage Leave',
+        'maternity': 'Maternity Leave', 'paternity': 'Paternity Leave',
+        'bereavement': 'Bereavement Leave'
+    }.get(new_req.leave_type, new_req.leave_type.title())
+
+    admins = User.query.filter(User.role.in_(["admin", "manager", "hr"])).all()
+    for admin in admins:
+        if admin.id != user_id:
+            create_notification(
+                user_id=admin.id,
+                type="leave_pending",
+                title="New Leave Request Pending",
+                message=f"{requester.name} submitted {leave_type_label} "
+                        f"for {total_days} day(s) — {start.strftime('%d %b %Y')}",
+                link="/leave-management",
+                actor_id=user_id,
+            )
+
     return jsonify({"message": "Leave request submitted", "id": new_req.id, "request_number": new_req.request_number}), 201
 
 
@@ -224,6 +248,24 @@ def approve_request(req_id):
     r.approved_at = datetime.utcnow()
     r.rejection_reason = None
     db.session.commit()
+
+    # ── Notify the employee ───────────────────────────────────────────────
+    leave_type_label = {
+        'annual': 'Annual Leave', 'sick': 'Sick Leave',
+        'emergency': 'Emergency Leave', 'marriage': 'Marriage Leave',
+        'maternity': 'Maternity Leave', 'paternity': 'Paternity Leave',
+        'bereavement': 'Bereavement Leave'
+    }.get(r.leave_type, r.leave_type.title() if r.leave_type else 'Leave')
+    create_notification(
+        user_id=r.user_id,
+        type="leave_approved",
+        title="Leave Request Approved ✅",
+        message=f"Your {leave_type_label} ({r.total_days} day(s), "
+                f"{r.start_date.strftime('%d %b %Y')}) has been approved by {user.name}.",
+        link="/leave-management",
+        actor_id=user_id,
+    )
+
     return jsonify({"message": "Leave request approved"}), 200
 
 
@@ -250,6 +292,24 @@ def reject_request(req_id):
     r.approved_at = datetime.utcnow()
     r.rejection_reason = reason
     db.session.commit()
+
+    # ── Notify the employee ───────────────────────────────────────────────
+    leave_type_label = {
+        'annual': 'Annual Leave', 'sick': 'Sick Leave',
+        'emergency': 'Emergency Leave', 'marriage': 'Marriage Leave',
+        'maternity': 'Maternity Leave', 'paternity': 'Paternity Leave',
+        'bereavement': 'Bereavement Leave'
+    }.get(r.leave_type, r.leave_type.title() if r.leave_type else 'Leave')
+    create_notification(
+        user_id=r.user_id,
+        type="leave_rejected",
+        title="Leave Request Rejected ❌",
+        message=f"Your {leave_type_label} request ({r.start_date.strftime('%d %b %Y')}) "
+                f"was rejected. Reason: {reason}",
+        link="/leave-management",
+        actor_id=user_id,
+    )
+
     return jsonify({"message": "Leave request rejected"}), 200
 
 

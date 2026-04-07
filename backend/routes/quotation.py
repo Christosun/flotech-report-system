@@ -11,6 +11,7 @@ from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
 from reportlab.platypus import Image as RLImage
 from PIL import Image as PILImage
 from io import BytesIO
+from routes.notification import create_notification, broadcast_notification
 import os, re
 
 # ── openpyxl for Excel export ──────────────────────────────────────────────────
@@ -205,6 +206,17 @@ def create_quotation():
         created_by=user_id,
     )
     db.session.add(q); db.session.commit()
+
+    # ── Broadcast to all other users ─────────────────────────────────────
+    broadcast_notification(
+        exclude_user_id=user_id,
+        type="quotation_created",
+        title="New Quotation Created",
+        message=f"{q.quotation_number} — {q.customer_company or q.customer_name or '-'}",
+        link=f"/quotations/{q.id}",
+        actor_id=user_id,
+    )
+
     return jsonify({"message": "Created", "id": q.id, "quotation_number": q.quotation_number}), 201
 
 @quotation_bp.route('/detail/<int:qid>', methods=['GET'])
@@ -268,6 +280,26 @@ def update_status(qid):
     q.status = request.get_json().get("status", q.status)
     q.updated_at = datetime.utcnow()
     db.session.commit()
+
+    # ── Notify on significant status changes ─────────────────────────────
+    new_status = q.status
+    notif_map = {
+        "won":  ("quotation_won",  "🏆 Quotation WON!"),
+        "lost": ("quotation_lost", "📉 Quotation Lost"),
+        "sent": ("quotation_updated", "📤 Quotation Sent to Client"),
+    }
+    if new_status in notif_map:
+        ntype, ntitle = notif_map[new_status]
+        user_id = int(get_jwt_identity())
+        broadcast_notification(
+            exclude_user_id=user_id,
+            type=ntype,
+            title=ntitle,
+            message=f"{q.quotation_number} — {q.customer_company or q.customer_name or '-'}",
+            link=f"/quotations/{q.id}",
+            actor_id=user_id,
+        )
+
     return jsonify({"message": "Updated"}), 200
 
 @quotation_bp.route('/delete/<int:qid>', methods=['DELETE'])
