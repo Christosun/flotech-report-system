@@ -931,9 +931,9 @@ function RekapTab({ data, year, onEntitle }) {
             {/* Balance progress bar */}
             <div className="mt-3">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] text-gray-400">Penggunaan cuti tahunan</span>
+                <span className="text-[10px] text-gray-400">Use of annual leave</span>
                 <span className="text-[10px] font-bold text-gray-500">
-                  {u.annual_taken + u.joint_leave}/{u.entitlement} hari
+                  {u.annual_taken + u.joint_leave}/{u.entitlement} days
                 </span>
               </div>
               <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">

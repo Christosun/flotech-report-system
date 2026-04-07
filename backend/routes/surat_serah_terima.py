@@ -150,7 +150,8 @@ def build_surat_pdf(sid):
 
     buffer = BytesIO()
     LEFT = RIGHT = 2.5*cm
-    USABLE_W = 16.5*cm  # 210mm - 50mm
+    A4_W = A4[0]                    # 595.27pt ≈ 21cm
+    USABLE_W = A4_W - LEFT - RIGHT  # tepat = lebar bersih halaman
 
     doc = SimpleDocTemplate(buffer, pagesize=A4,
         topMargin=2*cm, bottomMargin=3.5*cm, leftMargin=LEFT, rightMargin=RIGHT)
@@ -196,8 +197,8 @@ def build_surat_pdf(sid):
 
     # ── HEADER ──────────────────────────────────────────────────
     logo_path = os.path.join(current_app.root_path, "assets", "logo.png")
-    logo_col_w = 7.5*cm
-    title_col_w = USABLE_W - logo_col_w  # 9cm
+    logo_col_w  = USABLE_W * (7.5 / 16.5)   # proporsi sama, tapi relatif USABLE_W
+    title_col_w = USABLE_W - logo_col_w
 
     if os.path.exists(logo_path):
         try:
@@ -237,7 +238,9 @@ def build_surat_pdf(sid):
         Paragraph("<b>Tanggal</b>", ps('ML2', fontSize=8, fontName='Helvetica-Bold', textColor=gray)),
         Paragraph(date_str, ps('MV2', fontSize=10, textColor=dark)),
     ]]
-    meta_t = Table(meta_data, colWidths=[3*cm, 6*cm, 3*cm, 4.5*cm])
+    # Kolom: label nomor | nilai nomor | label tanggal | nilai tanggal → total = USABLE_W
+    meta_col_w = [USABLE_W * 3/16.5, USABLE_W * 6/16.5, USABLE_W * 3/16.5, USABLE_W * 4.5/16.5]
+    meta_t = Table(meta_data, colWidths=meta_col_w)
     meta_t.setStyle(TableStyle([
         ('BACKGROUND',(0,0),(-1,-1), accent),
         ('BOX',(0,0),(-1,-1), 0.5, border),
@@ -252,7 +255,7 @@ def build_surat_pdf(sid):
             Paragraph("<b>Perihal</b>", ps('PL', fontSize=8, fontName='Helvetica-Bold', textColor=gray)),
             Paragraph(s.perihal, ps('PV', fontSize=10, textColor=dark)),
         ]]
-        perihal_t = Table(perihal_data, colWidths=[3*cm, 13.5*cm])
+        perihal_t = Table(perihal_data, colWidths=[USABLE_W * 3/16.5, USABLE_W * 13.5/16.5])
         perihal_t.setStyle(TableStyle([
             ('BACKGROUND',(0,0),(-1,-1), accent),
             ('BOX',(0,0),(-1,-1), 0.5, border),
@@ -277,8 +280,8 @@ def build_surat_pdf(sid):
     elements.append(Spacer(1, 0.5*cm))
 
     # ── PIHAK BLOCKS (two columns, each = half USABLE_W) ────────
-    gap    = 0.4*cm
-    col_p  = (USABLE_W - gap) / 2  # 8.05cm each
+    INNER_GAP = 0.3*cm          # jarak antar kolom (dibagi dua → kanan kol-1 + kiri kol-2)
+    col_p = USABLE_W / 2        # 8.25cm masing-masing (total = 16.5cm) ✓
 
     def pihak_block(role_label, nama, jabatan, perusahaan, alamat, header_color):
         rows = [[Paragraph(role_label, ps('PH', fontSize=9, fontName='Helvetica-Bold', textColor=white))]]
@@ -308,7 +311,10 @@ def build_surat_pdf(sid):
     pihak_row = Table([[p1_block, p2_block]], colWidths=[col_p, col_p])
     pihak_row.setStyle(TableStyle([
         ('VALIGN',(0,0),(-1,-1),'TOP'),
-        ('RIGHTPADDING',(0,0),(0,0), gap),
+        ('RIGHTPADDING',(0,0),(0,-1), INNER_GAP / 2),
+        ('LEFTPADDING',(1,0),(1,-1), INNER_GAP / 2),
+        ('LEFTPADDING',(0,0),(0,-1), 0),
+        ('RIGHTPADDING',(1,0),(1,-1), 0),
     ]))
     elements.append(pihak_row)
     elements.append(Spacer(1, 0.5*cm))
@@ -322,8 +328,8 @@ def build_surat_pdf(sid):
     td_s = ps('TD', fontSize=9, textColor=dark, leading=12)
     td_c = ps('TDC', fontSize=9, textColor=dark, alignment=1, leading=12)
 
-    # Col widths sum = 16.5cm: 1.2 + 7.0 + 1.8 + 2.0 + 4.5 = 16.5cm ✓
-    col_w = [1.2*cm, 7.0*cm, 1.8*cm, 2.0*cm, 4.5*cm]
+    # Col widths proporsional terhadap USABLE_W: 1.2 + 7.0 + 1.8 + 2.0 + 4.5 = 16.5
+    col_w = [USABLE_W * w/16.5 for w in [1.2, 7.0, 1.8, 2.0, 4.5]]
     barang_header = [Paragraph(h, th_s) for h in ["No", "Nama Barang / Alat", "Jumlah", "Satuan", "Keterangan"]]
     barang_data = [barang_header]
 
@@ -397,8 +403,8 @@ def build_surat_pdf(sid):
         [Paragraph(p1_sig_label.replace("\n", "<br/>"), ps('SL1', fontSize=9, fontName='Helvetica-Bold', textColor=p1_header_color, alignment=1)),
          Paragraph(p2_sig_label.replace("\n", "<br/>"), ps('SL2', fontSize=9, fontName='Helvetica-Bold', textColor=p2_header_color, alignment=1))],
         [sig_image(s.pihak_pertama_signature), sig_image(s.pihak_kedua_signature)],
-        [HRFlowable(width=col_p - 1.5*cm, thickness=0.5, color=border),
-         HRFlowable(width=col_p - 1.5*cm, thickness=0.5, color=border)],
+        [HRFlowable(width=col_p - 1.0*cm, thickness=0.5, color=border),
+         HRFlowable(width=col_p - 1.0*cm, thickness=0.5, color=border)],
         [Paragraph(s.pihak_pertama_nama or "—", sig_sub),
          Paragraph(s.pihak_kedua_nama   or "—", sig_sub)],
         [Paragraph(f"{s.pihak_pertama_jabatan or ''}\n{s.pihak_pertama_perusahaan or ''}" if s.pihak_pertama_jabatan else (s.pihak_pertama_perusahaan or ""),
@@ -415,7 +421,10 @@ def build_surat_pdf(sid):
         ('BOX',(1,0),(1,-1), 0.5, border),
         ('BACKGROUND',(0,0),(0,0), accent),
         ('BACKGROUND',(1,0),(1,0), accent),
-        ('RIGHTPADDING',(0,0),(0,-1), gap),
+        ('RIGHTPADDING',(0,0),(0,-1), INNER_GAP / 2),
+        ('LEFTPADDING',(1,0),(1,-1), INNER_GAP / 2),
+        ('LEFTPADDING',(0,0),(0,-1), 0),
+        ('RIGHTPADDING',(1,0),(1,-1), 0),
     ]))
     elements.append(sig_t)
 

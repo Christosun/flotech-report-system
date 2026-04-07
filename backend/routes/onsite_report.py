@@ -543,9 +543,9 @@ def build_onsite_pdf(rid):
 
     meta_col_w = [3 * cm, 5 * cm, 3 * cm, 6 * cm]
     meta_data = [[
-        Paragraph("<b>Nomor Report</b>", ps('ML', fontSize=8, fontName='Helvetica-Bold', textColor=gray)),
+        Paragraph("<b>Report Number</b>", ps('ML', fontSize=8, fontName='Helvetica-Bold', textColor=gray)),
         Paragraph(r.report_number or "-", ps('MV', fontSize=10, fontName='Helvetica-Bold', textColor=dark)),
-        Paragraph("<b>Tanggal Kunjungan</b>", ps('ML2', fontSize=8, fontName='Helvetica-Bold', textColor=gray)),
+        Paragraph("<b>Date of Visit</b>", ps('ML2', fontSize=8, fontName='Helvetica-Bold', textColor=gray)),
         Paragraph(visit_str, ps('MV2', fontSize=9, textColor=dark)),
     ]]
     mt = Table(meta_data, colWidths=meta_col_w)
@@ -568,7 +568,7 @@ def build_onsite_pdf(rid):
         elements.append(Spacer(1, 0.15 * cm))
 
     # ── CLIENT INFO ─────────────────────────────────────────────
-    section("INFORMASI CLIENT / CUSTOMER")
+    section("CLIENT/CUSTOMER INFORMATION")
 
     def info_grid(rows):
         """rows: list of (label, value) tuples, 2 per row in PDF"""
@@ -593,12 +593,12 @@ def build_onsite_pdf(rid):
         elements.append(t)
 
     client_rows = [
-        ("Perusahaan / Instansi", r.client_company),
-        ("Nama Client / PIC", r.client_name),
+        ("Company/Agency", r.client_company),
+        ("Client/PIC Name", r.client_name),
         ("Contact Person", r.contact_person),
-        ("No. Telepon", r.contact_phone),
-        ("Lokasi / Site", r.site_location),
-        ("Alamat", r.client_address),
+        ("Contact Phone", r.contact_phone),
+        ("Location/Site", r.site_location),
+        ("Address", r.client_address),
     ]
     client_rows_filtered = [(l, v) for l, v in client_rows if v]
     if client_rows_filtered:
@@ -617,7 +617,7 @@ def build_onsite_pdf(rid):
         }]
 
     if equip_items:
-        section("DATA PERALATAN")
+        section("EQUIPMENT/INSTRUMENT DATA")
         for idx, item in enumerate(equip_items):
             desc = item.get("description", "")
             model = item.get("model", "")
@@ -627,9 +627,9 @@ def build_onsite_pdf(rid):
             if len(equip_items) > 1:
                 rows.append(("No.", str(idx + 1)))
             if desc:
-                rows.append(("Informasi Alat", desc))
+                rows.append(("Equipment/Instrument Information", desc))
             if model:
-                rows.append(("Model / Type", model))
+                rows.append(("Model/Type", model))
             if sn:
                 rows.append(("Serial Number", sn))
             if idx == 0 and eng:
@@ -640,13 +640,13 @@ def build_onsite_pdf(rid):
                 elements.append(Spacer(1, 0.2 * cm))
         elements.append(Spacer(1, 0.3 * cm))
     elif eng:
-        section("DATA PERALATAN")
+        section("EQUIPMENT/INSTRUMENT DATA")
         info_grid([("Engineer", eng.name), ("", "")])
         elements.append(Spacer(1, 0.3 * cm))
 
     # ── DETAIL PEKERJAAN ─────────────────────────────────────────
     if r.job_description:
-        section("DETAIL PEKERJAAN")
+        section("JOB DETAILS")
         # Convert HTML to flowables
         job_flowables = _html_to_flowables(
             r.job_description, USABLE_W, ps, primary, white, accent, border, gray, dark
@@ -689,7 +689,7 @@ def build_onsite_pdf(rid):
     sig_sub = ps('SS', fontSize=8, textColor=gray, alignment=1, leading=11)
 
     sig_rows = [
-        [Paragraph("ENGINEER", sig_l), Paragraph("CUSTOMER / CLIENT", sig_l)],
+        [Paragraph("ENGINEER", sig_l), Paragraph("CUSTOMER/CLIENT", sig_l)],
         [sig_image(eng.signature_data if eng else None), sig_image(r.customer_signature)],
         [HRFlowable(width=half_w - 1.5 * cm, thickness=0.5, color=border),
          HRFlowable(width=half_w - 1.5 * cm, thickness=0.5, color=border)],
@@ -732,7 +732,7 @@ def build_onsite_pdf(rid):
 
     # Signature section title
     sig_section_title = Paragraph(
-        "▌ TANDA TANGAN",
+        "▌ SIGNATURE",
         ps('SSH', fontSize=10, fontName='Helvetica-Bold', textColor=primary, spaceBefore=8, spaceAfter=2)
     )
     sig_hr = HRFlowable(width="100%", thickness=0.5, color=border)
@@ -783,7 +783,7 @@ def build_onsite_pdf(rid):
             self.drawCentredString(pw / 2, 1.4 * cm, FLOTECH_INFO["email"])
             self.setFillColor(colors.HexColor("#9CA3AF"))
             self.drawCentredString(pw / 2, 1.0 * cm,
-                f"Generated: {datetime.now().strftime('%d %B %Y %H:%M')}  ·  Halaman {page_num} dari {total}")
+                f"Generated: {datetime.now().strftime('%d %B %Y %H:%M')}  ·  Page {page_num} from {total}")
             self.restoreState()
 
     doc.build(elements, canvasmaker=NumberedCanvas)

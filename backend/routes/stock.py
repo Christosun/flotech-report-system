@@ -202,7 +202,7 @@ def build_stock_pdf(units, category_filter, status_filter):
 
     now_str   = datetime.now().strftime("%d %B %Y, %H:%M WIB")
     cat_label = {"stock": "Stock", "demo": "Demo Unit", "all": "Stock & Demo Unit"}.get(category_filter, "All")
-    sta_label = STATUS_LABEL_MAP.get(status_filter, "Semua Status") if status_filter else "Semua Status"
+    sta_label = STATUS_LABEL_MAP.get(status_filter, "All Status") if status_filter else "All Status"
 
     # ── Header ──────────────────────────────────────────────────────────────
     header_data = [[
@@ -211,7 +211,7 @@ def build_stock_pdf(units, category_filter, status_filter):
             _ps('HN', fontSize=12, fontName='Helvetica-Bold', textColor=PRIMARY)
         ),
         Paragraph(
-            f"<b>LAPORAN STATUS {cat_label.upper()}</b><br/>"
+            f"<b>REPORT STATUS OF {cat_label.upper()}</b><br/>"
             f"<font size=8 color='#6B7280'>Filter: {sta_label}  &nbsp;|&nbsp;  {now_str}</font>",
             _ps('HT', fontSize=10, fontName='Helvetica-Bold', textColor=DARK, alignment=2)
         ),
@@ -272,13 +272,13 @@ def build_stock_pdf(units, category_filter, status_filter):
     # ── Data table ───────────────────────────────────────────────────────────
     # Cols: No | Nama Alat | Brand | Model | S/N | Tipe | Kategori | Status | Kondisi | Lokasi | Keterangan
     # Total must equal W ≈ 25.6cm
-    COL_W = [0.7, 3.8, 2.4, 3.0, 2.8, 2.2, 1.8, 2.2, 2.0, 2.2, 2.5]
+    COL_W = [0.9, 3.8, 2.4, 3.0, 2.8, 2.0, 1.8, 2.2, 2.0, 2.2, 2.5]
     diff = W / cm - sum(COL_W)
     COL_W[-1] += diff          # absorb rounding into last column
     COL_W = [c * cm for c in COL_W]
 
-    HEADERS = ["No", "Nama Alat", "Brand", "Model", "Serial Number",
-               "Tipe", "Kategori", "Status", "Kondisi", "Lokasi", "Keterangan"]
+    HEADERS = ["No.", "Equipment/Instrument Name", "Brand", "Model", "Serial Number",
+               "Type", "Category", "Status", "Condition", "Location", "Description"]
     tbl_data = [[Paragraph(h, hdr_st) for h in HEADERS]]
 
     for idx, u in enumerate(units, 1):
@@ -353,8 +353,8 @@ def build_stock_pdf(units, category_filter, status_filter):
             f"{FLOTECH_INFO['address']}  |  {FLOTECH_INFO['city']}  |  {FLOTECH_INFO['telp']}")
         canvas.setFillColor(colors.HexColor("#9CA3AF"))
         canvas.drawCentredString(pw/2, 1.2*cm,
-            f"Dicetak: {_dt.now().strftime('%d %B %Y %H:%M')}  |  Hal. {doc_obj.page}  |  "
-            "Dokumen ini digenerate otomatis oleh sistem")
+            f"Printed: {_dt.now().strftime('%d %B %Y %H:%M')}  |  Page. {doc_obj.page}  |  "
+            "This document is generated automatically by the system")
         canvas.restoreState()
 
     doc.build(elements, onFirstPage=footer, onLaterPages=footer)
@@ -389,7 +389,7 @@ def export_stock_pdf():
     buf = build_stock_pdf(units, category, status)
 
     cat_lbl = {"stock": "Stock", "demo": "DemoUnit", "all": "StockDemo"}.get(category, "Stock")
-    sta_lbl = status.replace("_","").capitalize() if status else "SemuaStatus"
+    sta_lbl = status.replace("_","").capitalize() if status else "AllStatus"
     filename = f"LaporanStock_{cat_lbl}_{sta_lbl}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
 
     return send_file(buf, as_attachment=True, download_name=filename, mimetype="application/pdf")

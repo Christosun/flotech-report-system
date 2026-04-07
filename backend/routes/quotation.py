@@ -630,57 +630,74 @@ def build_quotation_pdf(q):
     cust_w = UW * 0.56 - GAP / 2
     proj_w = UW * 0.44 - GAP / 2
 
-    def cust_block():
-        rows = [[Paragraph("CUSTOMER / RECIPIENT",
-            S("ch", fontName="Helvetica-Bold", fontSize=7.5, textColor=C_WHITE, leading=10))]]
-        if q.customer_company:
-            rows.append([Paragraph(q.customer_company,
-                S("cc", fontName="Helvetica-Bold", fontSize=10.5, textColor=C_DARK, leading=14))])
-        for ln in (q.customer_address or "").split("\n"):
-            if ln.strip():
-                rows.append([Paragraph(ln.strip(), S("ca", fontSize=8.5, textColor=C_GRAY, leading=12))])
-        if q.customer_name:
-            rows.append([Paragraph(f"Attn : {q.customer_name}", S("cn2", fontSize=9, textColor=C_TEXT))])
-        if q.customer_email:
-            rows.append([Paragraph(f"Email : {q.customer_email}", S("ce", fontSize=8.5, textColor=C_GRAY))])
-        if q.customer_phone:
-            rows.append([Paragraph(f"Phone : {q.customer_phone}", S("cp", fontSize=8.5, textColor=C_GRAY))])
-        t = Table(rows, colWidths=[cust_w])
-        t.setStyle(TableStyle([
-            ("BACKGROUND",(0,0),(0,0),C_PRIMARY),("BACKGROUND",(0,1),(-1,-1),C_ACCENT),
-            ("BOX",(0,0),(-1,-1),0.5,C_BORDER),("TOPPADDING",(0,0),(-1,-1),6),
-            ("BOTTOMPADDING",(0,0),(-1,-1),6),("LEFTPADDING",(0,0),(-1,-1),8),
-            ("RIGHTPADDING",(0,0),(-1,-1),8),("VALIGN",(0,0),(-1,-1),"MIDDLE"),
-        ]))
-        return t
+    # ── Build unified 2-column header+body table so both sides are always equal height ──
+    # Row 0: header row (blue background both sides)
+    # Row 1+: content rows — left=customer data, right=project data (padded with "" to match)
 
-    def proj_block():
-        rows = [[Paragraph("PROJECT DETAILS",
-            S("ph", fontName="Helvetica-Bold", fontSize=7.5, textColor=C_WHITE, leading=10))]]
-        rows.append([Paragraph(q.project_name or "-",
-            S("pn", fontName="Helvetica-Bold", fontSize=10.5, textColor=C_DARK, leading=14))])
-        if q.category:
-            rows.append([Paragraph(f"Category : {q.category}", S("pc", fontSize=8.5, textColor=C_GRAY))])
-        if q.valid_until:
-            months=["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
-            vd=q.valid_until; vd_str=f"{vd.day} {months[vd.month]} {vd.year}"
-            rows.append([Paragraph(f"Valid Until : {vd_str}", S("pv", fontSize=8.5, textColor=C_GRAY))])
-        t = Table(rows, colWidths=[proj_w])
-        t.setStyle(TableStyle([
-            ("BACKGROUND",(0,0),(0,0),C_PRIMARY),("BACKGROUND",(0,1),(-1,-1),C_ACCENT),
-            ("BOX",(0,0),(-1,-1),0.5,C_BORDER),("TOPPADDING",(0,0),(-1,-1),6),
-            ("BOTTOMPADDING",(0,0),(-1,-1),6),("LEFTPADDING",(0,0),(-1,-1),8),
-            ("RIGHTPADDING",(0,0),(-1,-1),8),("VALIGN",(0,0),(-1,-1),"MIDDLE"),
-        ]))
-        return t
+    # Collect customer content rows (as Paragraph objects)
+    cust_content = []
+    if q.customer_company:
+        cust_content.append(Paragraph(q.customer_company,
+            S("cc", fontName="Helvetica-Bold", fontSize=10.5, textColor=C_DARK, leading=14)))
+    for ln in (q.customer_address or "").split("\n"):
+        if ln.strip():
+            cust_content.append(Paragraph(ln.strip(), S("ca", fontSize=8.5, textColor=C_GRAY, leading=12)))
+    if q.customer_name:
+        cust_content.append(Paragraph(f"Attn : {q.customer_name}", S("cn2", fontSize=9, textColor=C_TEXT)))
+    if q.customer_email:
+        cust_content.append(Paragraph(f"Email : {q.customer_email}", S("ce", fontSize=8.5, textColor=C_GRAY)))
+    if q.customer_phone:
+        cust_content.append(Paragraph(f"Phone : {q.customer_phone}", S("cp", fontSize=8.5, textColor=C_GRAY)))
 
-    two_col = Table([[cust_block(), proj_block()]], colWidths=[cust_w+GAP/2, proj_w+GAP/2])
-    two_col.setStyle(TableStyle([
-        ("VALIGN",(0,0),(-1,-1),"TOP"),("LEFTPADDING",(0,0),(-1,-1),0),
-        ("RIGHTPADDING",(0,0),(-1,-1),0),("TOPPADDING",(0,0),(-1,-1),0),
-        ("BOTTOMPADDING",(0,0),(-1,-1),0),("RIGHTPADDING",(0,0),(0,0),GAP/2),
-        ("LEFTPADDING",(1,0),(1,0),GAP/2),
-    ]))
+    # Collect project content rows
+    proj_content = []
+    proj_content.append(Paragraph(q.project_name or "-",
+        S("pn", fontName="Helvetica-Bold", fontSize=10.5, textColor=C_DARK, leading=14)))
+    if q.category:
+        proj_content.append(Paragraph(f"Category : {q.category}", S("pc", fontSize=8.5, textColor=C_GRAY)))
+    if q.valid_until:
+        months = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+        vd = q.valid_until; vd_str = f"{vd.day} {months[vd.month]} {vd.year}"
+        proj_content.append(Paragraph(f"Valid Until : {vd_str}", S("pv", fontSize=8.5, textColor=C_GRAY)))
+
+    # Pad shorter side with empty paragraphs so row counts match
+    empty_c = S("emp", fontSize=8.5, textColor=C_GRAY, leading=12)
+    max_rows = max(len(cust_content), len(proj_content))
+    while len(cust_content) < max_rows:
+        cust_content.append(Paragraph("", empty_c))
+    while len(proj_content) < max_rows:
+        proj_content.append(Paragraph("", empty_c))
+
+    # Build unified table: row 0 = headers, rows 1..N = content pairs
+    unified_rows = [[
+        Paragraph("CUSTOMER / RECIPIENT", S("ch", fontName="Helvetica-Bold", fontSize=7.5, textColor=C_WHITE, leading=10)),
+        Paragraph("PROJECT DETAILS",      S("ph", fontName="Helvetica-Bold", fontSize=7.5, textColor=C_WHITE, leading=10)),
+    ]]
+    for c_cell, p_cell in zip(cust_content, proj_content):
+        unified_rows.append([c_cell, p_cell])
+
+    two_col = Table(unified_rows, colWidths=[cust_w + GAP/2, proj_w + GAP/2])
+
+    uni_style = [
+        # Header row — blue background both columns
+        ("BACKGROUND", (0, 0), (-1, 0), C_PRIMARY),
+        ("TEXTCOLOR",  (0, 0), (-1, 0), C_WHITE),
+        # Content rows — light accent background both columns
+        ("BACKGROUND", (0, 1), (-1, -1), C_ACCENT),
+        # Outer border per column (simulate two separate boxes)
+        ("BOX",  (0, 0), (0, -1), 0.5, C_BORDER),
+        ("BOX",  (1, 0), (1, -1), 0.5, C_BORDER),
+        # Gap between the two columns (no border, just spacing)
+        ("LEFTPADDING",   (1, 0), (1, -1), GAP),
+        ("RIGHTPADDING",  (0, 0), (0, -1), 0),
+        # Padding inside cells
+        ("TOPPADDING",    (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("LEFTPADDING",   (0, 0), (0, -1), 8),
+        ("RIGHTPADDING",  (1, 0), (1, -1), 8),
+        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+    ]
+    two_col.setStyle(TableStyle(uni_style))
     elements.append(two_col)
     elements.append(Spacer(1, 0.4*cm))
 

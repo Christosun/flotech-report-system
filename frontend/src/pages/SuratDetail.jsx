@@ -336,8 +336,8 @@ export default function SuratDetail() {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             {[
-              { title: "🏢 The First Party (the one who Handed Over)", nama: s.pihak_pertama_nama, jabatan: s.pihak_pertama_jabatan, perusahaan: s.pihak_pertama_perusahaan, alamat: s.pihak_pertama_alamat },
-              { title: "🏢 The Second Party (the one who Received)", nama: s.pihak_kedua_nama, jabatan: s.pihak_kedua_jabatan, perusahaan: s.pihak_kedua_perusahaan, alamat: s.pihak_kedua_alamat },
+              { title: "🏢 The First Party (Delivering Party)", nama: s.pihak_pertama_nama, jabatan: s.pihak_pertama_jabatan, perusahaan: s.pihak_pertama_perusahaan, alamat: s.pihak_pertama_alamat },
+              { title: "🏢 The Second Party (Receiving Party)", nama: s.pihak_kedua_nama, jabatan: s.pihak_kedua_jabatan, perusahaan: s.pihak_kedua_perusahaan, alamat: s.pihak_kedua_alamat },
             ].map(({ title, ...info }) => (
               <div key={title} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                 <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3">{title}</h3>
