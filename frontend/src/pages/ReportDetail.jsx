@@ -2,11 +2,9 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import API from "../services/api";
 import toast from "react-hot-toast";
+import { compressImages, formatBytes } from "../utils/imageCompressor";
 
-//const BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
-//const BASE_URL = import.meta.env.VITE_API_URL || "http://192.168.18.8:5000";
 const BASE_URL = import.meta.env.VITE_API_URL;
-
 
 /* ─── Field definitions (reused for edit mode) ─────────────────── */
 const COMMISSIONING_FIELDS = [
@@ -96,7 +94,12 @@ const SERVICE_FIELDS = [
     { name: "follow_up", label: "Follow-up Required", type: "textarea" },
   ]},
 ];
-const FIELD_MAP = { commissioning: COMMISSIONING_FIELDS, investigation: INVESTIGATION_FIELDS, troubleshooting: TROUBLESHOOTING_FIELDS, service: SERVICE_FIELDS };
+const FIELD_MAP = {
+  commissioning: COMMISSIONING_FIELDS,
+  investigation: INVESTIGATION_FIELDS,
+  troubleshooting: TROUBLESHOOTING_FIELDS,
+  service: SERVICE_FIELDS,
+};
 
 const STATUS_BADGES = {
   draft: "bg-gray-100 text-gray-600",
@@ -111,16 +114,16 @@ const TYPE_BADGES = {
   service: "bg-green-100 text-green-700",
 };
 
-/* ─── Elegant Delete Confirmation Dialog ───────────────────────── */
+/* ─── Delete Confirmation Dialog ────────────────────────────────── */
 function DeleteDialog({ title, description, onConfirm, onCancel, loading }) {
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        {/* Icon strip */}
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
         <div className="bg-gradient-to-br from-red-50 to-rose-100 px-6 pt-6 pb-4 text-center">
           <div className="w-14 h-14 bg-red-100 border-4 border-red-200 rounded-full flex items-center justify-center mx-auto mb-3">
             <svg className="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
           </div>
           <h3 className="text-base font-bold text-gray-900">{title}</h3>
@@ -191,25 +194,25 @@ function DataSection({ title, data, keys }) {
 /* ─── Image Card ────────────────────────────────────────────────── */
 function ImageCard({ img, onDelete, onCaptionSave }) {
   const [editingCaption, setEditingCaption] = useState(false);
-  const [caption, setCaption] = useState(img.caption || "");
-  const [saving, setSaving] = useState(false);
-  const [deleteDialog, setDeleteDialog] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [caption, setCaption]               = useState(img.caption || "");
+  const [saving, setSaving]                 = useState(false);
+  const [deleteDialog, setDeleteDialog]     = useState(false);
+  const [deleting, setDeleting]             = useState(false);
   const inputRef = useRef(null);
 
   const filename = (img.file_path || "").split(/[\/\\]/).pop();
-  const imgUrl = `${BASE_URL}/uploads/${filename}`;
+  const imgUrl   = `${BASE_URL}/uploads/${filename}`;
 
   const handleSaveCaption = async () => {
     setSaving(true);
-    try { await onCaptionSave(img.id, caption); setEditingCaption(false); }
+    try   { await onCaptionSave(img.id, caption); setEditingCaption(false); }
     catch { toast.error("Failed to save caption"); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async () => {
     setDeleting(true);
-    try { await onDelete(img.id); }
+    try   { await onDelete(img.id); }
     catch { toast.error("Failed to delete"); setDeleting(false); setDeleteDialog(false); }
   };
 
@@ -228,9 +231,16 @@ function ImageCard({ img, onDelete, onCaptionSave }) {
       )}
       <div className="group relative rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-white">
         <div className="relative overflow-hidden bg-gray-50" style={{ aspectRatio: "4/3" }}>
-          <img src={imgUrl} alt={caption || filename}
+          <img
+            src={imgUrl}
+            alt={caption || filename}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
-            onError={e => { e.target.onerror = null; e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect width='80' height='80' fill='%23f3f4f6'/%3E%3Ctext x='40' y='44' text-anchor='middle' font-size='11' fill='%239ca3af'%3ENo image%3C/text%3E%3C/svg%3E"; }}
+            onError={e => {
+              e.target.onerror = null;
+              e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect width='80' height='80' fill='%23f3f4f6'/%3E%3Ctext x='40' y='44' text-anchor='middle' font-size='11' fill='%239ca3af'%3ENo image%3C/text%3E%3C/svg%3E";
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-end justify-between p-2">
             <button onClick={() => setEditingCaption(true)} title="Edit caption"
@@ -248,9 +258,13 @@ function ImageCard({ img, onDelete, onCaptionSave }) {
             <div className="flex flex-col gap-1.5">
               <input ref={inputRef} value={caption}
                 onChange={e => setCaption(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") handleSaveCaption(); if (e.key === "Escape") { setCaption(img.caption || ""); setEditingCaption(false); } }}
+                onKeyDown={e => {
+                  if (e.key === "Enter")  handleSaveCaption();
+                  if (e.key === "Escape") { setCaption(img.caption || ""); setEditingCaption(false); }
+                }}
                 placeholder="Caption…"
-                className="w-full text-xs border border-[#0B3D91] rounded-lg px-2 py-1.5 focus:outline-none" />
+                className="w-full text-xs border border-[#0B3D91] rounded-lg px-2 py-1.5 focus:outline-none"
+              />
               <div className="flex gap-1">
                 <button onClick={handleSaveCaption} disabled={saving}
                   className="flex-1 py-1 bg-[#0B3D91] text-white text-xs rounded-lg font-semibold disabled:opacity-60">
@@ -272,29 +286,61 @@ function ImageCard({ img, onDelete, onCaptionSave }) {
   );
 }
 
+/* ─── Compression Progress Toast ────────────────────────────────── */
+function CompressionStatus({ items }) {
+  if (!items.length) return null;
+  const done    = items.filter(i => i.done).length;
+  const total   = items.length;
+  const pct     = Math.round((done / total) * 100);
+  const savings = items.reduce((acc, i) => acc + (i.savedBytes || 0), 0);
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between text-xs mb-0.5">
+        <span className="font-semibold text-[#0B3D91]">Compressing {total} image{total > 1 ? "s" : ""}…</span>
+        <span className="text-gray-400">{done}/{total}</span>
+      </div>
+      <div className="h-1.5 bg-blue-100 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-[#0B3D91] rounded-full transition-all duration-300"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      {savings > 0 && (
+        <p className="text-[10px] text-emerald-600 font-medium">
+          ✓ Saved {formatBytes(savings)} so far
+        </p>
+      )}
+    </div>
+  );
+}
+
 /* ─── Main Component ────────────────────────────────────────────── */
 export default function ReportDetail() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const [report, setReport] = useState(null);
+  const { id }     = useParams();
+  const navigate   = useNavigate();
+  const [report,   setReport]   = useState(null);
   const [engineers, setEngineers] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfLoading,     setPdfLoading]     = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState(null);
+  const [previewUrl,     setPreviewUrl]     = useState(null);
+
+  // Compression progress state
+  const [compressItems,  setCompressItems]  = useState([]);
+  const [compressing,    setCompressing]    = useState(false);
 
   // Edit mode
-  const [editMode, setEditMode] = useState(false);
-  const [editBase, setEditBase] = useState({});
-  const [editData, setEditData] = useState({});
-  const [saving, setSaving] = useState(false);
-  // TAMBAH:
-  const [editSectionVis, setEditSectionVis] = useState({});
+  const [editMode,         setEditMode]         = useState(false);
+  const [editBase,         setEditBase]         = useState({});
+  const [editData,         setEditData]         = useState({});
+  const [saving,           setSaving]           = useState(false);
+  const [editSectionVis,   setEditSectionVis]   = useState({});
 
   // Delete report dialog
   const [deleteDialog, setDeleteDialog] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [deleting,     setDeleting]     = useState(false);
 
   const fetchReport = useCallback(async () => {
     try {
@@ -309,20 +355,18 @@ export default function ReportDetail() {
   const openEdit = () => {
     setEditBase({
       report_number: report.report_number || "",
-      client_name: report.client_name || "",
-      project_name: report.project_name || "",
-      report_date: report.report_date || "",
-      engineer_id: report.engineer?.id || "",
-      status: report.status || "draft",
+      client_name:   report.client_name   || "",
+      project_name:  report.project_name  || "",
+      report_date:   report.report_date   || "",
+      engineer_id:   report.engineer?.id  || "",
+      status:        report.status        || "draft",
     });
     setEditData({ ...(report.data_json || {}) });
     setEditSectionVis(report.data_json?._section_visibility || {});
     setEditMode(true);
   };
 
-  const toggleEditSection = (si) => {
-    setEditSectionVis(prev => ({ ...prev, [si]: !(prev[si] ?? true) }));
-  };
+  const toggleEditSection   = (si) => setEditSectionVis(prev => ({ ...prev, [si]: !(prev[si] ?? true) }));
   const isEditSectionIncluded = (si) => editSectionVis[si] ?? true;
 
   const handleSave = async () => {
@@ -331,10 +375,7 @@ export default function ReportDetail() {
       await API.put(`/report/update/${id}`, {
         ...editBase,
         engineer_id: editBase.engineer_id ? parseInt(editBase.engineer_id) : null,
-        data_json: {
-          ...editData,
-          _section_visibility: editSectionVis,   // ← TAMBAH ini
-        },
+        data_json: { ...editData, _section_visibility: editSectionVis },
       });
       toast.success("Report successfully updated! ✅");
       setEditMode(false);
@@ -352,16 +393,75 @@ export default function ReportDetail() {
     } catch { toast.error("Failed to delete report"); setDeleting(false); setDeleteDialog(false); }
   };
 
+  /* ── Image upload with client-side compression ─────────────── */
   const handleFiles = async (files) => {
+    const fileArr = Array.from(files).filter(f => f.type.startsWith("image/"));
+    if (!fileArr.length) return;
+
+    // ── 1. Show compression progress ──────────────────────────
+    setCompressing(true);
+    const progressItems = fileArr.map((f, idx) => ({
+      idx,
+      name: f.name,
+      originalSize: f.size,
+      done: false,
+      savedBytes: 0,
+    }));
+    setCompressItems(progressItems);
+
+    // ── 2. Compress each file individually (update progress) ──
+    const compressed = [];
+    for (let i = 0; i < fileArr.length; i++) {
+      const original = fileArr[i];
+      try {
+        const { compressImage } = await import("../utils/imageCompressor");
+        const result = await compressImage(original);
+        compressed.push(result);
+        setCompressItems(prev =>
+          prev.map(item =>
+            item.idx === i
+              ? { ...item, done: true, savedBytes: Math.max(0, original.size - result.size) }
+              : item,
+          ),
+        );
+      } catch {
+        // Fall back to original on any error
+        compressed.push(original);
+        setCompressItems(prev =>
+          prev.map(item => item.idx === i ? { ...item, done: true, savedBytes: 0 } : item),
+        );
+      }
+    }
+
+    setCompressing(false);
+
+    // ── 3. Calculate total savings for toast ──────────────────
+    const originalTotal  = fileArr.reduce((s, f) => s + f.size, 0);
+    const compressedTotal = compressed.reduce((s, f) => s + f.size, 0);
+    const savedTotal      = originalTotal - compressedTotal;
+    const savedPct        = originalTotal > 0 ? Math.round((savedTotal / originalTotal) * 100) : 0;
+
+    // ── 4. Upload compressed files ────────────────────────────
     const fd = new FormData();
-    for (let f of files) fd.append("images", f);
+    compressed.forEach(f => fd.append("images", f));
     setUploading(true);
     try {
       await API.post(`/report/upload/${id}`, fd, { headers: { "Content-Type": "multipart/form-data" } });
-      toast.success("Photo uploaded successfully!");
+      if (savedTotal > 0) {
+        toast.success(
+          `${fileArr.length} photo uploaded ✅\nCompressed: saved ${formatBytes(savedTotal)} (${savedPct}% smaller)`,
+          { duration: 4000 },
+        );
+      } else {
+        toast.success(`${fileArr.length} photo uploaded successfully!`);
+      }
       fetchReport();
-    } catch { toast.error("Upload failed"); }
-    finally { setUploading(false); }
+    } catch {
+      toast.error("Upload failed");
+    } finally {
+      setUploading(false);
+      setCompressItems([]);
+    }
   };
 
   const deleteImage = async (imgId) => {
@@ -372,7 +472,10 @@ export default function ReportDetail() {
 
   const saveCaption = async (imgId, caption) => {
     await API.put(`/report/image/caption/${imgId}`, { caption });
-    setReport(prev => ({ ...prev, images: prev.images.map(i => i.id === imgId ? { ...i, caption } : i) }));
+    setReport(prev => ({
+      ...prev,
+      images: prev.images.map(i => i.id === imgId ? { ...i, caption } : i),
+    }));
   };
 
   const previewPDF = async () => {
@@ -389,7 +492,10 @@ export default function ReportDetail() {
     try {
       const res = await API.get(`/report/pdf/${id}`, { responseType: "blob" });
       const url = URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
-      Object.assign(document.createElement("a"), { href: url, download: `${report.report_number}_${report.report_type}.pdf` }).click();
+      Object.assign(document.createElement("a"), {
+        href: url,
+        download: `${report.report_number}_${report.report_type}.pdf`,
+      }).click();
       setTimeout(() => URL.revokeObjectURL(url), 5000);
       toast.success("PDF downloaded!");
     } catch { toast.error("Failed to generate PDF"); }
@@ -402,7 +508,7 @@ export default function ReportDetail() {
     </div>
   );
 
-  const sections = FIELD_MAP[report.report_type] || [];
+  const sections   = FIELD_MAP[report.report_type] || [];
   const inputClass = "w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91] bg-white";
   const labelClass = "block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5";
 
@@ -410,16 +516,26 @@ export default function ReportDetail() {
     <div className="w-full">
       {/* Modals */}
       {previewUrl && (
-        <PDFPreviewModal url={previewUrl} reportNumber={report.report_number} reportType={report.report_type}
-          onClose={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }} />
+        <PDFPreviewModal
+          url={previewUrl}
+          reportNumber={report.report_number}
+          reportType={report.report_type}
+          onClose={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}
+        />
       )}
       {deleteDialog && (
-        <DeleteDialog title="Delete Report?" description={`Report "${report.report_number}" will be permanently deleted along with all photos.`}
-          onConfirm={handleDeleteReport} onCancel={() => setDeleteDialog(false)} loading={deleting} />
+        <DeleteDialog
+          title="Delete Report?"
+          description={`Report "${report.report_number}" will be permanently deleted along with all photos.`}
+          onConfirm={handleDeleteReport}
+          onCancel={() => setDeleteDialog(false)}
+          loading={deleting}
+        />
       )}
 
       {/* Back */}
-      <button onClick={() => navigate("/reports")} className="flex items-center gap-2 text-sm text-gray-400 hover:text-[#0B3D91] mb-5 transition-colors">
+      <button onClick={() => navigate("/reports")}
+        className="flex items-center gap-2 text-sm text-gray-400 hover:text-[#0B3D91] mb-5 transition-colors">
         ← Back to Field Reports
       </button>
 
@@ -458,11 +574,15 @@ export default function ReportDetail() {
             )}
             <button onClick={previewPDF} disabled={previewLoading}
               className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-sm font-semibold hover:bg-blue-100 transition-colors disabled:opacity-60">
-              {previewLoading ? <><div className="w-3.5 h-3.5 border-2 border-blue-700/30 border-t-blue-700 rounded-full animate-spin" /> Loading…</> : "👁 Preview"}
+              {previewLoading
+                ? <><div className="w-3.5 h-3.5 border-2 border-blue-700/30 border-t-blue-700 rounded-full animate-spin" /> Loading…</>
+                : "👁 Preview"}
             </button>
             <button onClick={downloadPDF} disabled={pdfLoading}
               className="flex items-center gap-2 px-4 py-2 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] transition-colors disabled:opacity-60">
-              {pdfLoading ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generating…</> : "⬇ Download PDF"}
+              {pdfLoading
+                ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generating…</>
+                : "⬇ Download PDF"}
             </button>
             <button onClick={() => setDeleteDialog(true)}
               className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-xl text-sm font-semibold hover:bg-red-100 transition-colors">
@@ -486,31 +606,45 @@ export default function ReportDetail() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
             <div>
               <label className={labelClass}>Report Number</label>
-              <input value={editBase.report_number} onChange={e => setEditBase({ ...editBase, report_number: e.target.value })} className={inputClass} />
+              <input value={editBase.report_number}
+                onChange={e => setEditBase({ ...editBase, report_number: e.target.value })}
+                className={inputClass} />
             </div>
             <div>
               <label className={labelClass}>Report Date</label>
-              <input type="date" value={editBase.report_date} onChange={e => setEditBase({ ...editBase, report_date: e.target.value })} className={inputClass} />
+              <input type="date" value={editBase.report_date}
+                onChange={e => setEditBase({ ...editBase, report_date: e.target.value })}
+                className={inputClass} />
             </div>
             <div>
               <label className={labelClass}>Client Name</label>
-              <input value={editBase.client_name} onChange={e => setEditBase({ ...editBase, client_name: e.target.value })} className={inputClass} />
+              <input value={editBase.client_name}
+                onChange={e => setEditBase({ ...editBase, client_name: e.target.value })}
+                className={inputClass} />
             </div>
             <div>
               <label className={labelClass}>Project Name</label>
-              <input value={editBase.project_name} onChange={e => setEditBase({ ...editBase, project_name: e.target.value })} className={inputClass} />
+              <input value={editBase.project_name}
+                onChange={e => setEditBase({ ...editBase, project_name: e.target.value })}
+                className={inputClass} />
             </div>
             <div>
               <label className={labelClass}>Engineer</label>
-              <select value={editBase.engineer_id} onChange={e => setEditBase({ ...editBase, engineer_id: e.target.value })} className={inputClass}>
+              <select value={editBase.engineer_id}
+                onChange={e => setEditBase({ ...editBase, engineer_id: e.target.value })}
+                className={inputClass}>
                 <option value="">— Select Engineer —</option>
                 {engineers.map(eng => <option key={eng.id} value={eng.id}>{eng.name}</option>)}
               </select>
             </div>
             <div>
               <label className={labelClass}>Status</label>
-              <select value={editBase.status} onChange={e => setEditBase({ ...editBase, status: e.target.value })} className={inputClass}>
-                {["draft", "in-progress", "completed", "approved"].map(s => <option key={s} value={s}>{s}</option>)}
+              <select value={editBase.status}
+                onChange={e => setEditBase({ ...editBase, status: e.target.value })}
+                className={inputClass}>
+                {["draft", "in-progress", "completed", "approved"].map(s =>
+                  <option key={s} value={s}>{s}</option>
+                )}
               </select>
             </div>
           </div>
@@ -527,7 +661,6 @@ export default function ReportDetail() {
                     <span className="w-5 h-5 bg-[#0B3D91] text-white rounded-full flex items-center justify-center text-[10px] font-bold">{si + 1}</span>
                     {sec.section}
                   </h4>
-                  {/* Toggle tombol — sama persis seperti CreateReport */}
                   <button
                     type="button"
                     onClick={() => toggleEditSection(si)}
@@ -535,19 +668,20 @@ export default function ReportDetail() {
                       included
                         ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
                         : "bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200"
-                    }`}
-                  >
+                    }`}>
                     {included ? (
                       <>
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         Show in PDF
                       </>
                     ) : (
                       <>
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 4.411m0 0L21 21" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 4.411m0 0L21 21" />
                         </svg>
                         Hide in PDF
                       </>
@@ -555,12 +689,10 @@ export default function ReportDetail() {
                   </button>
                 </div>
 
-                {/* Collapsed hint */}
                 {!included && (
-                  <p className="text-xs text-gray-400 italic">Seksi ini tidak akan tampil di PDF.</p>
+                  <p className="text-xs text-gray-400 italic">This section will not appear in the PDF.</p>
                 )}
 
-                {/* Fields — hanya tampil jika included */}
                 {included && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {sec.fields.map(field => (
@@ -584,10 +716,15 @@ export default function ReportDetail() {
           })}
 
           <div className="flex gap-3 pt-2 border-t border-gray-100 mt-4">
-            <button onClick={() => setEditMode(false)} className="px-5 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50">Cancel</button>
+            <button onClick={() => setEditMode(false)}
+              className="px-5 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50">
+              Cancel
+            </button>
             <button onClick={handleSave} disabled={saving}
               className="px-6 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-bold hover:bg-[#1E5CC6] disabled:opacity-60 flex items-center gap-2">
-              {saving ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving…</> : "✓ Save Changes"}
+              {saving
+                ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving…</>
+                : "✓ Save Changes"}
             </button>
           </div>
         </div>
@@ -595,7 +732,12 @@ export default function ReportDetail() {
 
       {/* ── VIEW MODE — Report Data ──────────────────────────── */}
       {!editMode && sections.map((sec, i) => (
-        <DataSection key={i} title={sec.section} data={report.data_json} keys={sec.fields.map(f => ({ key: f.name, label: f.label }))} />
+        <DataSection
+          key={i}
+          title={sec.section}
+          data={report.data_json}
+          keys={sec.fields.map(f => ({ key: f.name, label: f.label }))}
+        />
       ))}
       {!editMode && sections.length === 0 && report.data_json && Object.keys(report.data_json).length > 0 && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
@@ -609,33 +751,49 @@ export default function ReportDetail() {
         </div>
       )}
 
-      {/* ── IMAGES (before signatures) ──────────────────────── */}
+      {/* ── IMAGES ──────────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider flex items-center gap-2">
             <span className="w-1.5 h-4 bg-[#0B3D91] rounded-full" /> Documentation & Photos
           </h3>
-          {report.images?.length > 0 && (
-            <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-semibold">{report.images.length} photo</span>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Compression badge */}
+            <span className="text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+              ⚡ Auto-compressed
+            </span>
+            {report.images?.length > 0 && (
+              <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-semibold">
+                {report.images.length} photo
+              </span>
+            )}
+          </div>
         </div>
 
         {report.images?.length > 0 && (
           <div className="mb-4 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 flex items-start gap-2">
             <span className="text-blue-400 text-sm">💡</span>
-            <p className="text-xs text-blue-700">Hover photo for <strong>edit caption</strong> or <strong>delete</strong>. Captions appear in PDF.</p>
+            <p className="text-xs text-blue-700">
+              Hover photo for <strong>edit caption</strong> or <strong>delete</strong>. Captions appear in PDF.
+            </p>
           </div>
         )}
 
-        {/* Drag & Drop */}
+        {/* Drag & Drop Zone */}
         <div
-          onDragOver={e => { e.preventDefault(); setDragActive(true); }}
+          onDragOver={e  => { e.preventDefault(); setDragActive(true); }}
           onDragLeave={() => setDragActive(false)}
           onDrop={e => { e.preventDefault(); setDragActive(false); handleFiles(e.dataTransfer.files); }}
-          className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all mb-4 ${dragActive ? "border-[#0B3D91] bg-blue-50" : "border-gray-200 hover:border-[#0B3D91] hover:bg-blue-50"}`}
-          onClick={() => document.getElementById("fileInput").click()}
+          className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all mb-4
+            ${dragActive ? "border-[#0B3D91] bg-blue-50" : "border-gray-200 hover:border-[#0B3D91] hover:bg-blue-50"}`}
+          onClick={() => !compressing && !uploading && document.getElementById("fileInput").click()}
         >
-          {uploading ? (
+          {/* Compression progress */}
+          {compressing && compressItems.length > 0 ? (
+            <div className="px-2 py-1">
+              <CompressionStatus items={compressItems} />
+            </div>
+          ) : uploading ? (
             <div className="flex items-center justify-center gap-3">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#0B3D91]" />
               <p className="text-gray-500 text-sm">Uploading…</p>
@@ -644,11 +802,22 @@ export default function ReportDetail() {
             <>
               <p className="text-2xl mb-1">📸</p>
               <p className="text-gray-600 font-medium text-sm">Drop photo or click to upload</p>
-              <p className="text-gray-400 text-xs mt-0.5">PNG, JPG, JPEG</p>
+              <p className="text-gray-400 text-xs mt-0.5">PNG, JPG, JPEG · Auto-compressed before upload</p>
+              <p className="text-[10px] text-emerald-500 font-medium mt-1.5">
+                ⚡ Images are automatically compressed to keep PDF fast & smooth
+              </p>
             </>
           )}
         </div>
-        <input id="fileInput" type="file" multiple accept="image/*" className="hidden" onChange={e => handleFiles(e.target.files)} />
+
+        <input
+          id="fileInput"
+          type="file"
+          multiple
+          accept="image/*"
+          className="hidden"
+          onChange={e => handleFiles(e.target.files)}
+        />
 
         {report.images?.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -663,7 +832,8 @@ export default function ReportDetail() {
 
       {/* Bottom actions */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-wrap gap-3 justify-between items-center">
-        <button onClick={() => setDeleteDialog(true)} className="flex items-center gap-2 px-4 py-2 text-red-500 border border-red-200 rounded-xl text-sm font-semibold hover:bg-red-50 transition-colors">
+        <button onClick={() => setDeleteDialog(true)}
+          className="flex items-center gap-2 px-4 py-2 text-red-500 border border-red-200 rounded-xl text-sm font-semibold hover:bg-red-50 transition-colors">
           🗑 Delete Report
         </button>
         <div className="flex gap-2">

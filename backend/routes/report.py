@@ -149,17 +149,66 @@ def list_reports():
 @jwt_required()
 def upload_images(report_id):
     report = Report.query.get(report_id)
-    if not report: return jsonify({"error": "Report not found"}), 404
+    if not report:
+        return jsonify({"error": "Report not found"}), 404
+ 
     files = request.files.getlist("images")
-    if not files: return jsonify({"error": "No files uploaded"}), 400
+    if not files:
+        return jsonify({"error": "No files uploaded"}), 400
+ 
     saved_files = []
+    MAX_DIMENSION = 1280   # px
+    JPEG_QUALITY  = 80     # 0-95 — good quality, significantly smaller than default
+    SIZE_THRESHOLD = 500 * 1024  # 500 KB — only recompress if still larger than this
+ 
     for file in files:
-        if file.filename == "": continue
-        filename = secure_filename(file.filename)
-        file_path = os.path.join(current_app.config["UPLOAD_FOLDER"], filename)
-        file.save(file_path)
+        if not file.filename:
+            continue
+ 
+        # ── Build a safe filename with .jpg extension ─────────────────────────
+        base = secure_filename(file.filename)
+        base_no_ext = base.rsplit(".", 1)[0] if "." in base else base
+        filename = f"{base_no_ext}.jpg"
+ 
+        # Avoid collisions
+        dest_path = os.path.join(current_app.config["UPLOAD_FOLDER"], filename)
+        if os.path.exists(dest_path):
+            import uuid
+            filename = f"{base_no_ext}_{uuid.uuid4().hex[:8]}.jpg"
+            dest_path = os.path.join(current_app.config["UPLOAD_FOLDER"], filename)
+ 
+        try:
+            img = PILImage.open(file.stream).convert("RGB")
+ 
+            # ── Resize if too large ───────────────────────────────────────────
+            w, h = img.size
+            if w > MAX_DIMENSION or h > MAX_DIMENSION:
+                ratio = min(MAX_DIMENSION / w, MAX_DIMENSION / h)
+                img = img.resize(
+                    (int(w * ratio), int(h * ratio)),
+                    PILImage.LANCZOS,
+                )
+ 
+            # ── Save to buffer first to check size ───────────────────────────
+            buf = BytesIO()
+            img.save(buf, format="JPEG", quality=JPEG_QUALITY, optimize=True)
+            buf_size = buf.tell()
+ 
+            # If the frontend already compressed it well (< threshold),
+            # still save as JPEG for consistency — just use the buffer.
+            buf.seek(0)
+            with open(dest_path, "wb") as f_out:
+                f_out.write(buf.read())
+ 
+        except Exception as e:
+            # Fall back: save the raw stream as-is
+            file.stream.seek(0)
+            with open(dest_path, "wb") as f_out:
+                f_out.write(file.stream.read())
+ 
         db.session.add(ReportImage(report_id=report_id, file_path=filename))
         saved_files.append(filename)
+ 
     db.session.commit()
     return jsonify({"message": "Images uploaded", "files": saved_files}), 201
 

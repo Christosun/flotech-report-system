@@ -223,7 +223,7 @@ def create_request():
                 title="New Leave Request Pending",
                 message=f"{requester.name} submitted {leave_type_label} "
                         f"for {total_days} day(s) — {start.strftime('%d %b %Y')}",
-                link="/leave-management",
+                link="/leave",
                 actor_id=user_id,
             )
 
@@ -262,7 +262,7 @@ def approve_request(req_id):
         title="Leave Request Approved ✅",
         message=f"Your {leave_type_label} ({r.total_days} day(s), "
                 f"{r.start_date.strftime('%d %b %Y')}) has been approved by {user.name}.",
-        link="/leave-management",
+        link="/leave",
         actor_id=user_id,
     )
 
@@ -306,7 +306,7 @@ def reject_request(req_id):
         title="Leave Request Rejected ❌",
         message=f"Your {leave_type_label} request ({r.start_date.strftime('%d %b %Y')}) "
                 f"was rejected. Reason: {reason}",
-        link="/leave-management",
+        link="/leave",
         actor_id=user_id,
     )
 

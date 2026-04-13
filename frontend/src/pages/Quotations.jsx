@@ -487,9 +487,14 @@ function CreateModal({ onClose, onCreated }) {
 }
 
 // ─── Analytics Panel (ORIGINAL) ───────────────────────────────────────────────
+// ─── Analytics Panel ──────────────────────────────────────────────────────────
 function AnalyticsPanel({ quotations, onClose }) {
-  const [metric, setMetric] = useState("count");
-  const [period, setPeriod] = useState("month");
+  const [metric, setMetric]           = useState("count");
+  const [period, setPeriod]           = useState("month");
+  const [activeStatus, setActiveStatus] = useState(null);
+  const [drillModal, setDrillModal]   = useState(null);
+  // Info bar — pakai index bukan object, agar tidak re-render seluruh list
+  const [hoveredIdx, setHoveredIdx]   = useState(null);
   const statuses = Object.keys(STATUS_CFG);
 
   const data = (() => {
@@ -499,19 +504,28 @@ function AnalyticsPanel({ quotations, onClose }) {
       const key = period === "month"
         ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`
         : `${d.getFullYear()}`;
-      if (!map[key]) map[key] = {};
+      if (!map[key]) map[key] = { _items: [] };
       const st = q.status || "draft";
-      map[key][st]            = (map[key][st]||0) + 1;
-      map[key][`${st}_val`]   = (map[key][`${st}_val`]||0) + (q.total_amount||0);
+      map[key][st]          = (map[key][st]||0) + 1;
+      map[key][`${st}_val`] = (map[key][`${st}_val`]||0) + (q.total_amount||0);
+      map[key]._items.push(q);
     });
     return Object.entries(map).sort(([a],[b]) => a.localeCompare(b)).map(([p, vals]) => ({ period:p, ...vals }));
   })();
 
-  const maxVal = Math.max(1, ...data.map(d =>
-    metric === "count"
+  const filteredData = activeStatus
+    ? data.map(d => ({ ...d, _filtered: (d._items||[]).filter(q => (q.status||"draft") === activeStatus) }))
+    : data;
+
+  const maxVal = Math.max(1, ...filteredData.map(d => {
+    if (activeStatus) {
+      const items = d._filtered || [];
+      return metric === "count" ? items.length : items.reduce((s,q)=>s+(q.total_amount||0),0);
+    }
+    return metric === "count"
       ? statuses.reduce((s,st) => s+(d[st]||0), 0)
-      : statuses.reduce((s,st) => s+(d[`${st}_val`]||0), 0)
-  ));
+      : statuses.reduce((s,st) => s+(d[`${st}_val`]||0), 0);
+  }));
 
   const totalByStatus = {};
   const totalValByStatus = {};
@@ -520,78 +534,285 @@ function AnalyticsPanel({ quotations, onClose }) {
     totalValByStatus[st] = quotations.filter(q=>(q.status||"draft")===st).reduce((s,q)=>s+(q.total_amount||0),0);
   });
 
+  const openDrill = (d) => {
+    const items = activeStatus
+      ? (d._items||[]).filter(q=>(q.status||"draft")===activeStatus)
+      : (d._items||[]);
+    setDrillModal({ period: d.period, items });
+  };
+
+  // Data bar yang sedang di-hover (untuk info bar)
+  const hoveredData = hoveredIdx !== null ? filteredData[hoveredIdx] : null;
+  const hoveredItems = hoveredData
+    ? (activeStatus ? (hoveredData._filtered||[]) : (hoveredData._items||[]))
+    : [];
+  const hoveredCount = hoveredData
+    ? (activeStatus ? hoveredItems.length : statuses.reduce((s,st)=>s+(hoveredData[st]||0),0))
+    : 0;
+  const hoveredValue = hoveredData
+    ? (activeStatus
+        ? hoveredItems.reduce((s,q)=>s+(q.total_amount||0),0)
+        : statuses.reduce((s,st)=>s+(hoveredData[`${st}_val`]||0),0))
+    : 0;
+
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-4">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="text-lg font-bold text-gray-800">📊 Quotation Analytics</h2>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 text-lg">✕</button>
-        </div>
-        <div className="p-6">
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-6">
-            {statuses.map(st => (
-              <div key={st} className="text-center p-2 rounded-xl bg-gray-50">
-                <div className="w-3 h-3 rounded-full mx-auto mb-1" style={{ background:STATUS_COLORS[st] }}/>
-                <p className="text-xs text-gray-400">{STATUS_CFG[st].label}</p>
-                <p className="font-black text-gray-700">{totalByStatus[st]}</p>
-                <p className="text-[10px] text-gray-400">{fmtRp(totalValByStatus[st])}</p>
+    <>
+      {/* ── Drill-down Modal ── */}
+      {drillModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div>
+                <h3 className="font-bold text-gray-800 text-base">
+                  📋 Quotations — {drillModal.period}
+                  {activeStatus && (
+                    <span className={`ml-2 px-2.5 py-0.5 rounded-full text-xs font-bold ${STATUS_CFG[activeStatus]?.color}`}>
+                      {STATUS_CFG[activeStatus]?.label}
+                    </span>
+                  )}
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">{drillModal.items.length} quotation(s) found</p>
               </div>
-            ))}
-          </div>
-          <div className="flex gap-2 mb-4 flex-wrap">
-            {[["count","Count"],["value","Value"]].map(([k,l]) => (
-              <button key={k} onClick={() => setMetric(k)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${metric===k?"bg-[#0B3D91] text-white":"bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>{l}</button>
-            ))}
-            {[["month","Monthly"],["year","Yearly"]].map(([k,l]) => (
-              <button key={k} onClick={() => setPeriod(k)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${period===k?"bg-[#0B3D91] text-white":"bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>{l}</button>
-            ))}
-          </div>
-          {data.length === 0
-            ? <div className="text-center text-gray-400 py-12"><p>Tidak ada data</p></div>
-            : <div className="space-y-2">
-                {data.map(d => {
-                  const count = statuses.reduce((s,st) => s+(d[st]||0), 0);
-                  const value = statuses.reduce((s,st) => s+(d[`${st}_val`]||0), 0);
-                  const barW  = metric === "count"
-                    ? Math.max(1, count/maxVal*100)
-                    : Math.max(1, value/maxVal*100);
-                  return (
-                    <div key={d.period} className="flex items-center gap-3">
-                      <div className="w-16 text-xs font-mono font-bold text-gray-500 shrink-0 text-right">{d.period}</div>
-                      <div className="flex-1 relative h-8 bg-gray-100 rounded-lg overflow-hidden">
-                        <div className="h-full rounded-lg transition-all duration-500 flex overflow-hidden" style={{ width:`${barW}%` }}>
-                          {statuses.map(st => {
-                            const v     = metric === "count" ? (d[st]||0) : (d[`${st}_val`]||0);
-                            const total = metric === "count" ? count : value;
-                            const pct   = total > 0 ? v/total*100 : 0;
-                            return pct > 0 ? (
-                              <div key={st} style={{ width:`${pct}%`, background:STATUS_COLORS[st] }}
-                                title={`${STATUS_CFG[st]?.label}: ${metric==="count"?v:fmtRp(v)}`}/>
-                            ) : null;
-                          })}
-                        </div>
+              <button onClick={() => setDrillModal(null)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 text-lg">✕</button>
+            </div>
+            <div className="overflow-y-auto flex-1 divide-y divide-gray-50">
+              {drillModal.items.length === 0 ? (
+                <p className="text-center text-gray-400 py-10 text-sm">No quotations found</p>
+              ) : drillModal.items.map(q => {
+                const sc = STATUS_CFG[q.status] || STATUS_CFG.draft;
+                return (
+                  <div key={q.id}
+                    className="flex items-center justify-between px-5 py-3.5 hover:bg-blue-50/50 cursor-pointer group transition-colors"
+                    onClick={() => { setDrillModal(null); onClose(); window.location.href = `/quotations/${q.id}`; }}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono font-bold text-[#0B3D91] text-xs">{q.quotation_number}</span>
+                        {(q.revision||0) > 0 && (
+                          <span className="text-[10px] bg-orange-100 text-orange-600 font-bold px-1.5 py-0.5 rounded-full">Rev.{q.revision}</span>
+                        )}
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${sc.color}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`}/>{sc.label}
+                        </span>
                       </div>
-                      <div className="w-20 text-xs text-right shrink-0">
-                        <span className="font-bold text-gray-700">{metric==="count" ? count : fmtRp(value)}</span>
+                      <p className="text-sm font-semibold text-gray-700 mt-0.5 truncate">{q.customer_company || "-"}</p>
+                      <p className="text-xs text-gray-400 truncate">{q.project_name || "No project"}{q.sales_person ? ` · ${q.sales_person}` : ""}</p>
+                    </div>
+                    <div className="text-right ml-3 shrink-0">
+                      <p className="text-sm font-bold text-gray-800">{fmtRp(q.total_amount, q.currency)}</p>
+                      <p className="text-xs text-gray-400 mt-0.5 group-hover:text-[#0B3D91] transition-colors">View →</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="px-6 py-3 border-t border-gray-100 bg-gray-50/50 rounded-b-2xl">
+              <p className="text-xs text-gray-400 text-center">
+                Total: <span className="font-bold text-gray-600">
+                  {fmtRp(drillModal.items.reduce((s,q)=>s+(q.total_amount||0),0), "IDR")}
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Main Analytics Modal ── */}
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-4">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <h2 className="text-lg font-bold text-gray-800">📊 Quotation Analytics</h2>
+            <div className="flex items-center gap-2">
+              {activeStatus && (
+                <button onClick={() => setActiveStatus(null)}
+                  className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 font-semibold transition-colors">
+                  ✕ Clear filter
+                </button>
+              )}
+              <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 text-lg">✕</button>
+            </div>
+          </div>
+          <div className="p-6">
+
+            {/* Status cards — clickable filter */}
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Click a status to filter</p>
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-5">
+              {statuses.map(st => {
+                const isActive = activeStatus === st;
+                return (
+                  <button key={st}
+                    onClick={() => setActiveStatus(prev => prev === st ? null : st)}
+                    className={`text-center p-2 rounded-xl border-2 transition-all ${
+                      isActive
+                        ? "border-[#0B3D91] bg-[#0B3D91]/5 shadow-sm"
+                        : "border-transparent bg-gray-50 hover:border-gray-200 hover:bg-gray-100"
+                    }`}>
+                    <div className="w-3 h-3 rounded-full mx-auto mb-1" style={{ background:STATUS_COLORS[st] }}/>
+                    <p className="text-xs text-gray-400">{STATUS_CFG[st].label}</p>
+                    <p className={`font-black ${isActive ? "text-[#0B3D91]" : "text-gray-700"}`}>{totalByStatus[st]}</p>
+                    <p className="text-[10px] text-gray-400">{fmtRp(totalValByStatus[st])}</p>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Controls */}
+            <div className="flex gap-2 mb-4 flex-wrap">
+              {[["count","Count"],["value","Value"]].map(([k,l]) => (
+                <button key={k} onClick={() => setMetric(k)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${metric===k?"bg-[#0B3D91] text-white":"bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>{l}</button>
+              ))}
+              {[["month","Monthly"],["year","Yearly"]].map(([k,l]) => (
+                <button key={k} onClick={() => setPeriod(k)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${period===k?"bg-[#0B3D91] text-white":"bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>{l}</button>
+              ))}
+              <span className="ml-auto text-xs text-gray-400 flex items-center gap-1">
+                💡 Hover bar for info · Click to drill down
+              </span>
+            </div>
+
+            {/* Bar chart */}
+            {filteredData.length === 0 ? (
+              <div className="text-center text-gray-400 py-12"><p>No data</p></div>
+            ) : (
+              <div
+                className="space-y-1.5"
+                onMouseLeave={() => setHoveredIdx(null)}
+              >
+                {filteredData.map((d, idx) => {
+                  const items   = activeStatus ? (d._filtered||[]) : (d._items||[]);
+                  const count   = activeStatus ? items.length : statuses.reduce((s,st) => s+(d[st]||0), 0);
+                  const value   = activeStatus ? items.reduce((s,q)=>s+(q.total_amount||0),0) : statuses.reduce((s,st) => s+(d[`${st}_val`]||0), 0);
+                  const barW    = metric === "count"
+                    ? Math.max(items.length > 0 ? 1 : 0, count / maxVal * 100)
+                    : Math.max(items.length > 0 ? 1 : 0, value / maxVal * 100);
+                  const isEmpty = items.length === 0;
+                  const isHov   = hoveredIdx === idx;
+
+                  return (
+                    <div
+                      key={d.period}
+                      className="flex items-center gap-3"
+                      onMouseEnter={() => !isEmpty && setHoveredIdx(idx)}
+                    >
+                      <div className="w-16 text-xs font-mono font-bold shrink-0 text-right"
+                        style={{ color: isHov ? "#0B3D91" : "#6B7280" }}>
+                        {d.period}
+                      </div>
+
+                      <div
+                        className={`flex-1 relative h-9 bg-gray-100 rounded-lg overflow-hidden ${!isEmpty ? "cursor-pointer" : "cursor-default"}`}
+                        onClick={() => !isEmpty && openDrill(d)}
+                      >
+                        {/* Bar fill */}
+                        {activeStatus ? (
+                          <div
+                            className="h-full rounded-lg transition-[width] duration-500"
+                            style={{ width:`${barW}%`, background: STATUS_COLORS[activeStatus] }}
+                          />
+                        ) : (
+                          <div
+                            className="h-full rounded-lg transition-[width] duration-500 flex overflow-hidden"
+                            style={{ width:`${barW}%` }}
+                          >
+                            {statuses.map(st => {
+                              const v     = metric === "count" ? (d[st]||0) : (d[`${st}_val`]||0);
+                              const total = metric === "count" ? count : value;
+                              const pct   = total > 0 ? v/total*100 : 0;
+                              return pct > 0 ? (
+                                <div key={st} style={{ width:`${pct}%`, background:STATUS_COLORS[st] }}/>
+                              ) : null;
+                            })}
+                          </div>
+                        )}
+
+                        {/* Hover highlight — pure CSS, tidak geser layout */}
+                        {!isEmpty && (
+                          <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity bg-black/[0.06] rounded-lg pointer-events-none" />
+                        )}
+                        {isEmpty && (
+                          <div className="absolute inset-0 flex items-center pl-3">
+                            <span className="text-[10px] text-gray-300">No data</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="w-24 text-xs text-right shrink-0">
+                        <span className="font-bold" style={{ color: isHov ? "#0B3D91" : "#374151" }}>
+                          {metric === "count" ? count : fmtRp(value)}
+                        </span>
+                        {!isEmpty && (
+                          <span className="block text-[10px] text-gray-400">{items.length} qt</span>
+                        )}
                       </div>
                     </div>
                   );
                 })}
               </div>
-          }
-          <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-gray-100">
-            {statuses.map(st => (
-              <div key={st} className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
-                <div className="w-3 h-3 rounded-full" style={{ background:STATUS_COLORS[st] }}/>
-                {STATUS_CFG[st]?.label}
-              </div>
-            ))}
+            )}
+
+            {/* ── Info bar — SELALU ADA di DOM, hanya isi yang berubah, tidak ada layout shift ── */}
+            <div className={`mt-3 rounded-xl border transition-all duration-150 overflow-hidden ${
+              hoveredData ? "border-[#0B3D91]/15 bg-[#0B3D91]/[0.03]" : "border-gray-100 bg-gray-50/50"
+            }`} style={{ minHeight: "52px" }}>
+              {hoveredData ? (
+                <div className="px-4 py-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="text-xs font-bold text-[#0B3D91]">📅 {hoveredData.period}</span>
+                    <div className="flex gap-4 text-xs">
+                      <span className="text-gray-500">
+                        Count: <span className="font-bold text-gray-800">{hoveredCount}</span>
+                      </span>
+                      <span className="text-gray-500">
+                        Value: <span className="font-bold text-gray-800">{fmtRp(hoveredValue)}</span>
+                      </span>
+                      {activeStatus && (
+                        <span className="text-gray-500">
+                          Status: <span className="font-bold" style={{ color: STATUS_COLORS[activeStatus] }}>
+                            {STATUS_CFG[activeStatus]?.label}
+                          </span>
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-gray-400 italic">Click bar to open list</span>
+                  </div>
+                  {/* Mini status breakdown — hanya tampil jika tidak filter status */}
+                  {!activeStatus && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {statuses.filter(st => hoveredItems.some(q=>(q.status||"draft")===st)).map(st => {
+                        const cnt = hoveredItems.filter(q=>(q.status||"draft")===st).length;
+                        return cnt > 0 ? (
+                          <span key={st} className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${STATUS_CFG[st].color}`}>
+                            {STATUS_CFG[st].label}: {cnt}
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="px-4 py-3 flex items-center h-full">
+                  <p className="text-xs text-gray-300 italic">Hover a bar to see period details</p>
+                </div>
+              )}
+            </div>
+
+            {/* Legend */}
+            <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-gray-100">
+              {statuses.map(st => (
+                <button key={st}
+                  onClick={() => setActiveStatus(prev => prev === st ? null : st)}
+                  className={`flex items-center gap-1.5 text-xs font-semibold transition-all px-2 py-1 rounded-lg ${
+                    activeStatus === st ? "bg-gray-100 ring-2 ring-[#0B3D91]/30" : "hover:bg-gray-50"
+                  } ${activeStatus && activeStatus !== st ? "opacity-40" : "text-gray-600"}`}>
+                  <div className="w-3 h-3 rounded-full" style={{ background:STATUS_COLORS[st] }}/>
+                  {STATUS_CFG[st]?.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 

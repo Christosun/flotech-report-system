@@ -107,7 +107,7 @@ export default function Dashboard() {
       {/* Welcome */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">{greeting}, {userName} 👋</h1>
-        <p className="text-gray-400 text-sm mt-0.5">PT Flotech Controls Indonesia — Service Management System</p>
+        <p className="text-gray-400 text-sm mt-0.5">PT Flotech Controls Indonesia — Report & Management Apps</p>
       </div>
 
       {/* ── MAIN STATS (6 cards, 2 rows) ────────────────────── */}

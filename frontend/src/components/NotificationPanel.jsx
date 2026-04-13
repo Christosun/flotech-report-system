@@ -29,12 +29,16 @@ const TYPE_CFG = {
 
 // ── Relative time helper ──────────────────────────────────────────────────────
 function timeAgo(isoStr) {
-  const diff = Math.floor((Date.now() - new Date(isoStr)) / 1000);
-  if (diff < 60)       return "Just now";
+  // Pastikan string diparsing sebagai UTC (tambahkan 'Z' jika belum ada suffix timezone)
+  const normalized = isoStr && !isoStr.endsWith("Z") && !isoStr.match(/[+-]\d{2}:\d{2}$/)
+    ? isoStr + "Z"
+    : isoStr;
+  const diff = Math.floor((Date.now() - new Date(normalized)) / 1000);
+  if (diff < 60)       return "just now";
   if (diff < 3600)     return `${Math.floor(diff / 60)} minutes ago`;
   if (diff < 86400)    return `${Math.floor(diff / 3600)} hours ago`;
   if (diff < 604800)   return `${Math.floor(diff / 86400)} days ago`;
-  return new Date(isoStr).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+  return new Date(normalized).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
 }
 
 // ── Empty State ───────────────────────────────────────────────────────────────
@@ -91,7 +95,7 @@ function NotifItem({ notif, onRead, onDelete, onNavigate }) {
             {cfg.label}
           </span>
           {notif.actor_name && (
-            <span className="text-[10px] text-gray-400">oleh {notif.actor_name}</span>
+            <span className="text-[10px] text-gray-400">by {notif.actor_name}</span>
           )}
           <span className="text-[10px] text-gray-400 ml-auto">{timeAgo(notif.created_at)}</span>
         </div>
@@ -121,7 +125,7 @@ function NotifContent({ notifs, unread, loading, tab, setTab, displayed,
           <h3 className="text-sm font-black text-gray-900">Notification</h3>
           {unread > 0 && (
             <span className="text-[10px] font-bold bg-[#0B3D91] text-white px-2 py-0.5 rounded-full">
-              {unread} baru
+              {unread} new
             </span>
           )}
         </div>

@@ -158,7 +158,7 @@ function RichTextEditor({ value, onChange }) {
   const handleEditorClick = (e) => {
     if (e.target.tagName === "IMG") {
       const img = e.target;
-      const w = prompt("Lebar gambar (px):", img.style.width || "300");
+      const w = prompt("Image width (px):", img.style.width || "300");
       if (w) { img.style.width = isNaN(w) ? w : w + "px"; handleInput(); }
     }
   };

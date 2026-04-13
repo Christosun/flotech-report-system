@@ -177,21 +177,21 @@ def build_surat_pdf(sid):
     # terima: pihak pertama = YANG MENERIMA,    pihak kedua = YANG MENYERAHKAN
     is_serah = s.surat_type != "terima"
     if is_serah:
-        title_text    = "BERITA ACARA SERAH TERIMA BARANG"
-        p1_role       = "PIHAK PERTAMA (Yang Menyerahkan)"
-        p2_role       = "PIHAK KEDUA (Yang Menerima)"
-        opening_action = "menyerahkan kepada pihak kedua"
-        p1_sig_label   = "PIHAK PERTAMA\n(Yang Menyerahkan)"
-        p2_sig_label   = "PIHAK KEDUA\n(Yang Menerima)"
+        title_text    = "GOODS HANDOVER MINUTES"
+        p1_role       = "FIRST PARTY (Delivering Party)"
+        p2_role       = "SECOND PARTY (Receiving Party)"
+        opening_action = "delivered to the second party"
+        p1_sig_label   = "FIRST PARTY\n(Delivering Party)"
+        p2_sig_label   = "SECOND PARTY\n(Receiving Party)"
         p1_header_color = primary
         p2_header_color = primary
     else:
-        title_text    = "BERITA ACARA PENERIMAAN BARANG"
-        p1_role       = "PIHAK PERTAMA (Yang Menerima)"
-        p2_role       = "PIHAK KEDUA (Yang Menyerahkan)"
-        opening_action = "menerima dari pihak kedua"
-        p1_sig_label   = "PIHAK PERTAMA\n(Yang Menerima)"
-        p2_sig_label   = "PIHAK KEDUA\n(Yang Menyerahkan)"
+        title_text    = "GOODS RECEIPT MINUTES"
+        p1_role       = "FIRST PARTY (Receiving Party)"
+        p2_role       = "SECOND PARTY (Delivering Party)"
+        opening_action = "received from the second party"
+        p1_sig_label   = "FIRST PARTY\n(Receiving Party)"
+        p2_sig_label   = "SECOND PARTY\n(Delivering Party)"
         p1_header_color = primary
         p2_header_color = primary
 
@@ -233,9 +233,9 @@ def build_surat_pdf(sid):
     date_str = s.surat_date.strftime("%d %B %Y") if s.surat_date else "-"
     # 3cm + 6cm + 3cm + 4.5cm = 16.5cm ✓
     meta_data = [[
-        Paragraph("<b>Nomor Surat</b>", ps('ML', fontSize=8, fontName='Helvetica-Bold', textColor=gray)),
+        Paragraph("<b>Letter No.</b>", ps('ML', fontSize=8, fontName='Helvetica-Bold', textColor=gray)),
         Paragraph(s.surat_number or "-", ps('MV', fontSize=10, fontName='Helvetica-Bold', textColor=dark)),
-        Paragraph("<b>Tanggal</b>", ps('ML2', fontSize=8, fontName='Helvetica-Bold', textColor=gray)),
+        Paragraph("<b>Date</b>", ps('ML2', fontSize=8, fontName='Helvetica-Bold', textColor=gray)),
         Paragraph(date_str, ps('MV2', fontSize=10, textColor=dark)),
     ]]
     # Kolom: label nomor | nilai nomor | label tanggal | nilai tanggal → total = USABLE_W
@@ -252,7 +252,7 @@ def build_surat_pdf(sid):
 
     if s.perihal:
         perihal_data = [[
-            Paragraph("<b>Perihal</b>", ps('PL', fontSize=8, fontName='Helvetica-Bold', textColor=gray)),
+            Paragraph("<b>Subject</b>", ps('PL', fontSize=8, fontName='Helvetica-Bold', textColor=gray)),
             Paragraph(s.perihal, ps('PV', fontSize=10, textColor=dark)),
         ]]
         perihal_t = Table(perihal_data, colWidths=[USABLE_W * 3/16.5, USABLE_W * 13.5/16.5])
@@ -269,12 +269,12 @@ def build_surat_pdf(sid):
     elements.append(Spacer(1, 0.5*cm))
 
     # ── OPENING PARAGRAPH ───────────────────────────────────────
-    p1_name = s.pihak_pertama_nama or "Pihak Pertama"
-    p2_name = s.pihak_kedua_nama   or "Pihak Kedua"
+    p1_name = s.pihak_pertama_nama or "First Party"
+    p2_name = s.pihak_kedua_nama   or "Second Party"
     opening = (
-        f"Yang bertanda tangan di bawah ini, <b>Pihak Pertama</b> "
-        f"menyatakan bahwa telah {opening_action} barang-barang kepada <b>Pihak Kedua</b>, "
-        f"dengan rincian sebagaimana tercantum di bawah ini."
+        f"The undersigned, <b>First Party</b> "
+        f"hereby states that they have {opening_action} the following goods to <b>Second Party</b>, "
+        f"with details as listed below."
     )
     elements.append(Paragraph(opening, ps('Op', fontSize=10, textColor=text_clr, leading=15)))
     elements.append(Spacer(1, 0.5*cm))
@@ -320,7 +320,7 @@ def build_surat_pdf(sid):
     elements.append(Spacer(1, 0.5*cm))
 
     # ── BARANG TABLE (full width) ────────────────────────────────
-    elements.append(Paragraph("▌ DAFTAR BARANG", ps('SH', fontSize=10, fontName='Helvetica-Bold', textColor=primary, spaceBefore=4, spaceAfter=2)))
+    elements.append(Paragraph("▌ GOODS LIST", ps('SH', fontSize=10, fontName='Helvetica-Bold', textColor=primary, spaceBefore=4, spaceAfter=2)))
     elements.append(HRFlowable(width="100%", thickness=0.5, color=border))
     elements.append(Spacer(1, 0.2*cm))
 
@@ -330,7 +330,7 @@ def build_surat_pdf(sid):
 
     # Col widths proporsional terhadap USABLE_W: 1.2 + 7.0 + 1.8 + 2.0 + 4.5 = 16.5
     col_w = [USABLE_W * w/16.5 for w in [1.2, 7.0, 1.8, 2.0, 4.5]]
-    barang_header = [Paragraph(h, th_s) for h in ["No", "Nama Barang / Alat", "Jumlah", "Satuan", "Keterangan"]]
+    barang_header = [Paragraph(h, th_s) for h in ["No", "Item Name / Equipment", "Qty", "Unit", "Remarks"]]
     barang_data = [barang_header]
 
     light_gray = colors.HexColor("#F9FAFB")
@@ -359,7 +359,7 @@ def build_surat_pdf(sid):
     if s.catatan:
         elements.append(Spacer(1, 0.3*cm))
         note_data = [
-            [Paragraph("<b>CATATAN</b>", ps('NL', fontSize=9, fontName='Helvetica-Bold', textColor=white))],
+            [Paragraph("<b>NOTES</b>", ps('NL', fontSize=9, fontName='Helvetica-Bold', textColor=white))],
             [Paragraph(s.catatan, ps('NT', fontSize=9, textColor=text_clr, leading=13))],
         ]
         note_t = Table(note_data, colWidths=[USABLE_W])
@@ -374,8 +374,8 @@ def build_surat_pdf(sid):
     # ── CLOSING ─────────────────────────────────────────────────
     elements.append(Spacer(1, 0.5*cm))
     elements.append(Paragraph(
-        f"Demikian Berita Acara ini dibuat dan ditandatangani oleh kedua belah pihak pada tanggal <b>{date_str}</b> "
-        f"sebagai bukti yang sah atas serah terima barang tersebut di atas.",
+        f"This Minutes of Handover has been made and signed by both parties on <b>{date_str}</b> "
+        f"as valid proof of the goods handover described above.",
         ps('Cl', fontSize=9, textColor=gray, leading=13)
     ))
     elements.append(Spacer(1, 0.4*cm))
@@ -441,7 +441,7 @@ def build_surat_pdf(sid):
         cv.drawCentredString(pw/2, 1.7*cm, FLOTECH_INFO["telp"])
         cv.drawCentredString(pw/2, 1.4*cm, FLOTECH_INFO["email"])
         cv.setFillColor(colors.HexColor("#9CA3AF"))
-        cv.drawCentredString(pw/2, 1.0*cm, f"Generated: {datetime.now().strftime('%d %B %Y %H:%M')}  |  Halaman {doc_obj.page}")
+        cv.drawCentredString(pw/2, 1.0*cm, f"Generated: {datetime.now().strftime('%d %B %Y %H:%M')}  |  Page {doc_obj.page}")
         cv.restoreState()
 
     doc.build(elements, onFirstPage=footer_canvas, onLaterPages=footer_canvas)

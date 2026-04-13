@@ -431,15 +431,15 @@ def build_pdf(sid):
 
     meta_rows = []
     if s.nomor:
-        meta_rows.append([Paragraph("Nomor",    meta_s),
+        meta_rows.append([Paragraph("Number",    meta_s),
                           Paragraph(":",        meta_s),
                           Paragraph(s.nomor,    meta_b)])
     if s.perihal:
-        meta_rows.append([Paragraph("Perihal",  meta_s),
+        meta_rows.append([Paragraph("Subject",  meta_s),
                           Paragraph(":",        meta_s),
                           Paragraph(s.perihal,  meta_s)])
     if s.lampiran:
-        meta_rows.append([Paragraph("Lampiran", meta_s),
+        meta_rows.append([Paragraph("Attachment", meta_s),
                           Paragraph(":",        meta_s),
                           Paragraph(s.lampiran, meta_s)])
 
@@ -471,7 +471,7 @@ def build_pdf(sid):
         elements.append(Spacer(1, 0.5 * cm))
 
     # ── SALUTATION ────────────────────────────────────────────────
-    elements.append(Paragraph("Dengan hormat,", meta_s))
+    elements.append(Paragraph("Yours faithfully,", meta_s))
     elements.append(Spacer(1, 0.35 * cm))
 
     # ── BODY ──────────────────────────────────────────────────────
@@ -481,8 +481,8 @@ def build_pdf(sid):
 
     # ── CLOSING ───────────────────────────────────────────────────
     elements.append(Paragraph(
-        "Demikian surat ini kami sampaikan. "
-        "Atas perhatian dan kerja samanya, kami ucapkan terima kasih.",
+        "Thus we convey this letter. "
+        "Thank you for your attention and cooperation.",
         _ps("Closing", alignment=TA_JUSTIFY, leading=17),
     ))
     elements.append(Spacer(1, 0.7 * cm))
@@ -537,7 +537,7 @@ def build_pdf(sid):
         canvas.setFillColor(colors.HexColor("#9CA3AF"))
         canvas.setFont("Helvetica", 7.5)
         canvas.drawCentredString(PAGE_W / 2, 1.1 * cm,
-            f"Generated: {datetime.now().strftime('%d %B %Y %H:%M')}   |   Halaman {doc_obj.page}")
+            f"Generated: {datetime.now().strftime('%d %B %Y %H:%M')}   |   Page {doc_obj.page}")
         canvas.restoreState()
 
     doc.build(elements, onFirstPage=draw_footer, onLaterPages=draw_footer)

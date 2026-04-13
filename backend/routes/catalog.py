@@ -4,6 +4,8 @@ from flask_jwt_extended import jwt_required
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import os
+import io
+import zipfile
 
 catalog_bp = Blueprint('catalog', __name__)
 
@@ -56,12 +58,10 @@ def upload_file():
     if ext not in ALLOWED_EXTENSIONS:
         return jsonify({"error": f"File type not allowed: {ext}"}), 400
 
-    # Save to catalog subfolder
     catalog_folder = os.path.join(current_app.config["UPLOAD_FOLDER"], "catalog")
     os.makedirs(catalog_folder, exist_ok=True)
 
     filename = secure_filename(file.filename)
-    # Add timestamp to avoid collision
     base, extension = os.path.splitext(filename)
     filename = f"{base}_{int(datetime.utcnow().timestamp())}{extension}"
     file_path = os.path.join(catalog_folder, filename)
@@ -101,7 +101,6 @@ def download_file(fid):
 def delete_file(fid):
     cf = CatalogFile.query.get(fid)
     if not cf: return jsonify({"error": "Not found"}), 404
-    # Delete physical file
     try:
         if os.path.exists(cf.file_path):
             os.remove(cf.file_path)
@@ -110,3 +109,73 @@ def delete_file(fid):
     db.session.delete(cf)
     db.session.commit()
     return jsonify({"message": "Deleted"}), 200
+
+
+# ── NEW: Bulk Download as ZIP ────────────────────────────────────
+@catalog_bp.route('/bulk-download', methods=['POST'])
+@jwt_required()
+def bulk_download():
+    data = request.get_json()
+    ids = data.get("ids", [])
+    if not ids:
+        return jsonify({"error": "No file IDs provided"}), 400
+
+    files = CatalogFile.query.filter(CatalogFile.id.in_(ids)).all()
+    if not files:
+        return jsonify({"error": "No files found"}), 404
+
+    zip_buffer = io.BytesIO()
+    # Track used names to avoid duplicates inside the zip
+    used_names = {}
+
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for cf in files:
+            if not cf.file_path or not os.path.exists(cf.file_path):
+                continue
+            # Use title + original extension as the zip entry name
+            ext = os.path.splitext(cf.filename)[1] if cf.filename else ""
+            safe_title = secure_filename(cf.title or cf.filename)
+            arcname = f"{safe_title}{ext}"
+            # Deduplicate
+            if arcname in used_names:
+                used_names[arcname] += 1
+                base, extension = os.path.splitext(arcname)
+                arcname = f"{base}_{used_names[arcname]}{extension}"
+            else:
+                used_names[arcname] = 0
+            zf.write(cf.file_path, arcname)
+
+    zip_buffer.seek(0)
+    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    zip_name = f"flotech_catalog_{timestamp}.zip"
+
+    return send_file(
+        zip_buffer,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name=zip_name
+    )
+
+
+# ── NEW: Bulk Delete ─────────────────────────────────────────────
+@catalog_bp.route('/bulk-delete', methods=['POST'])
+@jwt_required()
+def bulk_delete():
+    data = request.get_json()
+    ids = data.get("ids", [])
+    if not ids:
+        return jsonify({"error": "No file IDs provided"}), 400
+
+    files = CatalogFile.query.filter(CatalogFile.id.in_(ids)).all()
+    deleted_count = 0
+    for cf in files:
+        try:
+            if cf.file_path and os.path.exists(cf.file_path):
+                os.remove(cf.file_path)
+        except Exception:
+            pass
+        db.session.delete(cf)
+        deleted_count += 1
+
+    db.session.commit()
+    return jsonify({"message": f"{deleted_count} file(s) deleted", "count": deleted_count}), 200

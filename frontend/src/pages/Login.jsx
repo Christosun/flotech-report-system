@@ -12,7 +12,7 @@ export default function Login() {
 
   const handleLogin = async () => {
     if (!username || !password) {
-      setError("Username dan password harus diisi");
+      setError("Username and password must be filled in");
       return;
     }
     setLoading(true);
@@ -28,7 +28,7 @@ export default function Login() {
       localStorage.setItem("user_id",   String(res.data.id || ""));
       navigate("/dashboard");
     } catch {
-      setError("Username atau password salah");
+      setError("Incorrect username or password");
     } finally {
       setLoading(false);
     }
@@ -57,7 +57,7 @@ export default function Login() {
             <span className="text-white font-black text-2xl">F</span>
           </div>
           <p className="text-xs text-gray-400 tracking-widest uppercase font-semibold mt-1">
-            Service Management System
+            Report & Management Apps
           </p>
         </div>
 
@@ -94,7 +94,7 @@ export default function Login() {
                 value={username}
                 onChange={e => setUsername(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Masukkan username"
+                placeholder="Enter your username"
                 autoComplete="username"
                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm
                   focus:outline-none focus:ring-2 focus:ring-[#0B3D91] focus:border-transparent
@@ -120,7 +120,7 @@ export default function Login() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Masukkan password"
+                placeholder="Enter your password"
                 autoComplete="current-password"
                 className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl text-sm
                   focus:outline-none focus:ring-2 focus:ring-[#0B3D91] focus:border-transparent

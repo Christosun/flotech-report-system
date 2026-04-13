@@ -233,9 +233,9 @@ function LetterPreview({ data, engineer }) {
       <div className="px-10 py-3">
         <table className="text-sm" style={{ fontFamily: "Arial, sans-serif" }}>
           <tbody>
-            {data.nomor && <tr><td className="pr-4 pb-0.5 align-top">Nomor</td><td className="pr-2 pb-0.5">:</td><td className="pb-0.5 font-semibold">{data.nomor}</td></tr>}
-            {data.perihal && <tr><td className="pr-4 pb-0.5 align-top">Perihal</td><td className="pr-2 pb-0.5">:</td><td className="pb-0.5">{data.perihal}</td></tr>}
-            {data.lampiran && <tr><td className="pr-4 pb-0.5 align-top">Lampiran</td><td className="pr-2 pb-0.5">:</td><td className="pb-0.5">{data.lampiran}</td></tr>}
+            {data.nomor && <tr><td className="pr-4 pb-0.5 align-top">Number</td><td className="pr-2 pb-0.5">:</td><td className="pb-0.5 font-semibold">{data.nomor}</td></tr>}
+            {data.perihal && <tr><td className="pr-4 pb-0.5 align-top">Subject</td><td className="pr-2 pb-0.5">:</td><td className="pb-0.5">{data.perihal}</td></tr>}
+            {data.lampiran && <tr><td className="pr-4 pb-0.5 align-top">Attachment</td><td className="pr-2 pb-0.5">:</td><td className="pb-0.5">{data.lampiran}</td></tr>}
           </tbody>
         </table>
       </div>
@@ -864,7 +864,7 @@ export default function SuratResmi() {
                 <h2 className="text-xl font-bold text-gray-800 mt-1">{selected.nomor || "No Number"}</h2>
                 <p className="text-sm text-gray-500">{selected.perihal}</p>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  {formatDateID(selected.surat_date)} • Dibuat {formatDateID(selected.created_at)}
+                  {formatDateID(selected.surat_date)} • Created {formatDateID(selected.created_at)}
                 </p>
               </div>
             </div>
@@ -1054,7 +1054,7 @@ export default function SuratResmi() {
           <div className="hidden xl:block">
             <div className="sticky top-20">
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-sm font-bold text-gray-600">📄 Preview Surat</span>
+                <span className="text-sm font-bold text-gray-600">📄 Preview Letter</span>
               </div>
               <div className="overflow-y-auto max-h-[calc(100vh-8rem)]">
                 <LetterPreview data={editMode ? form : selected} engineer={engDetail} />

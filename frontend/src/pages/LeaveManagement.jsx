@@ -131,7 +131,7 @@ function RequestModal({ onClose, onSubmit, balance }) {
     if (overQuota) return;
     setBusy(true);
     try { await onSubmit({ ...form, end_date: form.end_date || form.start_date }); onClose(); }
-    catch (e) { alert(e.response?.data?.error || "Gagal mengirim"); }
+    catch (e) { alert(e.response?.data?.error || "Failed to send"); }
     finally { setBusy(false); }
   };
 
@@ -255,7 +255,7 @@ function ApprovalModal({ req: r, onClose, onDecide }) {
     if (!approved && !reason.trim()) return;
     setBusy(true);
     try { await onDecide(r.id, approved, reason); onClose(); }
-    catch (e) { alert(e.response?.data?.error || "Gagal"); setBusy(false); }
+    catch (e) { alert(e.response?.data?.error || "Fail"); setBusy(false); }
   };
 
   return (
@@ -331,7 +331,7 @@ function JointScheduleModal({ onClose, onSaved, year }) {
     try {
       await API.post("/leave/joint-schedule/create", { name, date, year });
       onSaved(); onClose();
-    } catch (e) { alert(e.response?.data?.error || "Gagal menyimpan"); }
+    } catch (e) { alert(e.response?.data?.error || "Failed to save"); }
     finally { setBusy(false); }
   };
 
@@ -384,7 +384,7 @@ function EntitlementModal({ users, year, onClose, onSaved }) {
     try {
       await API.put(`/leave/entitlement/${userId}`, { year, entitlement_days: parseInt(vals[userId] ?? 12) });
       onSaved();
-    } catch { alert("Gagal menyimpan"); }
+    } catch { alert("Failed to save"); }
     finally { setBusy(null); }
   };
 

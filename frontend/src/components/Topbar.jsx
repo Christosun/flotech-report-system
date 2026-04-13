@@ -1,7 +1,9 @@
+// frontend/src/components/Topbar.jsx
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import UserProfilePanel from "./UserProfilePanel";
 import NotificationPanel from "./NotificationPanel";
+import AnnouncementModal from "./AnnouncementModal";
 
 const PAGE_TITLES = {
   "/dashboard":      { title: "Dashboard",            sub: "Overview & Analytics" },
@@ -18,6 +20,7 @@ const PAGE_TITLES = {
   "/surat/create":   { title: "Create Letter",        sub: "Surat serah terima baru" },
   "/surat-resmi":    { title: "Official Letter",      sub: "Recommendations & statements" },
   "/users":          { title: "User Management",      sub: "PT Flotech Controls Indonesia" },
+  "/notifications":  { title: "Notifications",        sub: "Activity feed & announcements" },
 };
 
 function readPrefs() {
@@ -35,28 +38,33 @@ function ensureLoginTime(token) {
   const expiry = getTokenExpiry(token);
   if (!expiry) return null;
   if (!localStorage.getItem("login_time")) {
-    localStorage.setItem("login_time", String(expiry - 60 * 60 * 1000));
+    // Simpan waktu login sebenarnya (sekarang), bukan dihitung mundur hardcode dari expiry
+    localStorage.setItem("login_time", String(Date.now()));
   }
   return expiry;
 }
 
 function fmtCd(ms) {
-  if (ms <= 0) return { text: "00:00", totalSeconds: 0 };
+  if (ms <= 0) return { text: "00:00:00", totalSeconds: 0 };
   const tot = Math.floor(ms / 1000);
+  const h   = Math.floor(tot / 3600);
+  const m   = Math.floor((tot % 3600) / 60);
+  const s   = tot % 60;
   return {
-    text: `${String(Math.floor(tot / 60)).padStart(2, "0")}:${String(tot % 60).padStart(2, "0")}`,
+    text: `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`,
     totalSeconds: tot,
   };
 }
 
-/* ── Session Badge — NO conditional hooks ──────────────────────────────── */
+/* ── Session Badge ─────────────────────────────────────────────────────── */
 function SessionBadge({ onExpired, visible }) {
   const [remaining, setRemaining] = useState(null);
   const [showTip, setShowTip]     = useState(false);
   const [pulse, setPulse]         = useState(false);
-  const warnedRef  = useRef(false);
-  const soundedRef = useRef(false);
-  const intervalRef = useRef(null);
+  const warnedRef       = useRef(false);
+  const soundedRef      = useRef(false);
+  const intervalRef     = useRef(null);
+  const totalDurationRef = useRef(null);  // ← TAMBAH INI
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -64,57 +72,50 @@ function SessionBadge({ onExpired, visible }) {
     const expiry = ensureLoginTime(token);
     if (!expiry) return;
 
+    // ← TAMBAH: hitung total durasi session
+    const loginTime = parseInt(localStorage.getItem("login_time") || "0");
+    totalDurationRef.current = expiry - loginTime;
+
     const tick = () => {
       const diff = expiry - Date.now();
       setRemaining(diff);
-
-      // 10-min visual pulse warning
       if (diff <= 10 * 60 * 1000 && !warnedRef.current) {
         warnedRef.current = true;
         setPulse(true);
         setTimeout(() => setPulse(false), 3000);
       }
-
-      // 5-min audio warning — check pref at runtime (not at render)
       if (diff <= 5 * 60 * 1000 && diff > 0 && !soundedRef.current) {
         soundedRef.current = true;
         const prefs = readPrefs();
         if (prefs.notif_sound !== false) {
           try {
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            // Three-beep warning melody
             [[0, 880], [0.25, 1046], [0.5, 1318]].forEach(([when, freq]) => {
               const osc  = ctx.createOscillator();
               const gain = ctx.createGain();
-              osc.connect(gain);
-              gain.connect(ctx.destination);
-              osc.type = "sine";
-              osc.frequency.value = freq;
+              osc.connect(gain); gain.connect(ctx.destination);
+              osc.type = "sine"; osc.frequency.value = freq;
               gain.gain.setValueAtTime(0.4, ctx.currentTime + when);
               gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + when + 0.3);
-              osc.start(ctx.currentTime + when);
-              osc.stop(ctx.currentTime + when + 0.35);
+              osc.start(ctx.currentTime + when); osc.stop(ctx.currentTime + when + 0.35);
             });
-          } catch (_) { /* AudioContext blocked — silently skip */ }
+          } catch (_) {}
         }
       }
-
-      if (diff <= 0) {
-        clearInterval(intervalRef.current);
-        onExpired?.();
-      }
+      if (diff <= 0) { clearInterval(intervalRef.current); onExpired?.(); }
     };
-
     tick();
     intervalRef.current = setInterval(tick, 1000);
     return () => clearInterval(intervalRef.current);
   }, [onExpired]);
 
-  // Always render hooks above — conditionally hide via CSS/null AFTER hooks
   if (!visible || remaining === null) return null;
 
   const { text, totalSeconds } = fmtCd(remaining);
-  const progress = Math.max(0, Math.min(1, totalSeconds / 3600));
+
+  // ← UBAH: progress berdasarkan total durasi token yang sebenarnya
+  const totalDuration = totalDurationRef.current || 3600000;
+  const progress = Math.max(0, Math.min(1, (remaining / totalDuration)));
 
   let bg, tc, strokeCls, dotColor, label;
   if (totalSeconds > 1200) {
@@ -135,6 +136,10 @@ function SessionBadge({ onExpired, visible }) {
   const CIRC = 2 * Math.PI * R;
   const dash  = CIRC * progress;
 
+  // ← UBAH: label di tengah ring — tampilkan jam jika > 0, else menit
+  const [hh, mm] = text.split(":");
+  const ringLabel = hh !== "00" ? hh : mm;
+
   return (
     <div className="relative select-none"
       onMouseEnter={() => setShowTip(true)}
@@ -150,13 +155,13 @@ function SessionBadge({ onExpired, visible }) {
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
             <span style={{ fontSize: "6.5px", fontWeight: 700, fontFamily: "monospace", color: dotColor, letterSpacing: "-0.5px" }}>
-              {text.split(":")[0]}
+              {ringLabel}  {/* ← jam atau menit */}
             </span>
           </div>
         </div>
         <div className="hidden sm:flex flex-col leading-none">
           <span className={`text-[11px] font-bold tabular-nums tracking-tight ${tc}`} style={{ fontFamily: "ui-monospace, monospace" }}>
-            {text}
+            {text}  {/* ← HH:MM:SS */}
           </span>
           <span className={`text-[9px] font-semibold ${tc} opacity-70`}>{label}</span>
         </div>
@@ -171,7 +176,7 @@ function SessionBadge({ onExpired, visible }) {
           <p className="text-gray-300 leading-relaxed">
             Login session ends in{" "}
             <span className="text-white font-bold font-mono">{text}</span>.{" "}
-            {totalSeconds > 0 ? "Save your work before the session expires." : "Silakan login kembali."}
+            {totalSeconds > 0 ? "Save your work before the session expires ya." : "Silakan login kembali."}
           </p>
           <div className="absolute -top-1.5 right-5 w-3 h-3 bg-gray-900 rotate-45 rounded-sm" />
         </div>
@@ -180,7 +185,7 @@ function SessionBadge({ onExpired, visible }) {
   );
 }
 
-/* ── Live Clock — NO conditional hooks ─────────────────────────────────── */
+/* ── Live Clock ─────────────────────────────────────────────────────────── */
 function LiveClock({ visible }) {
   const [time, setTime] = useState(new Date());
 
@@ -189,7 +194,6 @@ function LiveClock({ visible }) {
     return () => clearInterval(id);
   }, []);
 
-  // Gate display AFTER hooks
   if (!visible) return null;
 
   const DAYS   = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -208,6 +212,56 @@ function LiveClock({ visible }) {
   );
 }
 
+/* ── Announce Button (only for admin/manager) ────────────────────────── */
+function AnnounceButton() {
+  const navigate = useNavigate();
+  const myRole = localStorage.getItem("user_role");
+  const [showModal, setShowModal] = useState(false);
+  const [showTip,   setShowTip]   = useState(false);
+
+  if (!["admin", "manager"].includes(myRole)) return null;
+
+  return (
+    <>
+      <div className="relative"
+        onMouseEnter={() => setShowTip(true)}
+        onMouseLeave={() => setShowTip(false)}>
+        <button
+          onClick={() => setShowModal(true)}
+          className="relative w-9 h-9 flex items-center justify-center rounded-xl border transition-all
+            bg-white text-gray-500 border-gray-200 hover:border-amber-400 hover:text-amber-500
+            hover:bg-amber-50 group"
+          title="Send Announcement"
+        >
+          {/* Megaphone SVG */}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 11l19-9-9 19-2-8-8-2z" />
+          </svg>
+          {/* Pulse dot */}
+          <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-amber-400 rounded-full
+            border-2 border-white animate-pulse" />
+        </button>
+
+        {/* Tooltip */}
+        {showTip && (
+          <div className="absolute top-full mt-2 right-0 z-50 bg-gray-900 text-white text-xs
+            rounded-xl shadow-2xl px-3 py-2 w-40 pointer-events-none text-center">
+            <span className="font-bold">Send Announcement</span>
+            <p className="text-gray-400 text-[10px] mt-0.5">Quick broadcast to team</p>
+            <div className="absolute -top-1.5 right-3 w-3 h-3 bg-gray-900 rotate-45 rounded-sm" />
+          </div>
+        )}
+      </div>
+
+      {/* Quick Send Modal */}
+      {showModal && (
+        <AnnouncementModal onClose={() => setShowModal(false)} />
+      )}
+    </>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    TOPBAR
    ═══════════════════════════════════════════════════════════════════ */
@@ -217,40 +271,33 @@ export default function Topbar({ onMenuClick }) {
 
   const [panelOpen, setPanelOpen] = useState(false);
   const [userName, setUserName]   = useState(() => localStorage.getItem("user_name") || "User");
-
-  // ← KEY FIX: prefs stored in React state, updated via custom event
-  // This ensures components re-render when prefs change instead of crashing
-  const [prefs, setPrefs] = useState(readPrefs);
+  const [prefs, setPrefs]         = useState(readPrefs);
 
   useEffect(() => {
-    // Listen for profile name updates
     const onProfileUpdate = (e) => {
       const name = e.detail?.name || localStorage.getItem("user_name") || "User";
       setUserName(name);
     };
-    // Listen for preference updates from UserProfilePanel
-    const onPrefsUpdate = () => {
-      setPrefs(readPrefs());
-    };
+    const onPrefsUpdate = () => setPrefs(readPrefs());
 
     window.addEventListener("profile-updated", onProfileUpdate);
-    window.addEventListener("prefs-updated", onPrefsUpdate);
+    window.addEventListener("prefs-updated",   onPrefsUpdate);
     return () => {
       window.removeEventListener("profile-updated", onProfileUpdate);
-      window.removeEventListener("prefs-updated", onPrefsUpdate);
+      window.removeEventListener("prefs-updated",   onPrefsUpdate);
     };
   }, []);
 
   const current =
     PAGE_TITLES[location.pathname] ||
-    (location.pathname.startsWith("/reports/")    ? { title: "Report Details",    sub: "Field report view" } :
-     location.pathname.startsWith("/quotations/") ? { title: "Quotation Details", sub: "Quotation view" } :
+    (location.pathname.startsWith("/reports/")    ? { title: "Report Details",    sub: "Field report view" }    :
+     location.pathname.startsWith("/quotations/") ? { title: "Quotation Details", sub: "Quotation view" }       :
      location.pathname.startsWith("/onsite/")     ? { title: "Onsite Details",    sub: "Field service record" } :
-     location.pathname.startsWith("/surat/")      ? { title: "Letter Details",     sub: "Handover documents" } :
+     location.pathname.startsWith("/surat/")      ? { title: "Letter Details",    sub: "Handover documents" }   :
      { title: "Flotech Controls", sub: "PT Flotech Controls Indonesia" });
 
   const initial     = userName.charAt(0).toUpperCase();
-  const showClock   = prefs.show_clock !== false;
+  const showClock   = prefs.show_clock   !== false;
   const showSession = prefs.notif_session !== false;
 
   return (
@@ -261,8 +308,7 @@ export default function Topbar({ onMenuClick }) {
         <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={onMenuClick}
-            className="lg:hidden p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0"
-          >
+            className="lg:hidden p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0">
             <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
@@ -276,30 +322,28 @@ export default function Topbar({ onMenuClick }) {
         {/* RIGHT */}
         <div className="flex items-center gap-2 lg:gap-3 flex-shrink-0">
 
-          {/* Clock — always mounted, visibility controlled by prop */}
           <LiveClock visible={showClock} />
-
           {showClock && <div className="hidden md:block w-px h-6 bg-gray-200" />}
 
-          {/* Session badge — always mounted, visibility controlled by prop */}
           <SessionBadge
             visible={showSession}
             onExpired={() => { localStorage.clear(); navigate("/"); }}
           />
-
           {showSession && <div className="hidden sm:block w-px h-6 bg-gray-200" />}
 
-          {/* Notification Bell */}
+          {/* 📢 Announce Button — only admin/manager */}
+          <AnnounceButton />
+
+          {/* 🔔 Notification Bell */}
           <NotificationPanel />
 
           <div className="w-px h-6 bg-gray-200" />
 
-          {/* User chip → open panel */}
+          {/* User chip */}
           <button
             onClick={() => setPanelOpen(true)}
             className="group flex items-center gap-2 pl-1 pr-2 py-1 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-all duration-150"
-            title="Edit profil & preferensi"
-          >
+            title="Edit profil & preferensi">
             <div className="hidden sm:block text-right leading-none">
               <p className="text-sm font-semibold text-gray-700 leading-tight group-hover:text-[#0B3D91] transition-colors">
                 {userName}
