@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 
 const ROLES = [
   { value: "engineer", label: "Engineer", color: "bg-blue-100 text-blue-700",    dot: "bg-blue-500"    },
+  { value: "staff",    label: "Staff",    color: "bg-teal-100 text-teal-700",    dot: "bg-teal-500"    },
   { value: "admin",    label: "Admin",    color: "bg-red-100 text-red-700",      dot: "bg-red-500"     },
   { value: "manager",  label: "Manager",  color: "bg-purple-100 text-purple-700",dot: "bg-purple-500"  },
   { value: "hr",       label: "HR",       color: "bg-amber-100 text-amber-700",  dot: "bg-amber-500"   },
@@ -205,10 +206,10 @@ export default function UserManagement() {
   );
 
   const stats = [
-    { label: "Total User",  val: users.length,                                                icon: "👥", color: "#0B3D91", bg: "#EEF3FB" },
-    { label: "Admin",       val: users.filter(u => u.role === "admin").length,                icon: "🛡️", color: "#dc2626", bg: "#fef2f2" },
-    { label: "Engineer",    val: users.filter(u => u.role === "engineer").length,             icon: "👷", color: "#2563eb", bg: "#eff6ff" },
-    { label: "Manager/HR",  val: users.filter(u => ["manager","hr"].includes(u.role)).length, icon: "💼", color: "#7c3aed", bg: "#f5f3ff" },
+    { label: "Total User",      val: users.length,                                                    icon: "👥", color: "#0B3D91", bg: "#EEF3FB" },
+    { label: "Admin",           val: users.filter(u => u.role === "admin").length,                    icon: "🛡️", color: "#dc2626", bg: "#fef2f2" },
+    { label: "Engineer/Staff",  val: users.filter(u => ["engineer","staff"].includes(u.role)).length, icon: "👷", color: "#2563eb", bg: "#eff6ff" },
+    { label: "Manager/HR",      val: users.filter(u => ["manager","hr"].includes(u.role)).length,     icon: "💼", color: "#7c3aed", bg: "#f5f3ff" },
   ];
 
   if (myRole !== "admin") return null;

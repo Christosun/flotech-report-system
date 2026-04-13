@@ -168,7 +168,7 @@ def create_user():
         return jsonify({"error": "Nama lengkap wajib diisi"}), 400
     if len(password) < 6:
         return jsonify({"error": "Password minimal 6 karakter"}), 400
-    if role not in ("admin", "engineer", "manager", "hr"):
+    if role not in ("admin", "engineer", "manager", "hr", "staff"):
         return jsonify({"error": "Role tidak valid"}), 400
     if User.query.filter_by(username=username).first():
         return jsonify({"error": f"Username '{username}' sudah digunakan"}), 400
@@ -225,7 +225,7 @@ def update_user(uid):
         return jsonify({"error": "User tidak ditemukan"}), 404
 
     data = request.get_json()
-    if data.get('role') and data['role'] in ("admin", "engineer", "manager", "hr"):
+    if data.get('role') and data['role'] in ("admin", "engineer", "manager", "hr", "staff"):
         target.role = data['role']
     if data.get('name') and data['name'].strip():
         target.name = data['name'].strip()
