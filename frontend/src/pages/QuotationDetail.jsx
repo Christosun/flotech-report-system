@@ -282,7 +282,7 @@ export default function QuotationDetail() {
           {editMode && (<>
             <button onClick={() => setEditMode(false)}
               className="px-4 py-2 border border-gray-200 text-gray-600 rounded-xl text-xs font-semibold hover:bg-gray-50">
-              Batal
+              Cancel
             </button>
             <button onClick={handleSave} disabled={saving}
               className="flex items-center gap-1.5 px-5 py-2 bg-[#0B3D91] text-white rounded-xl text-xs font-bold hover:bg-[#1E5CC6] disabled:opacity-60 transition-colors">

@@ -454,7 +454,7 @@ export default function CreateReport() {
 
                 {/* Collapsed placeholder */}
                 {!included && (
-                  <p className="text-xs text-gray-400 italic">Seksi ini tidak akan ditampilkan di PDF. Klik tombol di atas untuk mengaktifkan.</p>
+                  <p className="text-xs text-gray-400 italic">This section will not be displayed in the PDF. Click the button above to enable it.</p>
                 )}
 
                 {/* Fields */}

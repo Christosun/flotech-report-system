@@ -1,11 +1,12 @@
-import os, base64, json, re
+import os, base64, json, re, uuid
 from datetime import datetime
 from io import BytesIO
 from flask import Blueprint, request, jsonify, send_file, Response, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from extensions import db
-from models import Engineer
+from models import Engineer, OnsiteReportImage
 from sqlalchemy import text
+from werkzeug.utils import secure_filename
 
 # ReportLab
 from reportlab.lib.pagesizes import A4
@@ -35,6 +36,9 @@ FLOTECH_INFO = {
     "telp": "Telp: +6221 45850778 / Fax: +6221 45850779",
     "email": "e-Mail: salesjkt@flotech.co.id / Website: www.flotech.com.sg",
 }
+
+MAX_DIMENSION = 1280
+JPEG_QUALITY  = 80
 
 
 # ── MODEL ─────────────────────────────────────────────────────────────────────
@@ -72,9 +76,22 @@ class OnsiteReport(db.Model):
     created_at      = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at      = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # Relationship to images
+    images = db.relationship("OnsiteReportImage", backref="onsite_report", lazy=True,
+                              foreign_keys="OnsiteReportImage.report_id")
+
 
 def report_to_dict(r, include_sig=False):
     eng = Engineer.query.get(r.engineer_id) if r.engineer_id else None
+    images = [
+        {
+            "id": img.id,
+            "file_path": img.file_path,
+            "caption": img.caption or "",
+            "uploaded_at": img.uploaded_at.isoformat() if img.uploaded_at else None,
+        }
+        for img in (r.images or [])
+    ]
     d = {
         "id": r.id,
         "report_number": r.report_number,
@@ -102,6 +119,7 @@ def report_to_dict(r, include_sig=False):
         "equipment_items": r.equipment_items or [],
         "status": r.status,
         "created_at": r.created_at.isoformat() if r.created_at else None,
+        "images": images,
     }
     if include_sig:
         d["customer_signature"] = r.customer_signature
@@ -206,7 +224,7 @@ def update_report(rid):
 
     if data.get("visit_date_from"):
         r.visit_date_from = parse_date(data["visit_date_from"])
-        r.visit_date = r.visit_date_from  # keep legacy in sync
+        r.visit_date = r.visit_date_from
     elif data.get("visit_date"):
         r.visit_date = parse_date(data["visit_date"])
         r.visit_date_from = r.visit_date
@@ -222,12 +240,107 @@ def update_report(rid):
 def delete_report(rid):
     r = OnsiteReport.query.get(rid)
     if not r: return jsonify({"error": "Not found"}), 404
+    # Delete associated images from disk
+    for img in (r.images or []):
+        try:
+            fp = os.path.join(current_app.config["UPLOAD_FOLDER"], img.file_path) \
+                 if not os.path.isabs(img.file_path) else img.file_path
+            if os.path.exists(fp): os.remove(fp)
+        except: pass
+        db.session.delete(img)
     db.session.delete(r)
     db.session.commit()
     return jsonify({"message": "Deleted"}), 200
 
 
-# ── AUTO-MIGRATE: add new columns if not exists ───────────────────────────────
+# ── IMAGE UPLOAD ──────────────────────────────────────────────────────────────
+@onsite_bp.route('/upload/<int:rid>', methods=['POST'])
+@jwt_required()
+def upload_images(rid):
+    r = OnsiteReport.query.get(rid)
+    if not r:
+        return jsonify({"error": "Report not found"}), 404
+
+    files = request.files.getlist("images")
+    if not files:
+        return jsonify({"error": "No files uploaded"}), 400
+
+    saved_files = []
+
+    for file in files:
+        if not file.filename:
+            continue
+
+        base = secure_filename(file.filename)
+        base_no_ext = base.rsplit(".", 1)[0] if "." in base else base
+        filename = f"onsite_{base_no_ext}.jpg"
+
+        # Avoid collisions
+        dest_path = os.path.join(current_app.config["UPLOAD_FOLDER"], filename)
+        if os.path.exists(dest_path):
+            filename = f"onsite_{base_no_ext}_{uuid.uuid4().hex[:8]}.jpg"
+            dest_path = os.path.join(current_app.config["UPLOAD_FOLDER"], filename)
+
+        try:
+            img = PILImage.open(file.stream).convert("RGB")
+
+            # Resize if too large
+            w, h = img.size
+            if w > MAX_DIMENSION or h > MAX_DIMENSION:
+                ratio = min(MAX_DIMENSION / w, MAX_DIMENSION / h)
+                img = img.resize(
+                    (int(w * ratio), int(h * ratio)),
+                    PILImage.LANCZOS,
+                )
+
+            buf = BytesIO()
+            img.save(buf, format="JPEG", quality=JPEG_QUALITY, optimize=True)
+            buf.seek(0)
+            with open(dest_path, "wb") as f_out:
+                f_out.write(buf.read())
+
+        except Exception:
+            file.stream.seek(0)
+            with open(dest_path, "wb") as f_out:
+                f_out.write(file.stream.read())
+
+        new_img = OnsiteReportImage(report_id=rid, file_path=filename, caption="")
+        db.session.add(new_img)
+        saved_files.append(filename)
+
+    db.session.commit()
+    return jsonify({"message": "Images uploaded", "files": saved_files}), 201
+
+
+# ── IMAGE DELETE ──────────────────────────────────────────────────────────────
+@onsite_bp.route('/image/delete/<int:image_id>', methods=['DELETE'])
+@jwt_required()
+def delete_image(image_id):
+    img = OnsiteReportImage.query.get(image_id)
+    if not img: return jsonify({"error": "Image not found"}), 404
+    try:
+        fp = os.path.join(current_app.config["UPLOAD_FOLDER"], img.file_path) \
+             if not os.path.isabs(img.file_path) else img.file_path
+        if os.path.exists(fp): os.remove(fp)
+    except: pass
+    db.session.delete(img)
+    db.session.commit()
+    return jsonify({"message": "Image deleted"}), 200
+
+
+# ── IMAGE CAPTION ─────────────────────────────────────────────────────────────
+@onsite_bp.route('/image/caption/<int:image_id>', methods=['PUT'])
+@jwt_required()
+def update_image_caption(image_id):
+    img = OnsiteReportImage.query.get(image_id)
+    if not img: return jsonify({"error": "Image not found"}), 404
+    data = request.get_json()
+    img.caption = data.get("caption", "")
+    db.session.commit()
+    return jsonify({"message": "Caption updated"}), 200
+
+
+# ── AUTO-MIGRATE ──────────────────────────────────────────────────────────────
 def _ensure_columns():
     """Run once at startup to add new columns if missing."""
     try:
@@ -244,11 +357,20 @@ def _ensure_columns():
                 ALTER TABLE onsite_reports
                 ADD COLUMN IF NOT EXISTS visit_date_to DATE
             """))
-            # Backfill visit_date_from from visit_date for existing records
             conn.execute(text("""
                 UPDATE onsite_reports
                 SET visit_date_from = visit_date
                 WHERE visit_date_from IS NULL AND visit_date IS NOT NULL
+            """))
+            # Create onsite_report_images table if not exists
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS onsite_report_images (
+                    id SERIAL PRIMARY KEY,
+                    report_id INTEGER REFERENCES onsite_reports(id) ON DELETE CASCADE,
+                    file_path VARCHAR(300),
+                    caption VARCHAR(500) DEFAULT '',
+                    uploaded_at TIMESTAMP DEFAULT NOW()
+                )
             """))
             conn.commit()
     except Exception:
@@ -278,10 +400,9 @@ class _HTMLtoParagraphs(HTMLParser):
         self._dark = dark
         self._paragraphs = []
         self._buf = []
-        self._list_type = None   # 'ul' or 'ol'
+        self._list_type = None
         self._list_counter = 0
         self._img_queue = []
-        # inline style tracking
         self._bold = 0
         self._italic = 0
         self._underline = 0
@@ -293,12 +414,6 @@ class _HTMLtoParagraphs(HTMLParser):
         text = "".join(self._buf).strip()
         self._buf = []
         return text
-
-    def _open_tag(self, tag):
-        return f"<{tag}>"
-
-    def _close_tag(self, tag):
-        return f"</{tag}>"
 
     def handle_starttag(self, tag, attrs):
         attrmap = dict(attrs)
@@ -312,11 +427,9 @@ class _HTMLtoParagraphs(HTMLParser):
         elif tag == "br":
             self._buf.append("<br/>")
         elif tag in ("p", "div"):
-            # flush previous
             t = self._flush_buf()
             if t:
                 self._paragraphs.append(Paragraph(t, self._ps('HP', fontSize=10, textColor=self._dark, leading=14)))
-            # check alignment
             align = TA_LEFT
             if "text-align:center" in style_str or "text-align: center" in style_str:
                 align = TA_CENTER
@@ -343,10 +456,8 @@ class _HTMLtoParagraphs(HTMLParser):
                 self._color_stack.append(True)
             size_val = attrmap.get("size", "")
             if size_val:
-                # ignore size attribute, handled by style
                 self._size_stack.append(True)
         elif tag == "span":
-            # parse inline style for color and font-size
             color_match = re.search(r'color\s*:\s*([^;]+)', style_str)
             size_match = re.search(r'font-size\s*:\s*([^;]+)', style_str)
             if color_match:
@@ -369,8 +480,7 @@ class _HTMLtoParagraphs(HTMLParser):
         elif tag == "img":
             src = attrmap.get("src", "")
             style_i = attrmap.get("style", "")
-            # Parse width
-            w_cm = 10 * cm  # default
+            w_cm = 10 * cm
             w_match = re.search(r'width\s*:\s*(\d+(?:\.\d+)?)(px|cm|mm)?', style_i)
             if w_match:
                 val = float(w_match.group(1))
@@ -414,8 +524,6 @@ class _HTMLtoParagraphs(HTMLParser):
         self._buf.append(data)
 
     def get_elements(self, ps_fn, primary, white, accent, border, dark, usable_w):
-        """Return ReportLab flowables from parsed HTML."""
-        # Flush any remaining buffer
         t = self._flush_buf()
         if t:
             self._paragraphs.append(Paragraph(t, ps_fn('HR', fontSize=10, textColor=dark, leading=14)))
@@ -423,11 +531,9 @@ class _HTMLtoParagraphs(HTMLParser):
         elements = []
         for p in self._paragraphs:
             elements.append(p)
-        # Process queued images
         for src, w_cm in self._img_queue:
             try:
                 if src.startswith("data:"):
-                    # Base64 embedded image
                     if "base64," in src:
                         b64 = src.split("base64,")[1]
                         decoded = base64.b64decode(b64)
@@ -453,7 +559,6 @@ def _html_to_flowables(html_text, usable_w, ps_fn, primary, white, accent, borde
     """Convert HTML string to a list of ReportLab flowables."""
     if not html_text:
         return []
-    # Simple text (no HTML tags)
     if not re.search(r'<[a-z]', html_text, re.IGNORECASE):
         return [Paragraph(html_text, ps_fn('PT', fontSize=10, textColor=dark, leading=14))]
 
@@ -472,9 +577,12 @@ def build_onsite_pdf(rid):
         return None
     eng = Engineer.query.get(r.engineer_id) if r.engineer_id else None
 
+    # Load images
+    report_images = OnsiteReportImage.query.filter_by(report_id=rid).order_by(OnsiteReportImage.uploaded_at).all()
+
     buffer = BytesIO()
     LEFT = RIGHT = 2 * cm
-    USABLE_W = 17 * cm  # A4 210mm - 40mm margins
+    USABLE_W = 17 * cm
 
     doc = SimpleDocTemplate(buffer, pagesize=A4,
                             topMargin=2 * cm, bottomMargin=3.5 * cm,
@@ -496,10 +604,10 @@ def build_onsite_pdf(rid):
 
     elements = []
 
-    # ── HEADER: logo left + title right ─────────────────────────
+    # ── HEADER ───────────────────────────────────────────────────
     logo_path = os.path.join(current_app.root_path, "assets", "logo.png")
     logo_col_w = 8 * cm
-    title_col_w = USABLE_W - logo_col_w  # 9cm
+    title_col_w = USABLE_W - logo_col_w
 
     if os.path.exists(logo_path):
         try:
@@ -530,8 +638,7 @@ def build_onsite_pdf(rid):
     elements.append(HRFlowable(width="100%", thickness=1, color=primary))
     elements.append(Spacer(1, 0.6 * cm))
 
-    # ── META BAND: report number + date ─────────────────────────
-    # Build date string — range if visit_date_to present
+    # ── META BAND ─────────────────────────────────────────────────
     date_from = r.visit_date_from or r.visit_date
     date_to   = r.visit_date_to
     if date_from and date_to and date_to != date_from:
@@ -567,11 +674,10 @@ def build_onsite_pdf(rid):
         elements.append(HRFlowable(width="100%", thickness=0.5, color=border))
         elements.append(Spacer(1, 0.15 * cm))
 
-    # ── CLIENT INFO ─────────────────────────────────────────────
+    # ── CLIENT INFO ───────────────────────────────────────────────
     section("CLIENT/CUSTOMER INFORMATION")
 
     def info_grid(rows):
-        """rows: list of (label, value) tuples, 2 per row in PDF"""
         table_data = []
         for i in range(0, len(rows), 2):
             left = rows[i]
@@ -606,8 +712,7 @@ def build_onsite_pdf(rid):
 
     elements.append(Spacer(1, 0.3 * cm))
 
-    # ── EQUIPMENT INFO ───────────────────────────────────────────
-    # Support new multiple equipment_items, fallback to legacy fields
+    # ── EQUIPMENT INFO ────────────────────────────────────────────
     equip_items = r.equipment_items or []
     if not equip_items and any([r.equipment_tag, r.equipment_model, r.serial_number]):
         equip_items = [{
@@ -622,7 +727,6 @@ def build_onsite_pdf(rid):
             desc = item.get("description", "")
             model = item.get("model", "")
             sn = item.get("serial_number", "")
-            # Build rows for this equipment
             rows = []
             if len(equip_items) > 1:
                 rows.append(("No.", str(idx + 1)))
@@ -644,28 +748,76 @@ def build_onsite_pdf(rid):
         info_grid([("Engineer", eng.name), ("", "")])
         elements.append(Spacer(1, 0.3 * cm))
 
-    # ── DETAIL PEKERJAAN ─────────────────────────────────────────
+    # ── JOB DETAILS ───────────────────────────────────────────────
     if r.job_description:
         section("JOB DETAILS")
-        # Convert HTML to flowables
         job_flowables = _html_to_flowables(
             r.job_description, USABLE_W, ps, primary, white, accent, border, gray, dark
         )
-        # Wrap in a bordered container
         if job_flowables:
-            # Build a table with the content for consistent border
-            inner_elements = []
-            for fl in job_flowables:
-                inner_elements.append(fl)
-            job_container_data = [[inner_elements]]
-            # We use a nested table trick: put flowables in a list-type cell
-            # Actually, just add them directly with slight indentation
             for fl in job_flowables:
                 elements.append(fl)
         elements.append(Spacer(1, 0.4 * cm))
 
-    # ── SIGNATURES (with page break logic) ───────────────────────
-    half_w = USABLE_W / 2  # 8.5cm each
+    # ── DOCUMENTATION & PHOTOS (synced from DB images) ────────────
+    if report_images:
+        section("DOCUMENTATION & PHOTOS")
+        caption_style = ps('Cap', fontSize=8, textColor=gray, alignment=1, leading=11, spaceBefore=3, spaceAfter=6)
+
+        img_table_data = []
+        row_imgs = []
+        row_caps = []
+
+        for i, img_obj in enumerate(report_images):
+            try:
+                upload_folder = current_app.config["UPLOAD_FOLDER"]
+                img_path = os.path.join(upload_folder, img_obj.file_path) \
+                           if not os.path.isabs(img_obj.file_path) else img_obj.file_path
+                if not os.path.exists(img_path):
+                    img_path = img_obj.file_path
+
+                if os.path.exists(img_path):
+                    pil_img = PILImage.open(img_path)
+                    w, h = pil_img.size
+                    max_w, max_h = 8 * cm, 6 * cm
+                    ratio = min(max_w / w, max_h / h)
+                    rl_img = Image(img_path, width=w * ratio, height=h * ratio)
+                    rl_img.hAlign = 'CENTER'
+                    row_imgs.append(rl_img)
+                else:
+                    row_imgs.append(Paragraph("Image not found", ps('IE', fontSize=8, textColor=gray)))
+            except Exception:
+                row_imgs.append(Paragraph("Image error", ps('IE2', fontSize=8, textColor=gray)))
+
+            cap_text = img_obj.caption or ""
+            row_caps.append(Paragraph(
+                f"Photo {i + 1}" + (f": {cap_text}" if cap_text else ""),
+                caption_style
+            ))
+
+            if len(row_imgs) == 2 or i == len(report_images) - 1:
+                while len(row_imgs) < 2:
+                    row_imgs.append("")
+                    row_caps.append("")
+                img_table_data.append(row_imgs)
+                img_table_data.append(row_caps)
+                row_imgs, row_caps = [], []
+
+        if img_table_data:
+            img_t = Table(img_table_data, colWidths=[8.5 * cm, 8.5 * cm])
+            img_t.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('PADDING', (0, 0), (-1, -1), 6),
+                ('BOX', (0, 0), (0, -1), 0.3, border),
+                ('BOX', (1, 0), (1, -1), 0.3, border),
+                ('LINEBELOW', (0, 0), (-1, -1), 0.2, border),
+            ]))
+            elements.append(img_t)
+            elements.append(Spacer(1, 0.4 * cm))
+
+    # ── SIGNATURES ────────────────────────────────────────────────
+    half_w = USABLE_W / 2
 
     def sig_image(b64_data):
         if not b64_data:
@@ -685,7 +837,7 @@ def build_onsite_pdf(rid):
         except:
             return Spacer(1, 1.8 * cm)
 
-    sig_l = ps('SL', fontSize=9, fontName='Helvetica-Bold', textColor=primary, alignment=1)
+    sig_l   = ps('SL', fontSize=9, fontName='Helvetica-Bold', textColor=primary, alignment=1)
     sig_sub = ps('SS', fontSize=8, textColor=gray, alignment=1, leading=11)
 
     sig_rows = [
@@ -711,7 +863,6 @@ def build_onsite_pdf(rid):
         ('BACKGROUND', (1, 0), (1, 0), accent),
     ]))
 
-    # Digital document declaration
     gen_ts = datetime.now().strftime("%d %B %Y, %H:%M WIB")
     digital_notice = Table([[
         Paragraph(
@@ -730,14 +881,12 @@ def build_onsite_pdf(rid):
         ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
     ]))
 
-    # Signature section title
     sig_section_title = Paragraph(
         "▌ SIGNATURE",
         ps('SSH', fontSize=10, fontName='Helvetica-Bold', textColor=primary, spaceBefore=8, spaceAfter=2)
     )
     sig_hr = HRFlowable(width="100%", thickness=0.5, color=border)
 
-    # Use KeepTogether so signature block stays on same page
     sig_block = KeepTogether([
         Spacer(1, 0.4 * cm),
         sig_section_title,
@@ -749,7 +898,7 @@ def build_onsite_pdf(rid):
     ])
     elements.append(sig_block)
 
-    # ── NUMBERED CANVAS for "Halaman X dari Y" ───────────────────
+    # ── NUMBERED CANVAS ───────────────────────────────────────────
     class NumberedCanvas(rl_canvas.Canvas):
         def __init__(self, *args, **kwargs):
             rl_canvas.Canvas.__init__(self, *args, **kwargs)

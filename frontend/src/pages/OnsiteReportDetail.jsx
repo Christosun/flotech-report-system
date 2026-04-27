@@ -2,11 +2,14 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import API from "../services/api";
 import toast from "react-hot-toast";
+import { compressImage, formatBytes } from "../utils/imageCompressor";
+
+const BASE_URL = import.meta.env.VITE_API_URL;
 
 const STATUS_CONFIG = {
-  draft:     { label: "Draft",     bg: "bg-gray-100",    text: "text-gray-600",   dot: "bg-gray-400"    },
-  submitted: { label: "Submitted", bg: "bg-blue-100",    text: "text-blue-700",   dot: "bg-blue-500"    },
-  approved:  { label: "Approved",  bg: "bg-emerald-100", text: "text-emerald-700",dot: "bg-emerald-500" },
+  draft:     { label: "Draft",     bg: "bg-gray-100",    text: "text-gray-600",    dot: "bg-gray-400"    },
+  submitted: { label: "Submitted", bg: "bg-blue-100",    text: "text-blue-700",    dot: "bg-blue-500"    },
+  approved:  { label: "Approved",  bg: "bg-emerald-100", text: "text-emerald-700", dot: "bg-emerald-500" },
 };
 
 /* ─── PDF Modal ──────────────────────────────────────────────── */
@@ -16,7 +19,9 @@ function PDFModal({ url, name, onClose }) {
       <div className="flex items-center justify-between px-5 py-3 bg-[#0B3D91]">
         <span className="text-white font-bold text-sm">📋 {name} — Preview</span>
         <div className="flex items-center gap-2">
-          <a href={url} download className="px-4 py-1.5 bg-white text-[#0B3D91] rounded-lg text-xs font-bold hover:bg-blue-50 transition-colors">⬇ Download</a>
+          <a href={url} download className="px-4 py-1.5 bg-white text-[#0B3D91] rounded-lg text-xs font-bold hover:bg-blue-50 transition-colors">
+            ⬇ Download
+          </a>
           <button onClick={onClose} className="text-white/70 hover:text-white text-xl px-2">✕</button>
         </div>
       </div>
@@ -26,17 +31,29 @@ function PDFModal({ url, name, onClose }) {
 }
 
 /* ─── Delete Dialog ─────────────────────────────────────────── */
-function DeleteDialog({ title, onConfirm, onCancel, loading }) {
+function DeleteDialog({ title, description, onConfirm, onCancel, loading }) {
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-        <p className="text-lg font-bold text-gray-800 mb-2">{title}</p>
-        <p className="text-sm text-gray-500 mb-5">This action cannot be undone.</p>
-        <div className="flex gap-3">
-          <button onClick={onCancel} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600">Cancel</button>
-          <button onClick={onConfirm} disabled={loading} className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-bold disabled:opacity-60 flex items-center justify-center gap-2">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+        <div className="bg-gradient-to-br from-red-50 to-rose-100 px-6 pt-6 pb-4 text-center">
+          <div className="w-14 h-14 bg-red-100 border-4 border-red-200 rounded-full flex items-center justify-center mx-auto mb-3">
+            <svg className="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </div>
+          <h3 className="text-base font-bold text-gray-900">{title}</h3>
+          {description && <p className="text-sm text-gray-500 mt-1">{description}</p>}
+        </div>
+        <div className="px-6 py-4 flex gap-3">
+          <button onClick={onCancel} disabled={loading}
+            className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
+            Cancel
+          </button>
+          <button onClick={onConfirm} disabled={loading}
+            className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-60">
             {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
-            Delete
+            {loading ? "Deleting..." : "Delete"}
           </button>
         </div>
       </div>
@@ -45,7 +62,7 @@ function DeleteDialog({ title, onConfirm, onCancel, loading }) {
 }
 
 /* ─── Signature Pad ─────────────────────────────────────────── */
-function SignaturePad({ label, value, onChange, existingSig }) {
+function SignaturePad({ label, value, onChange }) {
   const canvasRef = useRef(null);
   const [drawing, setDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
@@ -67,20 +84,22 @@ function SignaturePad({ label, value, onChange, existingSig }) {
     ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.stroke(); lastPos.current = pos;
   };
   const endDraw = () => setDrawing(false);
-  const clearPad = () => { canvasRef.current.getContext("2d").clearRect(0, 0, canvasRef.current.width, canvasRef.current.height); setHasDrawn(false); };
+  const clearPad = () => {
+    canvasRef.current.getContext("2d").clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    setHasDrawn(false);
+  };
   const saveSig = () => {
     if (!hasDrawn) { toast.error("Make a signature first"); return; }
     onChange(canvasRef.current.toDataURL("image/png")); setShowPad(false); toast.success("Signature saved ✅");
   };
 
-  const displaySig = value || (existingSig || null);
   return (
     <div>
       <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">{label}</p>
-      {displaySig ? (
+      {value ? (
         <div className="border border-gray-200 rounded-xl bg-gray-50 p-3 relative">
-          <img src={displaySig} alt="Signature" className="h-16 mx-auto object-contain" />
-          <button onClick={() => { onChange(""); }} className="absolute top-2 right-2 text-xs text-red-500 hover:underline">Delete</button>
+          <img src={value} alt="Signature" className="h-16 mx-auto object-contain" />
+          <button onClick={() => onChange("")} className="absolute top-2 right-2 text-xs text-red-500 hover:underline">Delete</button>
         </div>
       ) : (
         <button onClick={() => setShowPad(true)} className="w-full border-2 border-dashed border-gray-200 rounded-xl py-5 text-gray-400 text-sm hover:border-[#0B3D91] hover:text-[#0B3D91] transition-colors">
@@ -94,12 +113,13 @@ function SignaturePad({ label, value, onChange, existingSig }) {
               <p className="font-bold text-gray-800 text-sm">{label}</p>
               <button onClick={() => setShowPad(false)} className="text-gray-400 hover:text-gray-600">✕</button>
             </div>
-            <canvas ref={canvasRef} width={320} height={150} className="border border-gray-200 rounded-xl w-full touch-none cursor-crosshair bg-gray-50"
+            <canvas ref={canvasRef} width={320} height={150}
+              className="border border-gray-200 rounded-xl w-full touch-none cursor-crosshair bg-gray-50"
               onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onMouseLeave={endDraw}
               onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw} />
             <div className="flex gap-2 mt-3">
-              <button onClick={clearPad} className="flex-1 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Ulangi</button>
-              <button onClick={saveSig} className="flex-1 py-2 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold">Simpan</button>
+              <button onClick={clearPad} className="flex-1 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Repeat</button>
+              <button onClick={saveSig} className="flex-1 py-2 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold">Save</button>
             </div>
           </div>
         </div>
@@ -186,12 +206,12 @@ function RichTextEditor({ value, onChange }) {
         <ToolBtn cmd="insertOrderedList" title="Numbered List">1.</ToolBtn>
         <ToolBtn cmd="insertUnorderedList" title="Bullet List">•</ToolBtn>
         <div className="w-px h-5 bg-gray-200 mx-1" />
-        <ToolBtn cmd="justifyLeft" title="Kiri">⬅</ToolBtn>
-        <ToolBtn cmd="justifyCenter" title="Tengah">↔</ToolBtn>
-        <ToolBtn cmd="justifyRight" title="Kanan">➡</ToolBtn>
-        <ToolBtn cmd="justifyFull" title="Rata">≡</ToolBtn>
+        <ToolBtn cmd="justifyLeft" title="Align Left">⬅</ToolBtn>
+        <ToolBtn cmd="justifyCenter" title="Center">↔</ToolBtn>
+        <ToolBtn cmd="justifyRight" title="Align Right">➡</ToolBtn>
+        <ToolBtn cmd="justifyFull" title="Justify">≡</ToolBtn>
         <div className="w-px h-5 bg-gray-200 mx-1" />
-        <label title="Warna Font" className="flex items-center gap-1 px-2 py-1.5 hover:bg-gray-100 rounded cursor-pointer">
+        <label title="Font Color" className="flex items-center gap-1 px-2 py-1.5 hover:bg-gray-100 rounded cursor-pointer">
           <span className="text-sm" style={{ color: fontColor }}>A</span>
           <input type="color" value={fontColor} onChange={e => handleFontColor(e.target.value)}
             className="w-4 h-4 cursor-pointer border-0 p-0 bg-transparent" />
@@ -217,15 +237,21 @@ function RichTextEditor({ value, onChange }) {
   );
 }
 
-/* ─── Equipment Item (view) ──────────────────────────────────── */
+/* ─── Equipment Item (view) ─────────────────────────────────── */
 function EquipmentCard({ item, index }) {
   return (
-    <div className="border border-gray-100 rounded-xl p-3 bg-gray-50">
-      <p className="text-xs font-bold text-[#0B3D91] uppercase tracking-wide mb-2">Equipment/Instrument {index + 1}</p>
+    <div className="border border-gray-100 rounded-xl p-3 bg-gray-50 mb-2 last:mb-0">
+      <p className="text-xs font-bold text-[#0B3D91] uppercase tracking-wide mb-2">
+        Equipment/Instrument {index + 1}
+      </p>
       {item.description && <p className="text-sm text-gray-700 font-medium">{item.description}</p>}
       <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
-        {item.model && <span className="text-xs text-gray-500">Model: <span className="font-semibold text-gray-700">{item.model}</span></span>}
-        {item.serial_number && <span className="text-xs text-gray-500">S/N: <span className="font-semibold text-gray-700">{item.serial_number}</span></span>}
+        {item.model && (
+          <span className="text-xs text-gray-500">Model: <span className="font-semibold text-gray-700">{item.model}</span></span>
+        )}
+        {item.serial_number && (
+          <span className="text-xs text-gray-500">S/N: <span className="font-semibold text-gray-700">{item.serial_number}</span></span>
+        )}
       </div>
     </div>
   );
@@ -243,14 +269,14 @@ function EquipmentEditItem({ item, index, onChange, onRemove, canRemove }) {
       <p className="text-xs font-bold text-[#0B3D91] uppercase tracking-wide mb-3">Equipment/Instrument {index + 1}</p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
-          <label className={labelCls}>Equiment/Instrument Information</label>
+          <label className={labelCls}>Equipment/Instrument Information</label>
           <input value={item.description || ""} onChange={e => onChange(index, "description", e.target.value)}
             placeholder="Instrument name/type" className={inputCls} />
         </div>
         <div>
           <label className={labelCls}>Model/Type</label>
           <input value={item.model || ""} onChange={e => onChange(index, "model", e.target.value)}
-            placeholder="Example: iSOLV TUF333iB, EFS803" className={inputCls} />
+            placeholder="e.g. TUF333i, EFS808" className={inputCls} />
         </div>
         <div>
           <label className={labelCls}>Serial Number</label>
@@ -262,20 +288,164 @@ function EquipmentEditItem({ item, index, onChange, onRemove, canRemove }) {
   );
 }
 
+/* ─── Compression Status ─────────────────────────────────────── */
+function CompressionStatus({ items }) {
+  if (!items.length) return null;
+  const done    = items.filter(i => i.done).length;
+  const total   = items.length;
+  const pct     = Math.round((done / total) * 100);
+  const savings = items.reduce((acc, i) => acc + (i.savedBytes || 0), 0);
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between text-xs mb-0.5">
+        <span className="font-semibold text-[#0B3D91]">Compressing {total} image{total > 1 ? "s" : ""}…</span>
+        <span className="text-gray-400">{done}/{total}</span>
+      </div>
+      <div className="h-1.5 bg-blue-100 rounded-full overflow-hidden">
+        <div className="h-full bg-[#0B3D91] rounded-full transition-all duration-300" style={{ width: `${pct}%` }} />
+      </div>
+      {savings > 0 && (
+        <p className="text-[10px] text-emerald-600 font-medium">✓ Saved {formatBytes(savings)} so far</p>
+      )}
+    </div>
+  );
+}
+
+/* ─── Image Card ─────────────────────────────────────────────── */
+function ImageCard({ img, onDelete, onCaptionSave }) {
+  const [editingCaption, setEditingCaption] = useState(false);
+  const [caption, setCaption]               = useState(img.caption || "");
+  const [saving, setSaving]                 = useState(false);
+  const [deleteDialog, setDeleteDialog]     = useState(false);
+  const [deleting, setDeleting]             = useState(false);
+  const inputRef = useRef(null);
+
+  const filename = (img.file_path || "").split(/[\/\\]/).pop();
+  const imgUrl   = `${BASE_URL}/uploads/${filename}`;
+
+  const handleSaveCaption = async () => {
+    setSaving(true);
+    try {
+      await onCaptionSave(img.id, caption);
+      setEditingCaption(false);
+    } catch {
+      toast.error("Failed to save caption");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await onDelete(img.id);
+    } catch {
+      toast.error("Failed to delete");
+      setDeleting(false);
+      setDeleteDialog(false);
+    }
+  };
+
+  useEffect(() => {
+    if (editingCaption && inputRef.current) inputRef.current.focus();
+  }, [editingCaption]);
+
+  return (
+    <>
+      {deleteDialog && (
+        <DeleteDialog
+          title="Delete Photo?"
+          description="This photo will be permanently deleted."
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteDialog(false)}
+          loading={deleting}
+        />
+      )}
+      <div className="group relative rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-white">
+        <div className="relative overflow-hidden bg-gray-50" style={{ aspectRatio: "4/3" }}>
+          <img
+            src={imgUrl}
+            alt={caption || filename}
+            loading="lazy"
+            decoding="async"
+            className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+            onError={e => {
+              e.target.onerror = null;
+              e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect width='80' height='80' fill='%23f3f4f6'/%3E%3Ctext x='40' y='44' text-anchor='middle' font-size='11' fill='%239ca3af'%3ENo image%3C/text%3E%3C/svg%3E";
+            }}
+          />
+          {/* Hover overlay with actions */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-end justify-between p-2">
+            <button onClick={() => setEditingCaption(true)} title="Edit caption"
+              className="w-7 h-7 bg-white/90 text-[#0B3D91] rounded-lg flex items-center justify-center text-xs hover:bg-white transition-colors shadow">
+              ✏
+            </button>
+            <button onClick={() => setDeleteDialog(true)} title="Delete photo"
+              className="w-7 h-7 bg-white/90 text-red-500 rounded-lg flex items-center justify-center text-xs hover:bg-white transition-colors shadow">
+              🗑
+            </button>
+          </div>
+        </div>
+        {/* Caption area */}
+        <div className="p-2">
+          {editingCaption ? (
+            <div className="flex flex-col gap-1.5">
+              <input
+                ref={inputRef}
+                value={caption}
+                onChange={e => setCaption(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter") handleSaveCaption();
+                  if (e.key === "Escape") { setCaption(img.caption || ""); setEditingCaption(false); }
+                }}
+                placeholder="Caption / photo information…"
+                className="w-full text-xs border border-[#0B3D91] rounded-lg px-2 py-1.5 focus:outline-none"
+              />
+              <div className="flex gap-1">
+                <button onClick={handleSaveCaption} disabled={saving}
+                  className="flex-1 py-1 bg-[#0B3D91] text-white text-xs rounded-lg font-semibold disabled:opacity-60">
+                  {saving ? "…" : "✓ Save"}
+                </button>
+                <button onClick={() => { setCaption(img.caption || ""); setEditingCaption(false); }}
+                  className="px-2 py-1 border border-gray-200 text-gray-500 text-xs rounded-lg">✕</button>
+              </div>
+            </div>
+          ) : (
+            <p
+              onClick={() => setEditingCaption(true)}
+              className="text-xs text-gray-400 cursor-pointer hover:text-[#0B3D91] transition-colors line-clamp-2 min-h-[2rem]"
+            >
+              {caption || <span className="italic text-gray-300">Add caption / photo info…</span>}
+            </p>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 /* ─── MAIN PAGE ─────────────────────────────────────────────── */
 export default function OnsiteReportDetail() {
-  const { id } = useParams();
+  const { id }   = useParams();
   const navigate = useNavigate();
-  const [report, setReport]         = useState(null);
-  const [engineers, setEngineers]   = useState([]);
-  const [editMode, setEditMode]     = useState(false);
-  const [form, setForm]             = useState({});
-  const [saving, setSaving]         = useState(false);
-  const [pdfLoading, setPdfLoading] = useState(false);
+
+  const [report,         setReport]         = useState(null);
+  const [engineers,      setEngineers]      = useState([]);
+  const [editMode,       setEditMode]       = useState(false);
+  const [form,           setForm]           = useState({});
+  const [saving,         setSaving]         = useState(false);
+  const [pdfLoading,     setPdfLoading]     = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState(null);
-  const [deleteDialog, setDeleteDialog] = useState(false);
-  const [deleting, setDeleting]     = useState(false);
+  const [previewUrl,     setPreviewUrl]     = useState(null);
+  const [deleteDialog,   setDeleteDialog]   = useState(false);
+  const [deleting,       setDeleting]       = useState(false);
+
+  // Image states
+  const [uploading,      setUploading]      = useState(false);
+  const [dragActive,     setDragActive]     = useState(false);
+  const [compressItems,  setCompressItems]  = useState([]);
+  const [compressing,    setCompressing]    = useState(false);
 
   const fetchReport = useCallback(async () => {
     try {
@@ -287,12 +457,10 @@ export default function OnsiteReportDetail() {
   useEffect(() => { fetchReport(); }, [fetchReport]);
   useEffect(() => { API.get("/engineer/").then(r => setEngineers(r.data)).catch(() => {}); }, []);
 
-  // Parse equipment_items from report (support legacy single-equipment)
   const getEquipmentItems = (rpt) => {
     if (rpt.equipment_items && Array.isArray(rpt.equipment_items) && rpt.equipment_items.length > 0) {
       return rpt.equipment_items;
     }
-    // Fallback: build from legacy fields
     if (rpt.equipment_tag || rpt.equipment_model || rpt.serial_number) {
       return [{ description: rpt.equipment_tag || "", model: rpt.equipment_model || "", serial_number: rpt.serial_number || "" }];
     }
@@ -301,20 +469,20 @@ export default function OnsiteReportDetail() {
 
   const openEdit = () => {
     setForm({
-      report_number: report.report_number || "",
-      visit_date_from: report.visit_date_from || report.visit_date || "",
-      visit_date_to: report.visit_date_to || "",
-      client_name: report.client_name || "",
-      client_company: report.client_company || "",
-      client_address: report.client_address || "",
-      site_location: report.site_location || "",
-      contact_person: report.contact_person || "",
-      contact_phone: report.contact_phone || "",
-      engineer_id: report.engineer_id || "",
-      job_description: report.job_description || "",
-      equipment_items: getEquipmentItems(report),
+      report_number:      report.report_number || "",
+      visit_date_from:    report.visit_date_from || report.visit_date || "",
+      visit_date_to:      report.visit_date_to || "",
+      client_name:        report.client_name || "",
+      client_company:     report.client_company || "",
+      client_address:     report.client_address || "",
+      site_location:      report.site_location || "",
+      contact_person:     report.contact_person || "",
+      contact_phone:      report.contact_phone || "",
+      engineer_id:        report.engineer_id || "",
+      job_description:    report.job_description || "",
+      equipment_items:    getEquipmentItems(report),
       customer_signature: report.customer_signature || "",
-      status: report.status || "draft",
+      status:             report.status || "draft",
     });
     setEditMode(true);
   };
@@ -326,7 +494,7 @@ export default function OnsiteReportDetail() {
       return { ...f, equipment_items: items };
     });
   };
-  const addEquipment = () => setForm(f => ({ ...f, equipment_items: [...f.equipment_items, { description: "", model: "", serial_number: "" }] }));
+  const addEquipment    = () => setForm(f => ({ ...f, equipment_items: [...f.equipment_items, { description: "", model: "", serial_number: "" }] }));
   const removeEquipment = (index) => setForm(f => ({ ...f, equipment_items: f.equipment_items.filter((_, i) => i !== index) }));
 
   const handleSave = async () => {
@@ -334,13 +502,12 @@ export default function OnsiteReportDetail() {
     try {
       const payload = {
         ...form,
-        client_name: form.contact_person || form.client_company,
-        // backward compat
-        visit_date: form.visit_date_from,
+        client_name:     form.contact_person || form.client_company,
+        visit_date:      form.visit_date_from,
         equipment_items: form.equipment_items,
-        equipment_tag: form.equipment_items[0]?.description || "",
+        equipment_tag:   form.equipment_items[0]?.description || "",
         equipment_model: form.equipment_items[0]?.model || "",
-        serial_number: form.equipment_items[0]?.serial_number || "",
+        serial_number:   form.equipment_items[0]?.serial_number || "",
       };
       await API.put(`/onsite/update/${id}`, payload);
       toast.success("Saved successfully ✅");
@@ -359,6 +526,81 @@ export default function OnsiteReportDetail() {
     } catch { toast.error("Failed to delete"); setDeleting(false); setDeleteDialog(false); }
   };
 
+  /* ── Image upload with compression ─────────────────────────── */
+  const handleFiles = async (files) => {
+    const fileArr = Array.from(files).filter(f => f.type.startsWith("image/"));
+    if (!fileArr.length) return;
+
+    setCompressing(true);
+    const progressItems = fileArr.map((f, idx) => ({
+      idx, name: f.name, originalSize: f.size, done: false, savedBytes: 0,
+    }));
+    setCompressItems(progressItems);
+
+    const compressed = [];
+    for (let i = 0; i < fileArr.length; i++) {
+      const original = fileArr[i];
+      try {
+        const result = await compressImage(original);
+        compressed.push(result);
+        setCompressItems(prev =>
+          prev.map(item =>
+            item.idx === i
+              ? { ...item, done: true, savedBytes: Math.max(0, original.size - result.size) }
+              : item,
+          ),
+        );
+      } catch {
+        compressed.push(original);
+        setCompressItems(prev =>
+          prev.map(item => item.idx === i ? { ...item, done: true, savedBytes: 0 } : item),
+        );
+      }
+    }
+
+    setCompressing(false);
+
+    const originalTotal   = fileArr.reduce((s, f) => s + f.size, 0);
+    const compressedTotal = compressed.reduce((s, f) => s + f.size, 0);
+    const savedTotal      = originalTotal - compressedTotal;
+    const savedPct        = originalTotal > 0 ? Math.round((savedTotal / originalTotal) * 100) : 0;
+
+    const fd = new FormData();
+    compressed.forEach(f => fd.append("images", f));
+    setUploading(true);
+    try {
+      await API.post(`/onsite/upload/${id}`, fd, { headers: { "Content-Type": "multipart/form-data" } });
+      if (savedTotal > 0) {
+        toast.success(
+          `${fileArr.length} photo uploaded ✅\nCompressed: saved ${formatBytes(savedTotal)} (${savedPct}% smaller)`,
+          { duration: 4000 },
+        );
+      } else {
+        toast.success(`${fileArr.length} photo uploaded successfully!`);
+      }
+      fetchReport();
+    } catch {
+      toast.error("Upload failed");
+    } finally {
+      setUploading(false);
+      setCompressItems([]);
+    }
+  };
+
+  const deleteImage = async (imgId) => {
+    await API.delete(`/onsite/image/delete/${imgId}`);
+    toast.success("Photo deleted");
+    fetchReport();
+  };
+
+  const saveCaption = async (imgId, caption) => {
+    await API.put(`/onsite/image/caption/${imgId}`, { caption });
+    setReport(prev => ({
+      ...prev,
+      images: (prev.images || []).map(i => i.id === imgId ? { ...i, caption } : i),
+    }));
+  };
+
   const previewPDF = async () => {
     setPreviewLoading(true);
     try {
@@ -373,7 +615,10 @@ export default function OnsiteReportDetail() {
     try {
       const res = await API.get(`/onsite/pdf/${id}`, { responseType: "blob" });
       const url = URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
-      Object.assign(document.createElement("a"), { href: url, download: `OnsiteReport_${report.report_number}.pdf` }).click();
+      Object.assign(document.createElement("a"), {
+        href: url,
+        download: `OnsiteReport_${report.report_number}.pdf`,
+      }).click();
       setTimeout(() => URL.revokeObjectURL(url), 5000);
       toast.success("PDF downloaded!");
     } catch { toast.error("Failed to generate PDF"); }
@@ -389,50 +634,82 @@ export default function OnsiteReportDetail() {
   const sc = STATUS_CONFIG[report.status] || STATUS_CONFIG.draft;
   const inputClass = "w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91] bg-white";
   const labelClass = "block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5";
+  const equipmentItems = getEquipmentItems(report);
+  const reportImages   = report.images || [];
 
   const InfoRow = ({ label, value }) => value ? (
     <div className="flex gap-3 py-2 border-b border-gray-50 last:border-0">
-      <span className="text-xs text-gray-400 w-40 flex-shrink-0 pt-0.5">{label}</span>
+      <span className="text-xs text-gray-400 w-36 flex-shrink-0 pt-0.5">{label}</span>
       <span className="text-sm text-gray-800 font-medium">{value}</span>
     </div>
   ) : null;
 
-  const equipmentItems = getEquipmentItems(report);
-
   return (
     <div className="w-full">
-      {previewUrl && <PDFModal url={previewUrl} name={report.report_number} onClose={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }} />}
-      {deleteDialog && <DeleteDialog title="Delete Report?" onConfirm={handleDelete} onCancel={() => setDeleteDialog(false)} loading={deleting} />}
+      {/* Modals */}
+      {previewUrl && (
+        <PDFModal
+          url={previewUrl}
+          name={report.report_number}
+          onClose={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}
+        />
+      )}
+      {deleteDialog && (
+        <DeleteDialog
+          title="Delete Report?"
+          description={`Report "${report.report_number}" will be permanently deleted along with all photos.`}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteDialog(false)}
+          loading={deleting}
+        />
+      )}
 
-      {/* Header */}
+      {/* ── HEADER ───────────────────────────────────────────── */}
       <div className="flex items-start justify-between gap-4 mb-5">
         <div>
-          <button onClick={() => navigate("/onsite")} className="flex items-center gap-2 text-sm text-gray-400 hover:text-[#0B3D91] mb-2 transition-colors">← Back</button>
+          <button onClick={() => navigate("/onsite")}
+            className="flex items-center gap-2 text-sm text-gray-400 hover:text-[#0B3D91] mb-2 transition-colors">
+            ← Back
+          </button>
           <h1 className="text-2xl font-bold text-gray-800">{report.report_number}</h1>
-          <div className="flex items-center gap-2 mt-1">
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${sc.bg} ${sc.text}`}>{sc.label}</span>
             {(report.visit_date_from || report.visit_date) && (
               <span className="text-xs text-gray-400">
                 {(() => {
                   const from = report.visit_date_from || report.visit_date;
-                  const to = report.visit_date_to;
-                  const fmt = d => new Date(d + "T00:00:00").toLocaleDateString("en-EN", { day: "2-digit", month: "long", year: "numeric" });
+                  const to   = report.visit_date_to;
+                  const fmt  = d => new Date(d + "T00:00:00").toLocaleDateString("en-EN", { day: "2-digit", month: "long", year: "numeric" });
                   return to && to !== from ? `${fmt(from)} — ${fmt(to)}` : fmt(from);
                 })()}
               </span>
             )}
+            {reportImages.length > 0 && (
+              <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-semibold">
+                📷 {reportImages.length} photo{reportImages.length > 1 ? "s" : ""}
+              </span>
+            )}
           </div>
         </div>
+
         {!editMode && (
           <div className="flex flex-wrap gap-2 justify-end flex-shrink-0">
-            <button onClick={() => setDeleteDialog(true)} className="flex items-center gap-1.5 px-3 py-2 text-red-500 border border-red-200 rounded-xl text-xs font-semibold hover:bg-red-50 transition-colors">🗑 Delete</button>
-            <button onClick={previewPDF} disabled={previewLoading} className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-xs font-semibold hover:bg-blue-100 transition-colors disabled:opacity-60">
+            <button onClick={() => setDeleteDialog(true)}
+              className="flex items-center gap-1.5 px-3 py-2 text-red-500 border border-red-200 rounded-xl text-xs font-semibold hover:bg-red-50 transition-colors">
+              🗑 Delete
+            </button>
+            <button onClick={previewPDF} disabled={previewLoading}
+              className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-xs font-semibold hover:bg-blue-100 transition-colors disabled:opacity-60">
               {previewLoading ? "Loading…" : "👁 Preview"}
             </button>
-            <button onClick={downloadPDF} disabled={pdfLoading} className="flex items-center gap-1.5 px-3 py-2 bg-[#0B3D91] text-white rounded-xl text-xs font-semibold hover:bg-[#1E5CC6] transition-colors disabled:opacity-60">
-              {pdfLoading ? "Generating…" : "⬇ PDF"}
+            <button onClick={downloadPDF} disabled={pdfLoading}
+              className="flex items-center gap-1.5 px-3 py-2 bg-[#0B3D91] text-white rounded-xl text-xs font-semibold hover:bg-[#1E5CC6] transition-colors disabled:opacity-60">
+              {pdfLoading
+                ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> PDF…</>
+                : "⬇ PDF"}
             </button>
-            <button onClick={openEdit} className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-600 hover:border-[#0B3D91] hover:text-[#0B3D91] transition-colors">
+            <button onClick={openEdit}
+              className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-xs font-semibold text-amber-700 hover:bg-amber-100 transition-colors">
               ✏ Edit
             </button>
           </div>
@@ -442,16 +719,24 @@ export default function OnsiteReportDetail() {
       {/* ── EDIT MODE ─────────────────────────────────────────── */}
       {editMode && (
         <div className="space-y-4 mb-4">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3">Report Information</h4>
+          {/* Report Info */}
+          <div className="bg-white rounded-2xl border border-amber-200 shadow-sm p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center gap-2">
+                <span className="w-1.5 h-4 bg-amber-400 rounded-full" /> Edit Mode — Report Information
+              </h4>
+              <button onClick={() => setEditMode(false)} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
                 <label className={labelClass}>Report Number</label>
-                <input value={form.report_number} readOnly className={inputClass + " bg-gray-50 text-gray-500 cursor-not-allowed font-mono"} />
+                <input value={form.report_number} readOnly
+                  className={inputClass + " bg-gray-50 text-gray-500 cursor-not-allowed font-mono"} />
               </div>
               <div>
-                <label className={labelClass}>Visitation Start Date <span className="text-red-400">*</span></label>
-                <input type="date" value={form.visit_date_from} onChange={e => setForm({ ...form, visit_date_from: e.target.value })} className={inputClass} />
+                <label className={labelClass}>Visit Start Date <span className="text-red-400">*</span></label>
+                <input type="date" value={form.visit_date_from}
+                  onChange={e => setForm({ ...form, visit_date_from: e.target.value })} className={inputClass} />
               </div>
               <div>
                 <label className={labelClass}>Visit End Date <span className="text-gray-400 font-normal normal-case">(optional)</span></label>
@@ -462,9 +747,9 @@ export default function OnsiteReportDetail() {
                 <div className="sm:col-span-2 bg-blue-50 rounded-xl px-4 py-2.5 flex items-center gap-2">
                   <span className="text-[#0B3D91] text-sm">📅</span>
                   <span className="text-xs text-[#0B3D91] font-semibold">
-                    {new Date(form.visit_date_from+"T00:00:00").toLocaleDateString("en-EN",{day:"2-digit",month:"long",year:"numeric"})}
+                    {new Date(form.visit_date_from + "T00:00:00").toLocaleDateString("en-EN", { day: "2-digit", month: "long", year: "numeric" })}
                     {" — "}
-                    {new Date(form.visit_date_to+"T00:00:00").toLocaleDateString("en-EN",{day:"2-digit",month:"long",year:"numeric"})}
+                    {new Date(form.visit_date_to + "T00:00:00").toLocaleDateString("en-EN", { day: "2-digit", month: "long", year: "numeric" })}
                   </span>
                 </div>
               )}
@@ -488,11 +773,26 @@ export default function OnsiteReportDetail() {
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3">Client Data</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><label className={labelClass}>Company <span className="text-red-400">*</span></label><input value={form.client_company} onChange={e => setForm({ ...form, client_company: e.target.value })} className={inputClass} placeholder="Name of company/agency" /></div>
-              <div><label className={labelClass}>Contact Person</label><input value={form.contact_person} onChange={e => setForm({ ...form, contact_person: e.target.value })} className={inputClass} placeholder="PIC name" /></div>
-              <div><label className={labelClass}>Phone</label><input value={form.contact_phone} onChange={e => setForm({ ...form, contact_phone: e.target.value })} className={inputClass} /></div>
-              <div><label className={labelClass}>Location/Site</label><input value={form.site_location} onChange={e => setForm({ ...form, site_location: e.target.value })} className={inputClass} /></div>
-              <div className="sm:col-span-2"><label className={labelClass}>Address</label><input value={form.client_address} onChange={e => setForm({ ...form, client_address: e.target.value })} className={inputClass} /></div>
+              <div>
+                <label className={labelClass}>Company <span className="text-red-400">*</span></label>
+                <input value={form.client_company} onChange={e => setForm({ ...form, client_company: e.target.value })} className={inputClass} placeholder="Company name" />
+              </div>
+              <div>
+                <label className={labelClass}>Contact Person</label>
+                <input value={form.contact_person} onChange={e => setForm({ ...form, contact_person: e.target.value })} className={inputClass} placeholder="PIC name" />
+              </div>
+              <div>
+                <label className={labelClass}>Phone</label>
+                <input value={form.contact_phone} onChange={e => setForm({ ...form, contact_phone: e.target.value })} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Location/Site</label>
+                <input value={form.site_location} onChange={e => setForm({ ...form, site_location: e.target.value })} className={inputClass} />
+              </div>
+              <div className="sm:col-span-2">
+                <label className={labelClass}>Address</label>
+                <input value={form.client_address} onChange={e => setForm({ ...form, client_address: e.target.value })} className={inputClass} />
+              </div>
             </div>
           </div>
 
@@ -500,18 +800,21 @@ export default function OnsiteReportDetail() {
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider">Equipment/Instrument Data</h4>
-              <button onClick={addEquipment} className="flex items-center gap-1 px-3 py-1.5 bg-[#EEF3FB] text-[#0B3D91] rounded-lg text-xs font-semibold hover:bg-[#dbe8f8]">
-                + Add Equipmet/Instrument
+              <button onClick={addEquipment}
+                className="flex items-center gap-1 px-3 py-1.5 bg-[#EEF3FB] text-[#0B3D91] rounded-lg text-xs font-semibold hover:bg-[#dbe8f8]">
+                + Add Equipment
               </button>
             </div>
             <div className="space-y-3">
               {(form.equipment_items || []).map((item, idx) => (
-                <EquipmentEditItem key={idx} item={item} index={idx} onChange={handleEquipmentChange} onRemove={removeEquipment} canRemove={(form.equipment_items || []).length > 1} />
+                <EquipmentEditItem key={idx} item={item} index={idx}
+                  onChange={handleEquipmentChange} onRemove={removeEquipment}
+                  canRemove={(form.equipment_items || []).length > 1} />
               ))}
             </div>
           </div>
 
-          {/* Detail Pekerjaan */}
+          {/* Job Details */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3">Job Details</h4>
             <label className={labelClass}>Job Description</label>
@@ -521,11 +824,15 @@ export default function OnsiteReportDetail() {
           {/* Signature */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3">Customer Signature</h4>
-            <SignaturePad label="Customer Signature" value={form.customer_signature} onChange={v => setForm({ ...form, customer_signature: v })} />
+            <SignaturePad label="Customer Signature" value={form.customer_signature}
+              onChange={v => setForm({ ...form, customer_signature: v })} />
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button onClick={() => setEditMode(false)} className="px-5 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50">Cancel</button>
+            <button onClick={() => setEditMode(false)}
+              className="px-5 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50">
+              Cancel
+            </button>
             <button onClick={handleSave} disabled={saving}
               className="px-6 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-bold hover:bg-[#1E5CC6] disabled:opacity-60 flex items-center gap-2">
               {saving ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving…</> : "✓ Save Changes"}
@@ -537,14 +844,15 @@ export default function OnsiteReportDetail() {
       {/* ── VIEW MODE ──────────────────────────────────────────── */}
       {!editMode && (
         <>
+          {/* Info cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3">🏢 Client Data</h3>
-              <InfoRow label="Company" value={report.client_company} />
+              <InfoRow label="Company"        value={report.client_company} />
               <InfoRow label="Contact Person" value={report.contact_person || report.client_name} />
-              <InfoRow label="Phone" value={report.contact_phone} />
-              <InfoRow label="Location/Site" value={report.site_location} />
-              <InfoRow label="Address" value={report.client_address} />
+              <InfoRow label="Phone"          value={report.contact_phone} />
+              <InfoRow label="Location/Site"  value={report.site_location} />
+              <InfoRow label="Address"        value={report.client_address} />
             </div>
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3">⚙ Equipment/Instrument Data</h3>
@@ -559,24 +867,105 @@ export default function OnsiteReportDetail() {
             </div>
           </div>
 
-          {/* Detail Pekerjaan - render HTML */}
+          {/* Job Description */}
           {report.job_description && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
               <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3">📋 Job Details</h3>
               <div
                 className="text-sm text-gray-700 leading-relaxed rich-render"
-                style={{
-                  lineHeight: "1.7",
-                }}
+                style={{ lineHeight: "1.7" }}
                 dangerouslySetInnerHTML={{ __html: report.job_description }}
               />
-              
             </div>
           )}
 
-          {/* Signatures View */}
+          {/* ── DOCUMENTATION & PHOTOS ─────────────────────────── */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
-            <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4">✍ Signature</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider flex items-center gap-2">
+                <span className="w-1.5 h-4 bg-[#0B3D91] rounded-full" /> Documentation & Photos
+              </h3>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                  ⚡ Auto-compressed
+                </span>
+                {reportImages.length > 0 && (
+                  <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-semibold">
+                    {reportImages.length} photo{reportImages.length > 1 ? "s" : ""}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Tips */}
+            {reportImages.length > 0 && (
+              <div className="mb-4 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 flex items-start gap-2">
+                <span className="text-blue-400 text-sm flex-shrink-0">💡</span>
+                <p className="text-xs text-blue-700">
+                  Hover over a photo for <strong>edit caption</strong> or <strong>delete</strong>. Captions will appear in the PDF.
+                </p>
+              </div>
+            )}
+
+            {/* Drop zone */}
+            <div
+              onDragOver={e => { e.preventDefault(); setDragActive(true); }}
+              onDragLeave={() => setDragActive(false)}
+              onDrop={e => { e.preventDefault(); setDragActive(false); handleFiles(e.dataTransfer.files); }}
+              onClick={() => !compressing && !uploading && document.getElementById("onsiteFileInput").click()}
+              className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all mb-4
+                ${dragActive ? "border-[#0B3D91] bg-blue-50" : "border-gray-200 hover:border-[#0B3D91] hover:bg-blue-50"}`}
+            >
+              {compressing && compressItems.length > 0 ? (
+                <div className="px-2 py-1">
+                  <CompressionStatus items={compressItems} />
+                </div>
+              ) : uploading ? (
+                <div className="flex items-center justify-center gap-3">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#0B3D91]" />
+                  <p className="text-gray-500 text-sm">Uploading…</p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-2xl mb-1">📸</p>
+                  <p className="text-gray-600 font-medium text-sm">Drop photos here or click to upload</p>
+                  <p className="text-gray-400 text-xs mt-0.5">PNG, JPG, JPEG · Auto-compressed before upload</p>
+                  <p className="text-[10px] text-emerald-500 font-medium mt-1.5">
+                    ⚡ Images are automatically compressed — photos will appear in the PDF
+                  </p>
+                </>
+              )}
+            </div>
+
+            <input
+              id="onsiteFileInput"
+              type="file"
+              multiple
+              accept="image/*"
+              className="hidden"
+              onChange={e => handleFiles(e.target.files)}
+            />
+
+            {/* Photo grid */}
+            {reportImages.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {reportImages.map(img => (
+                  <ImageCard
+                    key={img.id}
+                    img={img}
+                    onDelete={deleteImage}
+                    onCaptionSave={saveCaption}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-gray-300 text-sm py-4">No photos yet — upload to include them in the PDF</p>
+            )}
+          </div>
+
+          {/* Signatures */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
+            <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4">✍ Signatures</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="text-center">
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Engineer</p>
@@ -584,7 +973,11 @@ export default function OnsiteReportDetail() {
                   <div className="border border-gray-200 rounded-xl bg-gray-50 p-3">
                     <img src={report.engineer_signature} alt="Engineer Signature" className="h-16 mx-auto object-contain" />
                   </div>
-                ) : <div className="border-2 border-dashed border-gray-200 rounded-xl py-6 text-gray-300 text-sm">No signature yet</div>}
+                ) : (
+                  <div className="border-2 border-dashed border-gray-200 rounded-xl py-6 text-gray-300 text-sm">
+                    No signature yet
+                  </div>
+                )}
                 <p className="text-xs text-gray-500 mt-2 font-semibold">{report.engineer_name || "—"}</p>
                 {report.engineer_position && <p className="text-xs text-gray-400">{report.engineer_position}</p>}
               </div>
@@ -608,6 +1001,27 @@ export default function OnsiteReportDetail() {
         </>
       )}
 
+      {/* Bottom action bar */}
+      {!editMode && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-wrap gap-3 justify-between items-center">
+          <button onClick={() => setDeleteDialog(true)}
+            className="flex items-center gap-2 px-4 py-2 text-red-500 border border-red-200 rounded-xl text-sm font-semibold hover:bg-red-50 transition-colors">
+            🗑 Delete Report
+          </button>
+          <div className="flex gap-2">
+            <button onClick={previewPDF} disabled={previewLoading}
+              className="flex items-center gap-2 px-5 py-2.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-sm font-semibold hover:bg-blue-100 transition-colors disabled:opacity-60">
+              {previewLoading ? "Loading…" : "👁 Preview PDF"}
+            </button>
+            <button onClick={downloadPDF} disabled={pdfLoading}
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] transition-colors disabled:opacity-60">
+              {pdfLoading
+                ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generating…</>
+                : "⬇ Download PDF"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

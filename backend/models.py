@@ -62,8 +62,20 @@ class ReportImage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     report_id = db.Column(db.Integer, db.ForeignKey("reports.id"))
     file_path = db.Column(db.String(300))
-    caption = db.Column(db.String(500), default="")   # ← NEW: image caption/annotation
+    caption = db.Column(db.String(500), default="")   # image caption/annotation
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+# ── NEW: OnsiteReportImage ────────────────────────────────────────────────────
+class OnsiteReportImage(db.Model):
+    __tablename__ = "onsite_report_images"
+
+    id          = db.Column(db.Integer, primary_key=True)
+    report_id   = db.Column(db.Integer, db.ForeignKey("onsite_reports.id"), nullable=False)
+    file_path   = db.Column(db.String(300))
+    caption     = db.Column(db.String(500), default="")
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 class LeaveEntitlement(db.Model):
     __tablename__ = "leave_entitlements"
