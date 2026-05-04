@@ -1,42 +1,57 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
+import {
+  LayoutDashboard,
+  FileText,
+  ClipboardList,
+  FilePlus,
+  Wrench,
+  Boxes,
+  MailOpen,
+  Warehouse,
+  BookOpen,
+  HardHat,
+  CalendarCheck,
+  Users,
+  LogOut
+} from "lucide-react";
 
 const navGroups = [
   {
     label: "Overview",
     items: [
-      { to: "/dashboard", label: "Dashboard", icon: "fa-solid fa-gauge-high", exact: true },
+      { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
     ]
   },
   {
     label: "Operations",
     items: [
-      { to: "/quotations",      label: "Quotations",           icon: "fa-solid fa-file-invoice-dollar" },
-      { to: "/reports",         label: "Official Reports",     icon: "fa-solid fa-clipboard-list", exclude: ["/reports/create"] },
-      { to: "/reports/create",  label: "New Official Report",  icon: "fa-solid fa-file-circle-plus", exact: true },
-      { to: "/onsite",          label: "Onsite Reports",       icon: "fa-solid fa-screwdriver-wrench" },
+      { to: "/quotations",     label: "Quotations",          icon: FileText },
+      { to: "/reports",        label: "Official Reports",    icon: ClipboardList, exclude: ["/reports/create"] },
+      { to: "/reports/create", label: "New Official Report", icon: FilePlus, exact: true },
+      { to: "/onsite",         label: "Onsite Reports",      icon: Wrench },
     ]
   },
   {
     label: "Documents",
     items: [
-      { to: "/surat",       label: "Material Handover",                    icon: "fa-solid fa-boxes-packing", exact: true, matchPaths: ["/surat", "/surat/create", "/surat/"] },
-      { to: "/surat-resmi", label: "Letter of Recommendation & Statement", icon: "fa-solid fa-envelope-open-text" },
+      { to: "/surat",       label: "Material Handover",                    icon: Boxes, exact: true, matchPaths: ["/surat", "/surat/create", "/surat/"] },
+      { to: "/surat-resmi", label: "Letter of Recommendation & Statement", icon: MailOpen },
     ]
   },
   {
     label: "Inventory",
     items: [
-      { to: "/stock",   label: "Stock & Demo Units",  icon: "fa-solid fa-warehouse" },
-      { to: "/catalog", label: "Catalogs & Manuals",  icon: "fa-solid fa-book-open" },
+      { to: "/stock",   label: "Stock & Demo Units", icon: Warehouse },
+      { to: "/catalog", label: "Catalogs & Manuals", icon: BookOpen },
     ]
   },
   {
     label: "People",
     items: [
-      { to: "/engineers", label: "Engineers",        icon: "fa-solid fa-helmet-safety" },
-      { to: "/leave",     label: "Leave Management", icon: "fa-solid fa-calendar-check" },
-      { to: "/users",     label: "User Management",  icon: "fa-solid fa-users-gear", adminOnly: true },
+      { to: "/engineers", label: "Engineers",        icon: HardHat },
+      { to: "/leave",     label: "Leave Management", icon: CalendarCheck },
+      { to: "/users",     label: "User Management",  icon: Users, adminOnly: true },
     ]
   }
 ];
@@ -155,7 +170,15 @@ export default function Sidebar({ open, onClose }) {
                           }
                         `}
                       >
-                        <i className={`${item.icon} ${compact ? "text-[15px]" : "text-[14px] w-5 text-center"}`} />
+                        {(() => {
+                          const Icon = item.icon;
+                          return (
+                            <Icon
+                              size={compact ? 18 : 16}
+                              className={`${compact ? "" : "w-5"} transition-colors`}
+                            />
+                          );
+                        })()}
                         {!compact && item.label}
                       </Link>
                     );
@@ -200,7 +223,7 @@ export default function Sidebar({ open, onClose }) {
               compact ? "justify-center w-10 h-10 mx-auto" : "gap-3 px-3 py-2"
             }`}
           >
-            <i className={`fa-solid fa-right-from-bracket ${compact ? "text-[15px]" : "text-[14px] w-5 text-center"}`} />
+            <LogOut size={compact ? 18 : 16} className={`${compact ? "" : "w-5"}`} />
             {!compact && "Sign Out"}
           </button>
         </div>

@@ -4,14 +4,14 @@ import API from "../services/api";
 import toast from "react-hot-toast";
 
 const ROLES = [
-  { value: "engineer", label: "Engineer", color: "bg-blue-100 text-blue-700",    dot: "bg-blue-500"    },
-  { value: "staff",    label: "Staff",    color: "bg-teal-100 text-teal-700",    dot: "bg-teal-500"    },
-  { value: "admin",    label: "Admin",    color: "bg-red-100 text-red-700",      dot: "bg-red-500"     },
-  { value: "manager",  label: "Manager",  color: "bg-purple-100 text-purple-700",dot: "bg-purple-500"  },
-  { value: "hr",       label: "HR",       color: "bg-amber-100 text-amber-700",  dot: "bg-amber-500"   },
+  { value: "engineer", label: "Engineer", color: "bg-blue-100 text-blue-700",    dot: "bg-blue-500",    icon: "fa-helmet-safety"    },
+  { value: "staff",    label: "Staff",    color: "bg-teal-100 text-teal-700",    dot: "bg-teal-500",    icon: "fa-user-tie"         },
+  { value: "admin",    label: "Admin",    color: "bg-red-100 text-red-700",      dot: "bg-red-500",     icon: "fa-shield-halved"    },
+  { value: "manager",  label: "Manager",  color: "bg-purple-100 text-purple-700",dot: "bg-purple-500",  icon: "fa-briefcase"        },
+  { value: "hr",       label: "HR",       color: "bg-amber-100 text-amber-700",  dot: "bg-amber-500",   icon: "fa-users-between-lines"},
 ];
 const roleInfo = (role) =>
-  ROLES.find(r => r.value === role) || { label: role, color: "bg-gray-100 text-gray-600", dot: "bg-gray-400" };
+  ROLES.find(r => r.value === role) || { label: role, color: "bg-gray-100 text-gray-600", dot: "bg-gray-400", icon: "fa-user" };
 
 const inputClass =
   "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm " +
@@ -52,13 +52,13 @@ function UserModal({ user, onClose, onSaved }) {
         const p = { name: form.name.trim(), role: form.role };
         if (form.new_password) p.new_password = form.new_password;
         await API.put(`/auth/users/update/${user.id}`, p);
-        toast.success("User updated ✅");
+        toast.success("User updated");
       } else {
         await API.post("/auth/users/create", {
           name: form.name.trim(), username: form.username.trim().toLowerCase(),
           role: form.role, password: form.new_password,
         });
-        toast.success(`User '@${form.username}' created 🎉`);
+        toast.success(`User '@${form.username}' created`);
       }
       onSaved(); onClose();
     } catch (e) { toast.error(e.response?.data?.error || "Failed to save"); }
@@ -70,10 +70,15 @@ function UserModal({ user, onClose, onSaved }) {
       <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden">
         <div className="bg-gradient-to-r from-[#0B3D91] to-[#1E5CC6] px-6 py-5 flex items-center justify-between">
           <div>
-            <h2 className="text-white font-bold text-base">{isEdit ? "Edit User" : "Add New User"}</h2>
+            <h2 className="text-white font-bold text-base flex items-center gap-2">
+              <i className={`fas ${isEdit ? "fa-user-pen" : "fa-user-plus"} text-sm`} />
+              {isEdit ? "Edit User" : "Add New User"}
+            </h2>
             <p className="text-blue-200 text-xs mt-0.5">{isEdit ? `Editing: @${user.username}` : "Create account for team member"}</p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white text-sm">✕</button>
+          <button onClick={onClose} className="w-8 h-8 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors">
+            <i className="fas fa-xmark text-sm" />
+          </button>
         </div>
         <div className="p-6 space-y-4">
           <div>
@@ -91,7 +96,9 @@ function UserModal({ user, onClose, onSaved }) {
                   placeholder="eg: billy_flotech" className={inputClass + " pl-7"}
                   onKeyDown={e => e.key === "Enter" && handleSubmit()} />
               </div>
-              <p className="text-xs text-gray-400 mt-1">Lowercase, numbers, dots, underscores only.</p>
+              <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                <i className="fas fa-circle-info text-[10px]" /> Lowercase, numbers, dots, underscores only.
+              </p>
             </div>
           )}
           <div>
@@ -102,7 +109,8 @@ function UserModal({ user, onClose, onSaved }) {
                   className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${
                     form.role === r.value ? "border-[#0B3D91] bg-[#EEF3FB] text-[#0B3D91]" : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
                   }`}>
-                  <span className={`w-2 h-2 rounded-full ${r.dot}`} />{r.label}
+                  <i className={`fas ${r.icon} text-sm`} />
+                  {r.label}
                 </button>
               ))}
             </div>
@@ -115,8 +123,8 @@ function UserModal({ user, onClose, onSaved }) {
                 placeholder={isEdit ? "Fill to reset password" : "Minimum 6 characters"}
                 className={inputClass + " pr-10"} onKeyDown={e => e.key === "Enter" && handleSubmit()} />
               <button type="button" onClick={() => setShowPass(s => !s)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">
-                {showPass ? "🙈" : "👁"}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 w-6 h-6 flex items-center justify-center">
+                <i className={`fas ${showPass ? "fa-eye-slash" : "fa-eye"} text-sm`} />
               </button>
             </div>
           </div>
@@ -125,8 +133,9 @@ function UserModal({ user, onClose, onSaved }) {
           <button onClick={onClose} className="flex-1 py-3 border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50">Cancel</button>
           <button onClick={handleSubmit} disabled={saving}
             className="flex-1 py-3 bg-[#0B3D91] text-white rounded-xl text-sm font-bold hover:bg-[#1E5CC6] disabled:opacity-60 flex items-center justify-center gap-2 shadow-sm">
-            {saving && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-            {saving ? "Saving..." : isEdit ? "Save Changes" : "Create User"}
+            {saving
+              ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving...</>
+              : <><i className={`fas ${isEdit ? "fa-floppy-disk" : "fa-user-plus"}`} /> {isEdit ? "Save Changes" : "Create User"}</>}
           </button>
         </div>
       </div>
@@ -140,7 +149,7 @@ function DeleteDialog({ user, onClose, onConfirm, loading }) {
       <div className="bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden">
         <div className="bg-gradient-to-br from-red-50 to-rose-100 px-6 pt-7 pb-5 text-center">
           <div className="w-16 h-16 bg-red-100 border-4 border-red-200 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl">🗑️</span>
+            <i className="fas fa-user-minus text-2xl text-red-500" />
           </div>
           <h3 className="text-base font-bold text-gray-900">Delete User?</h3>
           <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">
@@ -153,7 +162,9 @@ function DeleteDialog({ user, onClose, onConfirm, loading }) {
           <button onClick={onClose} disabled={loading} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50">Cancel</button>
           <button onClick={onConfirm} disabled={loading}
             className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 flex items-center justify-center gap-2 disabled:opacity-60">
-            {loading && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+            {loading
+              ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              : <i className="fas fa-trash-can" />}
             Delete
           </button>
         </div>
@@ -206,10 +217,10 @@ export default function UserManagement() {
   );
 
   const stats = [
-    { label: "Total User",      val: users.length,                                                    icon: "👥", color: "#0B3D91", bg: "#EEF3FB" },
-    { label: "Admin",           val: users.filter(u => u.role === "admin").length,                    icon: "🛡️", color: "#dc2626", bg: "#fef2f2" },
-    { label: "Engineer/Staff",  val: users.filter(u => ["engineer","staff"].includes(u.role)).length, icon: "👷", color: "#2563eb", bg: "#eff6ff" },
-    { label: "Manager/HR",      val: users.filter(u => ["manager","hr"].includes(u.role)).length,     icon: "💼", color: "#7c3aed", bg: "#f5f3ff" },
+    { label: "Total Users",     val: users.length,                                                    icon: "fa-users",              color: "#0B3D91", bg: "#EEF3FB" },
+    { label: "Admin",           val: users.filter(u => u.role === "admin").length,                    icon: "fa-shield-halved",       color: "#dc2626", bg: "#fef2f2" },
+    { label: "Engineer/Staff",  val: users.filter(u => ["engineer","staff"].includes(u.role)).length, icon: "fa-helmet-safety",       color: "#2563eb", bg: "#eff6ff" },
+    { label: "Manager/HR",      val: users.filter(u => ["manager","hr"].includes(u.role)).length,     icon: "fa-briefcase",           color: "#7c3aed", bg: "#f5f3ff" },
   ];
 
   if (myRole !== "admin") return null;
@@ -221,22 +232,27 @@ export default function UserManagement() {
       {modal && <UserModal user={modal === "create" ? null : modal} onClose={() => setModal(null)} onSaved={fetchUsers} />}
       {deleteTarget && <DeleteDialog user={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} loading={deleting} />}
 
-      {/* ══ HEADER CARD — same structure as Leave Management ══ */}
+      {/* ══ HEADER CARD ══ */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 lg:p-6">
 
         {/* Title row */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-5">
           <div>
-            <h1 className="text-xl font-bold text-gray-800">User Management</h1>
-            <p className="text-xs text-gray-400 mt-0.5">PT Flotech Controls Indonesia</p>
+            <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-[#EEF3FB] flex items-center justify-center">
+                <i className="fas fa-users-gear text-[#0B3D91] text-sm" />
+              </div>
+              User Management
+            </h1>
+            <p className="text-xs text-gray-400 mt-0.5 ml-10">PT Flotech Controls Indonesia</p>
           </div>
           <button onClick={() => setModal("create")}
             className="flex items-center justify-center gap-2 px-4 py-2 bg-[#0B3D91] text-white text-xs font-bold rounded-xl hover:bg-[#1E5CC6] flex-shrink-0 transition-all shadow-sm shadow-blue-900/20">
-            ＋ Add User
+            <i className="fas fa-user-plus" /> Add User
           </button>
         </div>
 
-        {/* Stat cards — same style as Leave Management StatCard */}
+        {/* Stat cards */}
         {loading ? (
           <div className="flex justify-center items-center h-24">
             <div className="w-8 h-8 border-2 border-[#0B3D91] border-t-transparent rounded-full animate-spin" />
@@ -244,12 +260,10 @@ export default function UserManagement() {
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {stats.map(s => (
-              <div key={s.label}
-                className={`bg-white rounded-2xl border shadow-sm p-4 lg:p-5 ${s.label === "Total User" ? "border-gray-100" : "border-gray-100"}`}>
+              <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 lg:p-5">
                 <div className="flex items-start justify-between mb-3">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
-                    style={{ background: s.bg }}>
-                    {s.icon}
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: s.bg }}>
+                    <i className={`fas ${s.icon} text-base`} style={{ color: s.color }} />
                   </div>
                 </div>
                 <p className="text-3xl font-black tabular-nums" style={{ color: s.color }}>{s.val}</p>
@@ -261,22 +275,22 @@ export default function UserManagement() {
         )}
       </div>
 
-      {/* ══ CONTENT CARD — search + list/table ══ */}
+      {/* ══ CONTENT CARD ══ */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
 
         {/* Search */}
         <div className="px-4 lg:px-5 py-4 border-b border-gray-100">
           <div className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+            <i className="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
             <input type="text" placeholder="Search name, username, or role..."
               value={search} onChange={e => setSearch(e.target.value)}
               className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl text-sm
                 focus:outline-none focus:ring-2 focus:ring-[#0B3D91] bg-white transition-all" />
             {search && (
               <button onClick={() => setSearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-lg leading-none">×</button>
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 w-5 h-5 flex items-center justify-center">
+                <i className="fas fa-xmark text-sm" />
+              </button>
             )}
           </div>
         </div>
@@ -288,11 +302,15 @@ export default function UserManagement() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center">
-            <p className="text-4xl mb-3">👥</p>
+            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <i className="fas fa-users text-2xl text-gray-400" />
+            </div>
             <p className="text-gray-500 font-medium">{search ? "No matching users" : "No users yet"}</p>
             {!search && (
               <button onClick={() => setModal("create")}
-                className="mt-4 px-5 py-2 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold">Add First User</button>
+                className="mt-4 px-5 py-2 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold flex items-center gap-2 mx-auto">
+                <i className="fas fa-user-plus text-xs" /> Add First User
+              </button>
             )}
           </div>
         ) : (
@@ -302,10 +320,18 @@ export default function UserManagement() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-[#0B3D91] text-white">
-                    <th className="px-5 py-3 text-left text-xs font-semibold">User</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold">Username</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold">Role</th>
-                    <th className="px-5 py-3 text-center text-xs font-semibold w-32">Action</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold">
+                      <span className="flex items-center gap-2"><i className="fas fa-user text-xs" /> User</span>
+                    </th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold">
+                      <span className="flex items-center gap-2"><i className="fas fa-at text-xs" /> Username</span>
+                    </th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold">
+                      <span className="flex items-center gap-2"><i className="fas fa-id-badge text-xs" /> Role</span>
+                    </th>
+                    <th className="px-5 py-3 text-center text-xs font-semibold w-32">
+                      <span className="flex items-center justify-center gap-2"><i className="fas fa-gear text-xs" /> Action</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -320,7 +346,9 @@ export default function UserManagement() {
                             <div>
                               <p className="font-semibold text-gray-800 text-sm leading-tight">{u.name}</p>
                               {u.id === myId && (
-                                <span className="text-[10px] text-[#0B3D91] font-bold bg-blue-50 px-1.5 py-0.5 rounded-full">Your Account</span>
+                                <span className="text-[10px] text-[#0B3D91] font-bold bg-blue-50 px-1.5 py-0.5 rounded-full flex items-center gap-1 w-fit mt-0.5">
+                                  <i className="fas fa-circle-user text-[9px]" /> Your Account
+                                </span>
                               )}
                             </div>
                           </div>
@@ -330,14 +358,21 @@ export default function UserManagement() {
                         </td>
                         <td className="px-5 py-3.5">
                           <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${ri.color}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${ri.dot}`} />{ri.label}
+                            <i className={`fas ${ri.icon} text-[10px]`} />
+                            {ri.label}
                           </span>
                         </td>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center justify-center gap-2">
-                            <button onClick={() => setModal(u)} className="text-xs text-[#0B3D91] font-bold hover:underline">Edit</button>
+                            <button onClick={() => setModal(u)}
+                              className="flex items-center gap-1.5 text-xs text-[#0B3D91] font-bold hover:underline px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors">
+                              <i className="fas fa-pen text-[10px]" /> Edit
+                            </button>
                             {u.id !== myId && (
-                              <button onClick={() => setDeleteTarget(u)} className="text-xs text-red-400 font-bold hover:text-red-600">Delete</button>
+                              <button onClick={() => setDeleteTarget(u)}
+                                className="flex items-center gap-1.5 text-xs text-red-400 font-bold hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors">
+                                <i className="fas fa-trash-can text-[10px]" /> Delete
+                              </button>
                             )}
                           </div>
                         </td>
@@ -363,26 +398,30 @@ export default function UserManagement() {
                             <code className="text-[11px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded font-mono">@{u.username}</code>
                           </div>
                           <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full flex-shrink-0 ${ri.color}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${ri.dot}`} />{ri.label}
+                            <i className={`fas ${ri.icon} text-[9px]`} />{ri.label}
                           </span>
                         </div>
                         {u.id === myId && (
-                          <span className="inline-block mt-1 text-[10px] text-[#0B3D91] font-bold bg-blue-50 px-2 py-0.5 rounded-full">Your Account</span>
+                          <span className="inline-flex items-center gap-1 mt-1 text-[10px] text-[#0B3D91] font-bold bg-blue-50 px-2 py-0.5 rounded-full">
+                            <i className="fas fa-circle-user text-[9px]" /> Your Account
+                          </span>
                         )}
                       </div>
                     </div>
                     <div className="flex gap-2 mt-3 pt-3 border-t border-gray-50">
                       <button onClick={() => setModal(u)}
                         className="flex-1 py-2 bg-blue-50 text-blue-700 rounded-xl text-xs font-bold hover:bg-blue-100 transition-colors flex items-center justify-center gap-1.5">
-                        ✏️ Edit
+                        <i className="fas fa-pen text-[10px]" /> Edit
                       </button>
                       {u.id !== myId ? (
                         <button onClick={() => setDeleteTarget(u)}
                           className="flex-1 py-2 bg-red-50 text-red-500 rounded-xl text-xs font-bold hover:bg-red-100 transition-colors flex items-center justify-center gap-1.5">
-                          🗑 Delete
+                          <i className="fas fa-trash-can text-[10px]" /> Delete
                         </button>
                       ) : (
-                        <div className="flex-1 py-2 bg-gray-50 text-gray-300 rounded-xl text-xs font-bold text-center cursor-not-allowed">Delete</div>
+                        <div className="flex-1 py-2 bg-gray-50 text-gray-300 rounded-xl text-xs font-bold text-center cursor-not-allowed flex items-center justify-center gap-1.5">
+                          <i className="fas fa-ban text-[10px]" /> Delete
+                        </div>
                       )}
                     </div>
                   </div>
@@ -391,7 +430,8 @@ export default function UserManagement() {
             </div>
 
             {/* Footer count */}
-            <div className="px-5 py-3 border-t border-gray-50 bg-gray-50/50">
+            <div className="px-5 py-3 border-t border-gray-50 bg-gray-50/50 flex items-center gap-2">
+              <i className="fas fa-circle-info text-gray-400 text-xs" />
               <p className="text-xs text-gray-400">
                 Showing <span className="font-bold text-gray-600">{filtered.length}</span> of{" "}
                 <span className="font-bold text-gray-600">{users.length}</span> users
@@ -403,7 +443,9 @@ export default function UserManagement() {
 
       {/* Security notice */}
       <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-100 rounded-2xl">
-        <span className="text-amber-500 text-lg flex-shrink-0 mt-0.5">⚠️</span>
+        <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <i className="fas fa-triangle-exclamation text-amber-500 text-sm" />
+        </div>
         <div>
           <p className="text-xs font-bold text-amber-700 mb-0.5">Security Notes</p>
           <p className="text-xs text-amber-600 leading-relaxed">
