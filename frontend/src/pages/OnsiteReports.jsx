@@ -380,7 +380,7 @@ export default function OnsiteReports() {
         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
           <p className="text-4xl mb-3">📋</p>
           <p className="text-gray-500 font-medium">
-            {filters.search || activeFiltersCount > 0 ? "Tidak ada report yang cocok" : "Belum ada onsite report"}
+            {filters.search || activeFiltersCount > 0 ? "Tidak ada report yang cocok" : "No onsite report yet"}
           </p>
           {!filters.search && activeFiltersCount === 0 && (
             <button onClick={() => navigate("/onsite/create")} className="mt-4 px-5 py-2 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold">

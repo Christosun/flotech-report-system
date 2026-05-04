@@ -6,11 +6,15 @@ function formatRupiah(val) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(parseFloat(val) || 0);
 }
 
-function StatCard({ icon, label, value, sub, color, onClick }) {
+function StatCard({ icon, label, value, sub, color, iconColor, onClick }) {
   return (
-    <button onClick={onClick}
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-left hover:shadow-md transition-all hover:border-[#0B3D91]/40 group w-full">
-      <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg mb-3 ${color}`}>{icon}</div>
+    <button
+      onClick={onClick}
+      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-left hover:shadow-md transition-all hover:border-[#0B3D91]/40 group w-full"
+    >
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${color}`}>
+        <i className={`${icon} text-sm ${iconColor}`}></i>
+      </div>
       <p className="text-2xl font-black text-gray-800 group-hover:text-[#0B3D91] transition-colors">{value}</p>
       <p className="text-xs font-bold text-gray-700 mt-0.5">{label}</p>
       <p className="text-xs text-gray-400">{sub}</p>
@@ -19,10 +23,10 @@ function StatCard({ icon, label, value, sub, color, onClick }) {
 }
 
 const TYPE_COLORS = {
-  commissioning:  "bg-blue-100 text-blue-700",
-  investigation:  "bg-purple-100 text-purple-700",
-  troubleshooting:"bg-orange-100 text-orange-700",
-  service:        "bg-green-100 text-green-700",
+  commissioning:   "bg-blue-100 text-blue-700",
+  investigation:   "bg-purple-100 text-purple-700",
+  troubleshooting: "bg-orange-100 text-orange-700",
+  service:         "bg-green-100 text-green-700",
 };
 const QS_COLORS = {
   draft:    "bg-gray-100 text-gray-600",
@@ -49,10 +53,10 @@ export default function Dashboard() {
     wonValue: 0, pipeline: 0,
     onsiteDraft: 0, onsiteApproved: 0,
   });
-  const [recentReports, setRecentReports]     = useState([]);
+  const [recentReports, setRecentReports]       = useState([]);
   const [recentQuotations, setRecentQuotations] = useState([]);
-  const [recentOnsite, setRecentOnsite]       = useState([]);
-  const [recentSurat, setRecentSurat]         = useState([]);
+  const [recentOnsite, setRecentOnsite]         = useState([]);
+  const [recentSurat, setRecentSurat]           = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -64,24 +68,24 @@ export default function Dashboard() {
       API.get("/onsite/list").catch(() => ({ data: [] })),
       API.get("/surat/list").catch(() => ({ data: [] })),
     ]).then(([r, q, s, c, o, su]) => {
-      const reports     = r.data  || [];
-      const quotations  = q.data  || [];
-      const stock       = s.data  || [];
-      const catalog     = c.data  || [];
-      const onsite      = o.data  || [];
-      const surat       = su.data || [];
+      const reports    = r.data  || [];
+      const quotations = q.data  || [];
+      const stock      = s.data  || [];
+      const catalog    = c.data  || [];
+      const onsite     = o.data  || [];
+      const surat      = su.data || [];
 
       setStats({
-        reports:       reports.length,
-        quotations:    quotations.length,
-        stock:         stock.length,
-        catalog:       catalog.length,
-        onsite:        onsite.length,
-        surat:         surat.length,
-        wonValue:      quotations.filter(q => q.status === "won").reduce((s, q) => s + (q.total_amount || 0), 0),
-        pipeline:      quotations.filter(q => ["draft","sent","followup"].includes(q.status)).reduce((s, q) => s + (q.total_amount || 0), 0),
-        onsiteDraft:   onsite.filter(o => o.status === "draft").length,
-        onsiteApproved:onsite.filter(o => o.status === "approved").length,
+        reports:        reports.length,
+        quotations:     quotations.length,
+        stock:          stock.length,
+        catalog:        catalog.length,
+        onsite:         onsite.length,
+        surat:          surat.length,
+        wonValue:       quotations.filter(q => q.status === "won").reduce((s, q) => s + (q.total_amount || 0), 0),
+        pipeline:       quotations.filter(q => ["draft","sent","followup"].includes(q.status)).reduce((s, q) => s + (q.total_amount || 0), 0),
+        onsiteDraft:    onsite.filter(o => o.status === "draft").length,
+        onsiteApproved: onsite.filter(o => o.status === "approved").length,
       });
 
       setRecentReports(reports.slice(0, 4));
@@ -94,7 +98,10 @@ export default function Dashboard() {
 
   const userName = localStorage.getItem("user_name") || "User";
   const hour = new Date().getHours();
-  const greeting = hour < 11 ? "Good morning" : hour < 15 ? "Good afternoon" : hour < 18 ? "Good evening" : "Good night";
+  const greeting =
+    hour < 11 ? "Good morning" :
+    hour < 15 ? "Good afternoon" :
+    hour < 18 ? "Good evening" : "Good night";
 
   if (loading) return (
     <div className="flex justify-center items-center h-64">
@@ -106,29 +113,84 @@ export default function Dashboard() {
     <div>
       {/* Welcome */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">{greeting}, {userName} 👋</h1>
-        <p className="text-gray-400 text-sm mt-0.5">PT Flotech Controls Indonesia — Report & Management Apps</p>
+        <h1 className="text-2xl font-bold text-gray-800">
+          {greeting}, {userName}{" "}
+          <i className="fas fa-hand-wave text-yellow-400 text-xl"></i>
+        </h1>
+        <p className="text-gray-400 text-sm mt-0.5">PT Flotech Controls Indonesia — Report &amp; Management Apps</p>
       </div>
 
-      {/* ── MAIN STATS (6 cards, 2 rows) ────────────────────── */}
+      {/* ── MAIN STATS (6 cards) ────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-        <StatCard icon="📋" label="Official Reports" value={stats.reports} sub="Total official report" color="bg-blue-50" onClick={() => navigate("/reports")} />
-        <StatCard icon="🔧" label="Onsite Reports" value={stats.onsite} sub={`${stats.onsiteDraft} draft`} color="bg-cyan-50" onClick={() => navigate("/onsite")} />
-        <StatCard icon="📄" label="Quotations" value={stats.quotations} sub="Total quotation" color="bg-indigo-50" onClick={() => navigate("/quotations")} />
-        <StatCard icon="📜" label="Material Handover" value={stats.surat} sub="Total letters" color="bg-purple-50" onClick={() => navigate("/surat")} />
-        <StatCard icon="📦" label="Stock & Demo" value={stats.stock} sub="Registered units" color="bg-orange-50" onClick={() => navigate("/stock")} />
-        <StatCard icon="📚" label="Catalog" value={stats.catalog} sub="Document" color="bg-teal-50" onClick={() => navigate("/catalog")} />
+        <StatCard
+          icon="fas fa-file-lines"
+          iconColor="text-blue-600"
+          label="Official Reports"
+          value={stats.reports}
+          sub="Total official report"
+          color="bg-blue-50"
+          onClick={() => navigate("/reports")}
+        />
+        <StatCard
+          icon="fas fa-screwdriver-wrench"
+          iconColor="text-cyan-600"
+          label="Onsite Reports"
+          value={stats.onsite}
+          sub={`${stats.onsiteDraft} draft`}
+          color="bg-cyan-50"
+          onClick={() => navigate("/onsite")}
+        />
+        <StatCard
+          icon="fas fa-file-invoice"
+          iconColor="text-indigo-600"
+          label="Quotations"
+          value={stats.quotations}
+          sub="Total quotation"
+          color="bg-indigo-50"
+          onClick={() => navigate("/quotations")}
+        />
+        <StatCard
+          icon="fas fa-file-contract"
+          iconColor="text-purple-600"
+          label="Material Handover"
+          value={stats.surat}
+          sub="Total letters"
+          color="bg-purple-50"
+          onClick={() => navigate("/surat")}
+        />
+        <StatCard
+          icon="fas fa-boxes-stacked"
+          iconColor="text-orange-600"
+          label="Stock &amp; Demo"
+          value={stats.stock}
+          sub="Registered units"
+          color="bg-orange-50"
+          onClick={() => navigate("/stock")}
+        />
+        <StatCard
+          icon="fas fa-book-open"
+          iconColor="text-teal-600"
+          label="Catalog"
+          value={stats.catalog}
+          sub="Document"
+          color="bg-teal-50"
+          onClick={() => navigate("/catalog")}
+        />
       </div>
 
       {/* ── REVENUE CARDS ────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <div className="bg-gradient-to-r from-[#0B3D91] to-[#1E5CC6] rounded-2xl p-5 text-white">
-          <p className="text-xs font-bold text-blue-200 uppercase tracking-wider mb-1">💰 Won Revenue</p>
+          <p className="text-xs font-bold text-blue-200 uppercase tracking-wider mb-1">
+            <i className="fas fa-coins mr-1.5"></i>Won Revenue
+          </p>
           <p className="text-2xl font-black">{formatRupiah(stats.wonValue)}</p>
           <p className="text-blue-300 text-xs mt-1">Total value of quotations that were successfully closed</p>
         </div>
         <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-5 text-white">
-          <p className="text-xs font-bold text-orange-100 uppercase tracking-wider mb-1">📈 Pipeline Value</p>
+          <p className="text-xs font-bold text-orange-100 uppercase tracking-wider mb-1">
+            <i className="fas fa-chart-line mr-1.5"></i>Pipeline Value
+          </p>
           <p className="text-2xl font-black">{formatRupiah(stats.pipeline)}</p>
           <p className="text-orange-100 text-xs mt-1">Quotation value is in process</p>
         </div>
@@ -139,34 +201,41 @@ export default function Dashboard() {
         <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Quick Actions</p>
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
           {[
-            { icon: "✏️", label: "Official Report",   link: "/reports/create", color: "bg-blue-50 hover:bg-blue-100 text-blue-700" },
-            { icon: "🔧", label: "Onsite Report", link: "/onsite/create",  color: "bg-cyan-50 hover:bg-cyan-100 text-cyan-700" },
-            { icon: "📄", label: "Quotation",     link: "/quotations",     color: "bg-indigo-50 hover:bg-indigo-100 text-indigo-700" },
-            { icon: "📜", label: "Material Handover",  link: "/surat/create",   color: "bg-purple-50 hover:bg-purple-100 text-purple-700" },
-            { icon: "📦", label: "Add Unit",   link: "/stock",          color: "bg-orange-50 hover:bg-orange-100 text-orange-700" },
-            { icon: "📚", label: "Upload Catalog",link: "/catalog",        color: "bg-teal-50 hover:bg-teal-100 text-teal-700" },
+            { icon: "fas fa-pen-to-square", label: "Official Report",   link: "/reports/create", color: "bg-blue-50 hover:bg-blue-100 text-blue-700" },
+            { icon: "fas fa-screwdriver-wrench", label: "Onsite Report", link: "/onsite/create",  color: "bg-cyan-50 hover:bg-cyan-100 text-cyan-700" },
+            { icon: "fas fa-file-invoice",  label: "Quotation",          link: "/quotations",     color: "bg-indigo-50 hover:bg-indigo-100 text-indigo-700" },
+            { icon: "fas fa-file-signature",label: "Material Handover",  link: "/surat/create",   color: "bg-purple-50 hover:bg-purple-100 text-purple-700" },
+            { icon: "fas fa-cube",          label: "Add Unit",            link: "/stock",          color: "bg-orange-50 hover:bg-orange-100 text-orange-700" },
+            { icon: "fas fa-upload",        label: "Upload Catalog",      link: "/catalog",        color: "bg-teal-50 hover:bg-teal-100 text-teal-700" },
           ].map(a => (
-            <button key={a.label} onClick={() => navigate(a.link)}
-              className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl font-semibold text-xs transition-all ${a.color}`}>
-              <span className="text-xl">{a.icon}</span>
+            <button
+              key={a.label}
+              onClick={() => navigate(a.link)}
+              className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl font-semibold text-xs transition-all ${a.color}`}
+            >
+              <i className={`${a.icon} text-lg`}></i>
               <span className="text-center leading-tight">{a.label}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* ── RECENT ACTIVITY: 2x2 grid ────────────────────────── */}
+      {/* ── RECENT ACTIVITY: 2×2 grid ────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
-        {/* Recent Field Reports */}
+        {/* Recent Official Reports */}
         <RecentCard
-          title="📋 Latest Official Reports"
+          icon="fas fa-file-lines"
+          title="Latest Official Reports"
           link="/reports"
           empty={recentReports.length === 0}
         >
           {recentReports.map(r => (
-            <div key={r.id} onClick={() => navigate(`/reports/${r.id}`)}
-              className="px-4 py-3 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors">
+            <div
+              key={r.id}
+              onClick={() => navigate(`/reports/${r.id}`)}
+              className="px-4 py-3 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors"
+            >
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-gray-800 truncate">{r.report_number}</p>
                 <p className="text-xs text-gray-400 truncate">{r.client_name}</p>
@@ -180,14 +249,18 @@ export default function Dashboard() {
 
         {/* Recent Onsite Reports */}
         <RecentCard
-          title="🔧 Latest Onsite Reports"
+          icon="fas fa-screwdriver-wrench"
+          title="Latest Onsite Reports"
           link="/onsite"
           empty={recentOnsite.length === 0}
           emptyMsg="There is no onsite report yet"
         >
           {recentOnsite.map(r => (
-            <div key={r.id} onClick={() => navigate(`/onsite/${r.id}`)}
-              className="px-4 py-3 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors">
+            <div
+              key={r.id}
+              onClick={() => navigate(`/onsite/${r.id}`)}
+              className="px-4 py-3 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors"
+            >
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-gray-800 truncate">{r.report_number}</p>
                 <p className="text-xs text-gray-400 truncate">
@@ -210,13 +283,17 @@ export default function Dashboard() {
 
         {/* Recent Quotations */}
         <RecentCard
-          title="📄 Latest Quotations"
+          icon="fas fa-file-invoice-dollar"
+          title="Latest Quotations"
           link="/quotations"
           empty={recentQuotations.length === 0}
         >
           {recentQuotations.map(q => (
-            <div key={q.id} onClick={() => navigate(`/quotations/${q.id}`)}
-              className="px-4 py-3 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors">
+            <div
+              key={q.id}
+              onClick={() => navigate(`/quotations/${q.id}`)}
+              className="px-4 py-3 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors"
+            >
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-[#0B3D91] truncate">{q.quotation_number}</p>
                 <p className="text-xs text-gray-400 truncate">{q.customer_company}</p>
@@ -233,14 +310,18 @@ export default function Dashboard() {
 
         {/* Recent Surat Serah Terima */}
         <RecentCard
-          title="📜 Latest Material Handover Letter"
+          icon="fas fa-file-contract"
+          title="Latest Material Handover Letter"
           link="/surat"
           empty={recentSurat.length === 0}
           emptyMsg="There is no material handover letter yet"
         >
           {recentSurat.map(s => (
-            <div key={s.id} onClick={() => navigate(`/surat/${s.id}`)}
-              className="px-4 py-3 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors">
+            <div
+              key={s.id}
+              onClick={() => navigate(`/surat/${s.id}`)}
+              className="px-4 py-3 flex items-center justify-between hover:bg-gray-50 cursor-pointer transition-colors"
+            >
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-gray-800 truncate">{s.surat_number}</p>
                 <p className="text-xs text-gray-400 truncate">
@@ -269,12 +350,15 @@ export default function Dashboard() {
 }
 
 /* ── Reusable Recent Card ─────────────────────────────────── */
-function RecentCard({ title, link, empty, emptyMsg = "No data yet", children }) {
+function RecentCard({ icon, title, link, empty, emptyMsg = "No data yet", children }) {
   const navigate = useNavigate();
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="px-4 py-3.5 border-b border-gray-50 flex items-center justify-between">
-        <h2 className="font-bold text-gray-800 text-sm">{title}</h2>
+        <h2 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+          <i className={`${icon} text-[#0B3D91] text-xs`}></i>
+          {title}
+        </h2>
         <button onClick={() => navigate(link)} className="text-xs text-[#0B3D91] font-semibold hover:underline">
           See all →
         </button>

@@ -110,7 +110,7 @@ export default function SuratSerahTerima() {
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
           <p className="text-4xl mb-3">📜</p>
-          <p className="text-gray-500 font-medium">Belum ada surat serah terima</p>
+          <p className="text-gray-500 font-medium">No handover letter yet</p>
           <button onClick={() => navigate("/surat/create")} className="mt-4 px-5 py-2 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold">Buat Pertama</button>
         </div>
       ) : (

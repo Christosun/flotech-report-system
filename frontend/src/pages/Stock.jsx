@@ -400,7 +400,7 @@ export default function Stock() {
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
           <p className="text-4xl mb-3">📦</p>
-          <p className="text-gray-500 font-medium">Belum ada unit</p>
+          <p className="text-gray-500 font-medium">No units yet</p>
         </div>
       ) : viewMode === "grouped" ? (
         /* ── GROUPED VIEW ─────────────────────────────────────── */

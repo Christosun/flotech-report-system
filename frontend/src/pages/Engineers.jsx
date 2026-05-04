@@ -2,20 +2,23 @@ import { useState, useEffect, useRef } from "react";
 import API from "../services/api";
 import toast from "react-hot-toast";
 
+// Font Awesome CDN is loaded via index.html or a global import.
+// If not yet added, add this to your index.html <head>:
+// <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
 const EMPTY_FORM = {
   name: "", employee_id: "", position: "", department: "",
   specialization: "", email: "", phone: "", years_experience: "",
-  // certification intentionally removed
 };
 
-/* ─── Reusable Elegant Delete Dialog ─────────────────────────── */
+/* ─── Reusable Delete Dialog ─────────────────────────────────── */
 function DeleteDialog({ name, onConfirm, onCancel, loading }) {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
         <div className="bg-gradient-to-br from-red-50 to-rose-100 px-6 pt-6 pb-4 text-center">
           <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <span className="text-2xl">🗑</span>
+            <i className="fa-solid fa-trash-can text-red-500 text-xl" />
           </div>
           <h3 className="text-lg font-bold text-gray-800">Delete Engineer?</h3>
           <p className="text-sm text-gray-500 mt-1">
@@ -34,7 +37,10 @@ function DeleteDialog({ name, onConfirm, onCancel, loading }) {
             disabled={loading}
             className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
           >
-            {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
+            {loading
+              ? <i className="fa-solid fa-circle-notch fa-spin text-white" />
+              : <i className="fa-solid fa-trash-can" />
+            }
             Delete
           </button>
         </div>
@@ -44,19 +50,19 @@ function DeleteDialog({ name, onConfirm, onCancel, loading }) {
 }
 
 export default function Engineers() {
-  const [engineers, setEngineers]   = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [showModal, setShowModal]   = useState(false);
+  const [engineers, setEngineers]       = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [showModal, setShowModal]       = useState(false);
   const [showSigModal, setShowSigModal] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null); // { id, name }
-  const [deleting, setDeleting]     = useState(false);
-  const [editId, setEditId]         = useState(null);
-  const [form, setForm]             = useState(EMPTY_FORM);
-  const [saving, setSaving]         = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting]         = useState(false);
+  const [editId, setEditId]             = useState(null);
+  const [form, setForm]                 = useState(EMPTY_FORM);
+  const [saving, setSaving]             = useState(false);
 
-  const canvasRef  = useRef(null);
-  const isDrawing  = useRef(false);
-  const lastPos    = useRef(null);
+  const canvasRef = useRef(null);
+  const isDrawing = useRef(false);
+  const lastPos   = useRef(null);
 
   const fetchEngineers = async () => {
     setLoading(true);
@@ -67,7 +73,7 @@ export default function Engineers() {
 
   useEffect(() => { fetchEngineers(); }, []);
 
-  // Signature canvas setup
+  /* ── Signature canvas ── */
   useEffect(() => {
     if (!showSigModal) return;
     const canvas = canvasRef.current;
@@ -114,7 +120,7 @@ export default function Engineers() {
     setSaving(true);
     try {
       await API.post(`/engineer/signature/${showSigModal}`, { signature_data: c.toDataURL("image/png") });
-      toast.success("Signature saved! ✍️"); setShowSigModal(null); fetchEngineers();
+      toast.success("Signature saved!"); setShowSigModal(null); fetchEngineers();
     } catch { toast.error("Failed to save signature"); }
     finally { setSaving(false); }
   };
@@ -125,10 +131,10 @@ export default function Engineers() {
     try {
       if (editId) {
         await API.put(`/engineer/update/${editId}`, form);
-        toast.success("Engineer diperbarui!");
+        toast.success("Engineer updated!");
       } else {
         await API.post("/engineer/create", form);
-        toast.success("Engineer ditambahkan! 👷");
+        toast.success("Engineer added!");
       }
       setShowModal(false); setEditId(null); setForm(EMPTY_FORM); fetchEngineers();
     } catch (err) { toast.error(err.response?.data?.error || "Failed to save"); }
@@ -181,19 +187,22 @@ export default function Engineers() {
           onClick={() => { setForm(EMPTY_FORM); setEditId(null); setShowModal(true); }}
           className="self-start sm:self-auto flex items-center gap-2 px-4 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] transition-colors"
         >
-          + Add Engineer
+          <i className="fa-solid fa-user-plus text-xs" />
+          Add Engineer
         </button>
       </div>
 
       {/* Grid */}
       {loading ? (
         <div className="flex justify-center items-center h-40">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0B3D91]" />
+          <i className="fa-solid fa-circle-notch fa-spin text-[#0B3D91] text-3xl" />
         </div>
       ) : engineers.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
-          <p className="text-4xl mb-3">👷</p>
-          <p className="text-gray-500 font-medium">Belum ada engineer</p>
+          <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <i className="fa-solid fa-helmet-safety text-[#0B3D91] text-2xl" />
+          </div>
+          <p className="text-gray-500 font-medium">No engineers yet</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -217,27 +226,32 @@ export default function Engineers() {
               <div className="space-y-1.5 mb-4">
                 {eng.department && (
                   <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <span>🏢</span><span>{eng.department}</span>
+                    <i className="fa-solid fa-building w-4 text-center text-gray-400" />
+                    <span>{eng.department}</span>
                   </div>
                 )}
                 {eng.specialization && (
                   <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <span>⚙️</span><span className="truncate">{eng.specialization}</span>
+                    <i className="fa-solid fa-gear w-4 text-center text-gray-400" />
+                    <span className="truncate">{eng.specialization}</span>
                   </div>
                 )}
                 {eng.email && (
                   <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <span>✉️</span><span className="truncate">{eng.email}</span>
+                    <i className="fa-solid fa-envelope w-4 text-center text-gray-400" />
+                    <span className="truncate">{eng.email}</span>
                   </div>
                 )}
                 {eng.phone && (
                   <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <span>📞</span><span>{eng.phone}</span>
+                    <i className="fa-solid fa-phone w-4 text-center text-gray-400" />
+                    <span>{eng.phone}</span>
                   </div>
                 )}
                 {eng.years_experience > 0 && (
                   <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <span>⏱</span><span>{eng.years_experience} tahun pengalaman</span>
+                    <i className="fa-solid fa-clock-rotate-left w-4 text-center text-gray-400" />
+                    <span>{eng.years_experience} years experience</span>
                   </div>
                 )}
               </div>
@@ -245,25 +259,27 @@ export default function Engineers() {
               {/* Signature status */}
               <div className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg mb-4 w-fit
                 ${eng.has_signature ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-400"}`}>
-                <span>{eng.has_signature ? "✍️" : "○"}</span>
+                <i className={`fa-solid ${eng.has_signature ? "fa-signature text-green-600" : "fa-pen-slash"} text-xs`} />
                 <span>{eng.has_signature ? "Signature saved" : "No signature yet"}</span>
               </div>
 
               {/* Actions */}
               <div className="flex gap-2">
                 <button onClick={() => openEdit(eng)}
-                  className="flex-1 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-100 transition-colors">
+                  className="flex-1 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-100 transition-colors flex items-center justify-center gap-1.5">
+                  <i className="fa-solid fa-pen-to-square text-xs" />
                   Edit
                 </button>
                 <button onClick={() => setShowSigModal(eng.id)}
-                  className="flex-1 py-2 bg-[#0B3D91] text-white rounded-lg text-xs font-semibold hover:bg-[#1E5CC6] transition-colors">
+                  className="flex-1 py-2 bg-[#0B3D91] text-white rounded-lg text-xs font-semibold hover:bg-[#1E5CC6] transition-colors flex items-center justify-center gap-1.5">
+                  <i className="fa-solid fa-signature text-xs" />
                   Signature
                 </button>
                 <button
                   onClick={() => setDeleteTarget({ id: eng.id, name: eng.name })}
                   className="py-2 px-3 bg-red-50 text-red-500 rounded-lg text-xs font-semibold hover:bg-red-100 transition-colors"
                 >
-                  🗑
+                  <i className="fa-solid fa-trash-can" />
                 </button>
               </div>
             </div>
@@ -271,67 +287,103 @@ export default function Engineers() {
         </div>
       )}
 
-      {/* Add/Edit Modal — no certification field */}
+      {/* Add/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="p-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl z-10">
-              <h2 className="text-lg font-bold text-gray-800">{editId ? "Edit Engineer" : "Add Engineer"}</h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                  <i className={`fa-solid ${editId ? "fa-user-pen" : "fa-user-plus"} text-[#0B3D91] text-sm`} />
+                </div>
+                <h2 className="text-lg font-bold text-gray-800">{editId ? "Edit Engineer" : "Add Engineer"}</h2>
+              </div>
+              <button onClick={() => setShowModal(false)}
+                className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition-colors">
+                <i className="fa-solid fa-xmark text-sm" />
+              </button>
             </div>
             <div className="p-5 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
                   <label className={labelClass}>Full Name *</label>
-                  <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
-                    placeholder="Nama lengkap engineer" className={inputClass} />
+                  <div className="relative">
+                    <i className="fa-solid fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
+                    <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+                      placeholder="Engineer's full name" className={inputClass + " pl-8"} />
+                  </div>
                 </div>
                 <div>
                   <label className={labelClass}>Employee ID</label>
-                  <input value={form.employee_id} onChange={e => setForm({ ...form, employee_id: e.target.value })}
-                    placeholder="FJKT-001" className={inputClass} />
+                  <div className="relative">
+                    <i className="fa-solid fa-id-badge absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
+                    <input value={form.employee_id} onChange={e => setForm({ ...form, employee_id: e.target.value })}
+                      placeholder="FJKT-001" className={inputClass + " pl-8"} />
+                  </div>
                 </div>
                 <div>
                   <label className={labelClass}>Job Position</label>
-                  <input value={form.position} onChange={e => setForm({ ...form, position: e.target.value })}
-                    placeholder="Senior Engineer" className={inputClass} />
+                  <div className="relative">
+                    <i className="fa-solid fa-briefcase absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
+                    <input value={form.position} onChange={e => setForm({ ...form, position: e.target.value })}
+                      placeholder="Senior Engineer" className={inputClass + " pl-8"} />
+                  </div>
                 </div>
                 <div>
                   <label className={labelClass}>Department</label>
-                  <input value={form.department} onChange={e => setForm({ ...form, department: e.target.value })}
-                    placeholder="Instrumentation" className={inputClass} />
+                  <div className="relative">
+                    <i className="fa-solid fa-building absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
+                    <input value={form.department} onChange={e => setForm({ ...form, department: e.target.value })}
+                      placeholder="Instrumentation" className={inputClass + " pl-8"} />
+                  </div>
                 </div>
                 <div>
-                  <label className={labelClass}>Year of Experience</label>
-                  <input type="number" min="0" value={form.years_experience}
-                    onChange={e => setForm({ ...form, years_experience: e.target.value })}
-                    placeholder="5" className={inputClass} />
+                  <label className={labelClass}>Years of Experience</label>
+                  <div className="relative">
+                    <i className="fa-solid fa-clock-rotate-left absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
+                    <input type="number" min="0" value={form.years_experience}
+                      onChange={e => setForm({ ...form, years_experience: e.target.value })}
+                      placeholder="5" className={inputClass + " pl-8"} />
+                  </div>
                 </div>
                 <div className="sm:col-span-2">
                   <label className={labelClass}>Specialization</label>
-                  <input value={form.specialization} onChange={e => setForm({ ...form, specialization: e.target.value })}
-                    placeholder="Flow, Level, Pressure, Analyzer..." className={inputClass} />
+                  <div className="relative">
+                    <i className="fa-solid fa-gear absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
+                    <input value={form.specialization} onChange={e => setForm({ ...form, specialization: e.target.value })}
+                      placeholder="Flow, Level, Pressure, Analyzer..." className={inputClass + " pl-8"} />
+                  </div>
                 </div>
                 <div>
                   <label className={labelClass}>Email</label>
-                  <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
-                    placeholder="email@flotech.co.id" className={inputClass} />
+                  <div className="relative">
+                    <i className="fa-solid fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
+                    <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
+                      placeholder="email@flotech.co.id" className={inputClass + " pl-8"} />
+                  </div>
                 </div>
                 <div>
-                  <label className={labelClass}>Telepon</label>
-                  <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })}
-                    placeholder="+62..." className={inputClass} />
+                  <label className={labelClass}>Phone</label>
+                  <div className="relative">
+                    <i className="fa-solid fa-phone absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
+                    <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })}
+                      placeholder="+62..." className={inputClass + " pl-8"} />
+                  </div>
                 </div>
               </div>
             </div>
             <div className="p-5 border-t border-gray-100 flex gap-3 justify-end sticky bottom-0 bg-white rounded-b-2xl">
               <button onClick={() => setShowModal(false)}
-                className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
+                className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-2">
+                <i className="fa-solid fa-xmark text-xs" />
                 Cancel
               </button>
               <button onClick={handleSubmit} disabled={saving}
                 className="px-6 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] disabled:opacity-60 flex items-center gap-2">
-                {saving ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Menyimpan...</> : "Save Engineer"}
+                {saving
+                  ? <><i className="fa-solid fa-circle-notch fa-spin text-xs" /> Saving...</>
+                  : <><i className="fa-solid fa-floppy-disk text-xs" /> Save Engineer</>
+                }
               </button>
             </div>
           </div>
@@ -343,11 +395,19 @@ export default function Engineers() {
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
             <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-gray-800">Digital Signature</h2>
-                <p className="text-xs text-gray-400 mt-0.5">Draw a signature in the box below</p>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                  <i className="fa-solid fa-signature text-[#0B3D91] text-sm" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-800">Digital Signature</h2>
+                  <p className="text-xs text-gray-400 mt-0.5">Draw a signature in the box below</p>
+                </div>
               </div>
-              <button onClick={() => setShowSigModal(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+              <button onClick={() => setShowSigModal(null)}
+                className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition-colors">
+                <i className="fa-solid fa-xmark text-sm" />
+              </button>
             </div>
             <div className="p-5">
               <div className="border-2 border-dashed border-gray-300 rounded-xl overflow-hidden bg-blue-50 relative">
@@ -359,12 +419,16 @@ export default function Engineers() {
               </div>
               <div className="flex gap-3 mt-4">
                 <button onClick={clearSignature}
-                  className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
-                  Delete
+                  className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 flex items-center justify-center gap-2">
+                  <i className="fa-solid fa-eraser text-xs" />
+                  Clear
                 </button>
                 <button onClick={saveSignature} disabled={saving}
                   className="flex-1 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] disabled:opacity-60 flex items-center justify-center gap-2">
-                  {saving ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Saving...</> : "✍️ Save Signature"}
+                  {saving
+                    ? <><i className="fa-solid fa-circle-notch fa-spin text-xs" /> Saving...</>
+                    : <><i className="fa-solid fa-signature text-xs" /> Save Signature</>
+                  }
                 </button>
               </div>
             </div>
