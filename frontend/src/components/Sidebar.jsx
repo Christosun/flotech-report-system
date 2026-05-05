@@ -231,7 +231,7 @@ export default function Sidebar({ open, onClose }) {
         {/* Footer — hidden in compact */}
         {!compact && (
           <div className="px-4 py-3 border-t border-white border-opacity-5">
-            <p className="text-[9px] text-white opacity-40 text-center leading-relaxed select-none">
+            <p className="text-[9px] text-white opacity-60 text-center leading-relaxed select-none">
               Developed by PT Flotech Controls Indonesia<br />
               2026 · All Rights Reserved
             </p>

@@ -3,6 +3,46 @@ import { useParams, useNavigate } from "react-router-dom";
 import API from "../services/api";
 import toast from "react-hot-toast";
 import { compressImage, formatBytes } from "../utils/imageCompressor";
+import {
+  ArrowLeft,
+  Trash2,
+  Eye,
+  Download,
+  Pencil,
+  X,
+  Check,
+  Camera,
+  ChevronRight,
+  Building2,
+  Wrench,
+  ClipboardList,
+  ImageIcon,
+  PenLine,
+  FileText,
+  Plus,
+  AlertTriangle,
+  Loader2,
+  Bold,
+  Italic,
+  Underline,
+  List,
+  ListOrdered,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
+  Palette,
+  Image,
+  Upload,
+  ZapIcon,
+  Info,
+  User,
+  Phone,
+  MapPin,
+  Hash,
+  CalendarDays,
+  Signature,
+} from "lucide-react";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -17,12 +57,16 @@ function PDFModal({ url, name, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex flex-col">
       <div className="flex items-center justify-between px-5 py-3 bg-[#0B3D91]">
-        <span className="text-white font-bold text-sm">📋 {name} — Preview</span>
+        <span className="text-white font-bold text-sm flex items-center gap-2">
+          <FileText className="w-4 h-4" /> {name} — Preview
+        </span>
         <div className="flex items-center gap-2">
-          <a href={url} download className="px-4 py-1.5 bg-white text-[#0B3D91] rounded-lg text-xs font-bold hover:bg-blue-50 transition-colors">
-            ⬇ Download
+          <a href={url} download className="flex items-center gap-1.5 px-4 py-1.5 bg-white text-[#0B3D91] rounded-lg text-xs font-bold hover:bg-blue-50 transition-colors">
+            <Download className="w-3.5 h-3.5" /> Download
           </a>
-          <button onClick={onClose} className="text-white/70 hover:text-white text-xl px-2">✕</button>
+          <button onClick={onClose} className="text-white/70 hover:text-white px-2">
+            <X className="w-5 h-5" />
+          </button>
         </div>
       </div>
       <iframe src={url} className="flex-1 w-full" style={{ border: "none" }} />
@@ -37,10 +81,7 @@ function DeleteDialog({ title, description, onConfirm, onCancel, loading }) {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
         <div className="bg-gradient-to-br from-red-50 to-rose-100 px-6 pt-6 pb-4 text-center">
           <div className="w-14 h-14 bg-red-100 border-4 border-red-200 rounded-full flex items-center justify-center mx-auto mb-3">
-            <svg className="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
+            <Trash2 className="w-7 h-7 text-red-500" />
           </div>
           <h3 className="text-base font-bold text-gray-900">{title}</h3>
           {description && <p className="text-sm text-gray-500 mt-1">{description}</p>}
@@ -52,7 +93,7 @@ function DeleteDialog({ title, description, onConfirm, onCancel, loading }) {
           </button>
           <button onClick={onConfirm} disabled={loading}
             className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-60">
-            {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
             {loading ? "Deleting..." : "Delete"}
           </button>
         </div>
@@ -90,7 +131,7 @@ function SignaturePad({ label, value, onChange }) {
   };
   const saveSig = () => {
     if (!hasDrawn) { toast.error("Make a signature first"); return; }
-    onChange(canvasRef.current.toDataURL("image/png")); setShowPad(false); toast.success("Signature saved ✅");
+    onChange(canvasRef.current.toDataURL("image/png")); setShowPad(false); toast.success("Signature saved");
   };
 
   return (
@@ -99,11 +140,15 @@ function SignaturePad({ label, value, onChange }) {
       {value ? (
         <div className="border border-gray-200 rounded-xl bg-gray-50 p-3 relative">
           <img src={value} alt="Signature" className="h-16 mx-auto object-contain" />
-          <button onClick={() => onChange("")} className="absolute top-2 right-2 text-xs text-red-500 hover:underline">Delete</button>
+          <button onClick={() => onChange("")}
+            className="absolute top-2 right-2 flex items-center gap-1 text-xs text-red-500 hover:underline">
+            <Trash2 className="w-3 h-3" /> Delete
+          </button>
         </div>
       ) : (
-        <button onClick={() => setShowPad(true)} className="w-full border-2 border-dashed border-gray-200 rounded-xl py-5 text-gray-400 text-sm hover:border-[#0B3D91] hover:text-[#0B3D91] transition-colors">
-          + Add Signature
+        <button onClick={() => setShowPad(true)}
+          className="w-full border-2 border-dashed border-gray-200 rounded-xl py-5 text-gray-400 text-sm hover:border-[#0B3D91] hover:text-[#0B3D91] transition-colors flex items-center justify-center gap-2">
+          <PenLine className="w-4 h-4" /> Add Signature
         </button>
       )}
       {showPad && (
@@ -111,7 +156,9 @@ function SignaturePad({ label, value, onChange }) {
           <div className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl">
             <div className="flex items-center justify-between mb-3">
               <p className="font-bold text-gray-800 text-sm">{label}</p>
-              <button onClick={() => setShowPad(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+              <button onClick={() => setShowPad(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
             </div>
             <canvas ref={canvasRef} width={320} height={150}
               className="border border-gray-200 rounded-xl w-full touch-none cursor-crosshair bg-gray-50"
@@ -119,7 +166,9 @@ function SignaturePad({ label, value, onChange }) {
               onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw} />
             <div className="flex gap-2 mt-3">
               <button onClick={clearPad} className="flex-1 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">Repeat</button>
-              <button onClick={saveSig} className="flex-1 py-2 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold">Save</button>
+              <button onClick={saveSig} className="flex-1 py-2 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2">
+                <Check className="w-4 h-4" /> Save
+              </button>
             </div>
           </div>
         </div>
@@ -186,7 +235,7 @@ function RichTextEditor({ value, onChange }) {
   const ToolBtn = ({ cmd, val, title, children }) => (
     <button type="button" title={title}
       onMouseDown={e => { e.preventDefault(); exec(cmd, val); }}
-      className="px-2 py-1.5 text-sm hover:bg-gray-100 rounded transition-colors text-gray-600 font-medium">
+      className="px-2 py-1.5 text-sm hover:bg-gray-100 rounded transition-colors text-gray-600 font-medium flex items-center justify-center">
       {children}
     </button>
   );
@@ -199,26 +248,28 @@ function RichTextEditor({ value, onChange }) {
           {["10px","12px","13px","14px","16px","18px","20px","24px"].map(s => <option key={s} value={s}>{s}</option>)}
         </select>
         <div className="w-px h-5 bg-gray-200 mx-1" />
-        <ToolBtn cmd="bold" title="Bold"><b>B</b></ToolBtn>
-        <ToolBtn cmd="italic" title="Italic"><i>I</i></ToolBtn>
-        <ToolBtn cmd="underline" title="Underline"><u>U</u></ToolBtn>
+        <ToolBtn cmd="bold" title="Bold"><Bold className="w-3.5 h-3.5" /></ToolBtn>
+        <ToolBtn cmd="italic" title="Italic"><Italic className="w-3.5 h-3.5" /></ToolBtn>
+        <ToolBtn cmd="underline" title="Underline"><Underline className="w-3.5 h-3.5" /></ToolBtn>
         <div className="w-px h-5 bg-gray-200 mx-1" />
-        <ToolBtn cmd="insertOrderedList" title="Numbered List">1.</ToolBtn>
-        <ToolBtn cmd="insertUnorderedList" title="Bullet List">•</ToolBtn>
+        <ToolBtn cmd="insertOrderedList" title="Numbered List"><ListOrdered className="w-3.5 h-3.5" /></ToolBtn>
+        <ToolBtn cmd="insertUnorderedList" title="Bullet List"><List className="w-3.5 h-3.5" /></ToolBtn>
         <div className="w-px h-5 bg-gray-200 mx-1" />
-        <ToolBtn cmd="justifyLeft" title="Align Left">⬅</ToolBtn>
-        <ToolBtn cmd="justifyCenter" title="Center">↔</ToolBtn>
-        <ToolBtn cmd="justifyRight" title="Align Right">➡</ToolBtn>
-        <ToolBtn cmd="justifyFull" title="Justify">≡</ToolBtn>
+        <ToolBtn cmd="justifyLeft" title="Align Left"><AlignLeft className="w-3.5 h-3.5" /></ToolBtn>
+        <ToolBtn cmd="justifyCenter" title="Center"><AlignCenter className="w-3.5 h-3.5" /></ToolBtn>
+        <ToolBtn cmd="justifyRight" title="Align Right"><AlignRight className="w-3.5 h-3.5" /></ToolBtn>
+        <ToolBtn cmd="justifyFull" title="Justify"><AlignJustify className="w-3.5 h-3.5" /></ToolBtn>
         <div className="w-px h-5 bg-gray-200 mx-1" />
         <label title="Font Color" className="flex items-center gap-1 px-2 py-1.5 hover:bg-gray-100 rounded cursor-pointer">
-          <span className="text-sm" style={{ color: fontColor }}>A</span>
+          <Palette className="w-3.5 h-3.5" style={{ color: fontColor }} />
           <input type="color" value={fontColor} onChange={e => handleFontColor(e.target.value)}
             className="w-4 h-4 cursor-pointer border-0 p-0 bg-transparent" />
         </label>
         <div className="w-px h-5 bg-gray-200 mx-1" />
         <button type="button" title="Insert Image" onClick={() => fileInputRef.current?.click()}
-          className="px-2 py-1.5 text-sm hover:bg-gray-100 rounded transition-colors text-gray-600">🖼</button>
+          className="px-2 py-1.5 hover:bg-gray-100 rounded transition-colors text-gray-600 flex items-center justify-center">
+          <Image className="w-3.5 h-3.5" />
+        </button>
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
       </div>
       <div ref={editorRef} contentEditable suppressContentEditableWarning
@@ -241,8 +292,8 @@ function RichTextEditor({ value, onChange }) {
 function EquipmentCard({ item, index }) {
   return (
     <div className="border border-gray-100 rounded-xl p-3 bg-gray-50 mb-2 last:mb-0">
-      <p className="text-xs font-bold text-[#0B3D91] uppercase tracking-wide mb-2">
-        Equipment/Instrument {index + 1}
+      <p className="text-xs font-bold text-[#0B3D91] uppercase tracking-wide mb-2 flex items-center gap-1.5">
+        <Wrench className="w-3.5 h-3.5" /> Equipment/Instrument {index + 1}
       </p>
       {item.description && <p className="text-sm text-gray-700 font-medium">{item.description}</p>}
       <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
@@ -264,9 +315,13 @@ function EquipmentEditItem({ item, index, onChange, onRemove, canRemove }) {
   return (
     <div className="border border-gray-100 rounded-xl p-4 bg-gray-50 relative">
       {canRemove && (
-        <button onClick={() => onRemove(index)} className="absolute top-3 right-3 text-red-400 hover:text-red-600 text-lg leading-none">×</button>
+        <button onClick={() => onRemove(index)} className="absolute top-3 right-3 text-red-400 hover:text-red-600">
+          <X className="w-4 h-4" />
+        </button>
       )}
-      <p className="text-xs font-bold text-[#0B3D91] uppercase tracking-wide mb-3">Equipment/Instrument {index + 1}</p>
+      <p className="text-xs font-bold text-[#0B3D91] uppercase tracking-wide mb-3 flex items-center gap-1.5">
+        <Wrench className="w-3.5 h-3.5" /> Equipment/Instrument {index + 1}
+      </p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
           <label className={labelCls}>Equipment/Instrument Information</label>
@@ -299,14 +354,19 @@ function CompressionStatus({ items }) {
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between text-xs mb-0.5">
-        <span className="font-semibold text-[#0B3D91]">Compressing {total} image{total > 1 ? "s" : ""}…</span>
+        <span className="font-semibold text-[#0B3D91] flex items-center gap-1.5">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          Compressing {total} image{total > 1 ? "s" : ""}…
+        </span>
         <span className="text-gray-400">{done}/{total}</span>
       </div>
       <div className="h-1.5 bg-blue-100 rounded-full overflow-hidden">
         <div className="h-full bg-[#0B3D91] rounded-full transition-all duration-300" style={{ width: `${pct}%` }} />
       </div>
       {savings > 0 && (
-        <p className="text-[10px] text-emerald-600 font-medium">✓ Saved {formatBytes(savings)} so far</p>
+        <p className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
+          <Check className="w-3 h-3" /> Saved {formatBytes(savings)} so far
+        </p>
       )}
     </div>
   );
@@ -378,12 +438,12 @@ function ImageCard({ img, onDelete, onCaptionSave }) {
           {/* Hover overlay with actions */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-end justify-between p-2">
             <button onClick={() => setEditingCaption(true)} title="Edit caption"
-              className="w-7 h-7 bg-white/90 text-[#0B3D91] rounded-lg flex items-center justify-center text-xs hover:bg-white transition-colors shadow">
-              ✏
+              className="w-7 h-7 bg-white/90 text-[#0B3D91] rounded-lg flex items-center justify-center hover:bg-white transition-colors shadow">
+              <Pencil className="w-3.5 h-3.5" />
             </button>
             <button onClick={() => setDeleteDialog(true)} title="Delete photo"
-              className="w-7 h-7 bg-white/90 text-red-500 rounded-lg flex items-center justify-center text-xs hover:bg-white transition-colors shadow">
-              🗑
+              className="w-7 h-7 bg-white/90 text-red-500 rounded-lg flex items-center justify-center hover:bg-white transition-colors shadow">
+              <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -404,11 +464,14 @@ function ImageCard({ img, onDelete, onCaptionSave }) {
               />
               <div className="flex gap-1">
                 <button onClick={handleSaveCaption} disabled={saving}
-                  className="flex-1 py-1 bg-[#0B3D91] text-white text-xs rounded-lg font-semibold disabled:opacity-60">
-                  {saving ? "…" : "✓ Save"}
+                  className="flex-1 py-1 bg-[#0B3D91] text-white text-xs rounded-lg font-semibold disabled:opacity-60 flex items-center justify-center gap-1">
+                  {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                  {saving ? "…" : "Save"}
                 </button>
                 <button onClick={() => { setCaption(img.caption || ""); setEditingCaption(false); }}
-                  className="px-2 py-1 border border-gray-200 text-gray-500 text-xs rounded-lg">✕</button>
+                  className="px-2 py-1 border border-gray-200 text-gray-500 text-xs rounded-lg flex items-center justify-center">
+                  <X className="w-3 h-3" />
+                </button>
               </div>
             </div>
           ) : (
@@ -510,7 +573,7 @@ export default function OnsiteReportDetail() {
         serial_number:   form.equipment_items[0]?.serial_number || "",
       };
       await API.put(`/onsite/update/${id}`, payload);
-      toast.success("Saved successfully ✅");
+      toast.success("Saved successfully");
       setEditMode(false);
       fetchReport();
     } catch { toast.error("Failed to save"); }
@@ -572,7 +635,7 @@ export default function OnsiteReportDetail() {
       await API.post(`/onsite/upload/${id}`, fd, { headers: { "Content-Type": "multipart/form-data" } });
       if (savedTotal > 0) {
         toast.success(
-          `${fileArr.length} photo uploaded ✅\nCompressed: saved ${formatBytes(savedTotal)} (${savedPct}% smaller)`,
+          `${fileArr.length} photo uploaded\nCompressed: saved ${formatBytes(savedTotal)} (${savedPct}% smaller)`,
           { duration: 4000 },
         );
       } else {
@@ -627,7 +690,7 @@ export default function OnsiteReportDetail() {
 
   if (!report) return (
     <div className="flex justify-center items-center h-40">
-      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0B3D91]" />
+      <Loader2 className="w-10 h-10 animate-spin text-[#0B3D91]" />
     </div>
   );
 
@@ -668,14 +731,15 @@ export default function OnsiteReportDetail() {
       <div className="flex items-start justify-between gap-4 mb-5">
         <div>
           <button onClick={() => navigate("/onsite")}
-            className="flex items-center gap-2 text-sm text-gray-400 hover:text-[#0B3D91] mb-2 transition-colors">
-            ← Back
+            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-[#0B3D91] mb-2 transition-colors">
+            <ArrowLeft className="w-4 h-4" /> Back
           </button>
           <h1 className="text-2xl font-bold text-gray-800">{report.report_number}</h1>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${sc.bg} ${sc.text}`}>{sc.label}</span>
             {(report.visit_date_from || report.visit_date) && (
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-gray-400 flex items-center gap-1">
+                <CalendarDays className="w-3 h-3" />
                 {(() => {
                   const from = report.visit_date_from || report.visit_date;
                   const to   = report.visit_date_to;
@@ -685,8 +749,8 @@ export default function OnsiteReportDetail() {
               </span>
             )}
             {reportImages.length > 0 && (
-              <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-semibold">
-                📷 {reportImages.length} photo{reportImages.length > 1 ? "s" : ""}
+              <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                <Camera className="w-3 h-3" /> {reportImages.length} photo{reportImages.length > 1 ? "s" : ""}
               </span>
             )}
           </div>
@@ -696,21 +760,25 @@ export default function OnsiteReportDetail() {
           <div className="flex flex-wrap gap-2 justify-end flex-shrink-0">
             <button onClick={() => setDeleteDialog(true)}
               className="flex items-center gap-1.5 px-3 py-2 text-red-500 border border-red-200 rounded-xl text-xs font-semibold hover:bg-red-50 transition-colors">
-              🗑 Delete
+              <Trash2 className="w-3.5 h-3.5" /> Delete
             </button>
             <button onClick={previewPDF} disabled={previewLoading}
               className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-xs font-semibold hover:bg-blue-100 transition-colors disabled:opacity-60">
-              {previewLoading ? "Loading…" : "👁 Preview"}
+              {previewLoading
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : <Eye className="w-3.5 h-3.5" />}
+              {previewLoading ? "Loading…" : "Preview"}
             </button>
             <button onClick={downloadPDF} disabled={pdfLoading}
               className="flex items-center gap-1.5 px-3 py-2 bg-[#0B3D91] text-white rounded-xl text-xs font-semibold hover:bg-[#1E5CC6] transition-colors disabled:opacity-60">
               {pdfLoading
-                ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> PDF…</>
-                : "⬇ PDF"}
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : <Download className="w-3.5 h-3.5" />}
+              PDF
             </button>
             <button onClick={openEdit}
               className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-xs font-semibold text-amber-700 hover:bg-amber-100 transition-colors">
-              ✏ Edit
+              <Pencil className="w-3.5 h-3.5" /> Edit
             </button>
           </div>
         )}
@@ -723,9 +791,12 @@ export default function OnsiteReportDetail() {
           <div className="bg-white rounded-2xl border border-amber-200 shadow-sm p-5">
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center gap-2">
-                <span className="w-1.5 h-4 bg-amber-400 rounded-full" /> Edit Mode — Report Information
+                <span className="w-1.5 h-4 bg-amber-400 rounded-full" />
+                <Pencil className="w-3.5 h-3.5" /> Edit Mode — Report Information
               </h4>
-              <button onClick={() => setEditMode(false)} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
+              <button onClick={() => setEditMode(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
@@ -745,7 +816,7 @@ export default function OnsiteReportDetail() {
               </div>
               {form.visit_date_from && form.visit_date_to && form.visit_date_to !== form.visit_date_from && (
                 <div className="sm:col-span-2 bg-blue-50 rounded-xl px-4 py-2.5 flex items-center gap-2">
-                  <span className="text-[#0B3D91] text-sm">📅</span>
+                  <CalendarDays className="w-4 h-4 text-[#0B3D91] flex-shrink-0" />
                   <span className="text-xs text-[#0B3D91] font-semibold">
                     {new Date(form.visit_date_from + "T00:00:00").toLocaleDateString("en-EN", { day: "2-digit", month: "long", year: "numeric" })}
                     {" — "}
@@ -771,7 +842,9 @@ export default function OnsiteReportDetail() {
 
           {/* Client */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3">Client Data</h4>
+            <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3 flex items-center gap-2">
+              <Building2 className="w-3.5 h-3.5" /> Client Data
+            </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className={labelClass}>Company <span className="text-red-400">*</span></label>
@@ -799,10 +872,12 @@ export default function OnsiteReportDetail() {
           {/* Equipment */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider">Equipment/Instrument Data</h4>
+              <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider flex items-center gap-2">
+                <Wrench className="w-3.5 h-3.5" /> Equipment/Instrument Data
+              </h4>
               <button onClick={addEquipment}
                 className="flex items-center gap-1 px-3 py-1.5 bg-[#EEF3FB] text-[#0B3D91] rounded-lg text-xs font-semibold hover:bg-[#dbe8f8]">
-                + Add Equipment
+                <Plus className="w-3.5 h-3.5" /> Add Equipment
               </button>
             </div>
             <div className="space-y-3">
@@ -816,26 +891,32 @@ export default function OnsiteReportDetail() {
 
           {/* Job Details */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3">Job Details</h4>
+            <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3 flex items-center gap-2">
+              <ClipboardList className="w-3.5 h-3.5" /> Job Details
+            </h4>
             <label className={labelClass}>Job Description</label>
             <RichTextEditor value={form.job_description} onChange={v => setForm(f => ({ ...f, job_description: v }))} />
           </div>
 
           {/* Signature */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3">Customer Signature</h4>
+            <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3 flex items-center gap-2">
+              <PenLine className="w-3.5 h-3.5" /> Customer Signature
+            </h4>
             <SignaturePad label="Customer Signature" value={form.customer_signature}
               onChange={v => setForm({ ...form, customer_signature: v })} />
           </div>
 
           <div className="flex gap-3 pt-2">
             <button onClick={() => setEditMode(false)}
-              className="px-5 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50">
-              Cancel
+              className="px-5 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50 flex items-center gap-2">
+              <X className="w-4 h-4" /> Cancel
             </button>
             <button onClick={handleSave} disabled={saving}
               className="px-6 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-bold hover:bg-[#1E5CC6] disabled:opacity-60 flex items-center gap-2">
-              {saving ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving…</> : "✓ Save Changes"}
+              {saving
+                ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
+                : <><Check className="w-4 h-4" /> Save Changes</>}
             </button>
           </div>
         </div>
@@ -847,7 +928,9 @@ export default function OnsiteReportDetail() {
           {/* Info cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3">🏢 Client Data</h3>
+              <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3 flex items-center gap-2">
+                <Building2 className="w-3.5 h-3.5" /> Client Data
+              </h3>
               <InfoRow label="Company"        value={report.client_company} />
               <InfoRow label="Contact Person" value={report.contact_person || report.client_name} />
               <InfoRow label="Phone"          value={report.contact_phone} />
@@ -855,7 +938,9 @@ export default function OnsiteReportDetail() {
               <InfoRow label="Address"        value={report.client_address} />
             </div>
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3">⚙ Equipment/Instrument Data</h3>
+              <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3 flex items-center gap-2">
+                <Wrench className="w-3.5 h-3.5" /> Equipment/Instrument Data
+              </h3>
               {equipmentItems.map((item, idx) => (
                 <EquipmentCard key={idx} item={item} index={idx} />
               ))}
@@ -870,7 +955,9 @@ export default function OnsiteReportDetail() {
           {/* Job Description */}
           {report.job_description && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
-              <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3">📋 Job Details</h3>
+              <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3 flex items-center gap-2">
+                <ClipboardList className="w-3.5 h-3.5" /> Job Details
+              </h3>
               <div
                 className="text-sm text-gray-700 leading-relaxed rich-render"
                 style={{ lineHeight: "1.7" }}
@@ -883,15 +970,16 @@ export default function OnsiteReportDetail() {
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider flex items-center gap-2">
-                <span className="w-1.5 h-4 bg-[#0B3D91] rounded-full" /> Documentation & Photos
+                <span className="w-1.5 h-4 bg-[#0B3D91] rounded-full" />
+                <ImageIcon className="w-3.5 h-3.5" /> Documentation & Photos
               </h3>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
-                  ⚡ Auto-compressed
+                  <ZapIcon className="w-2.5 h-2.5" /> Auto-compressed
                 </span>
                 {reportImages.length > 0 && (
-                  <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-semibold">
-                    {reportImages.length} photo{reportImages.length > 1 ? "s" : ""}
+                  <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                    <Camera className="w-3 h-3" /> {reportImages.length} photo{reportImages.length > 1 ? "s" : ""}
                   </span>
                 )}
               </div>
@@ -900,7 +988,7 @@ export default function OnsiteReportDetail() {
             {/* Tips */}
             {reportImages.length > 0 && (
               <div className="mb-4 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 flex items-start gap-2">
-                <span className="text-blue-400 text-sm flex-shrink-0">💡</span>
+                <Info className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-blue-700">
                   Hover over a photo for <strong>edit caption</strong> or <strong>delete</strong>. Captions will appear in the PDF.
                 </p>
@@ -922,16 +1010,16 @@ export default function OnsiteReportDetail() {
                 </div>
               ) : uploading ? (
                 <div className="flex items-center justify-center gap-3">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#0B3D91]" />
+                  <Loader2 className="w-6 h-6 animate-spin text-[#0B3D91]" />
                   <p className="text-gray-500 text-sm">Uploading…</p>
                 </div>
               ) : (
                 <>
-                  <p className="text-2xl mb-1">📸</p>
+                  <Upload className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                   <p className="text-gray-600 font-medium text-sm">Drop photos here or click to upload</p>
                   <p className="text-gray-400 text-xs mt-0.5">PNG, JPG, JPEG · Auto-compressed before upload</p>
-                  <p className="text-[10px] text-emerald-500 font-medium mt-1.5">
-                    ⚡ Images are automatically compressed — photos will appear in the PDF
+                  <p className="text-[10px] text-emerald-500 font-medium mt-1.5 flex items-center justify-center gap-1">
+                    <ZapIcon className="w-3 h-3" /> Images are automatically compressed — photos will appear in the PDF
                   </p>
                 </>
               )}
@@ -959,13 +1047,17 @@ export default function OnsiteReportDetail() {
                 ))}
               </div>
             ) : (
-              <p className="text-center text-gray-300 text-sm py-4">No photos yet — upload to include them in the PDF</p>
+              <p className="text-center text-gray-300 text-sm py-4 flex items-center justify-center gap-2">
+                <Camera className="w-4 h-4" /> No photos yet — upload to include them in the PDF
+              </p>
             )}
           </div>
 
           {/* Signatures */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
-            <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4">✍ Signatures</h3>
+            <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4 flex items-center gap-2">
+              <PenLine className="w-3.5 h-3.5" /> Signatures
+            </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="text-center">
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Engineer</p>
@@ -974,8 +1066,9 @@ export default function OnsiteReportDetail() {
                     <img src={report.engineer_signature} alt="Engineer Signature" className="h-16 mx-auto object-contain" />
                   </div>
                 ) : (
-                  <div className="border-2 border-dashed border-gray-200 rounded-xl py-6 text-gray-300 text-sm">
-                    No signature yet
+                  <div className="border-2 border-dashed border-gray-200 rounded-xl py-6 text-gray-300 text-sm flex flex-col items-center gap-1">
+                    <PenLine className="w-5 h-5" />
+                    <span className="text-xs">No signature yet</span>
                   </div>
                 )}
                 <p className="text-xs text-gray-500 mt-2 font-semibold">{report.engineer_name || "—"}</p>
@@ -988,9 +1081,12 @@ export default function OnsiteReportDetail() {
                     <img src={report.customer_signature} alt="Customer Signature" className="h-16 mx-auto object-contain" />
                   </div>
                 ) : (
-                  <div className="border-2 border-dashed border-gray-200 rounded-xl py-6 text-center">
-                    <p className="text-gray-300 text-sm">No signature yet</p>
-                    <button onClick={openEdit} className="mt-2 text-xs text-[#0B3D91] hover:underline">Add Signature</button>
+                  <div className="border-2 border-dashed border-gray-200 rounded-xl py-6 text-center flex flex-col items-center gap-1">
+                    <PenLine className="w-5 h-5 text-gray-300" />
+                    <p className="text-gray-300 text-xs">No signature yet</p>
+                    <button onClick={openEdit} className="mt-1 text-xs text-[#0B3D91] hover:underline flex items-center gap-1">
+                      <Plus className="w-3 h-3" /> Add Signature
+                    </button>
                   </div>
                 )}
                 <p className="text-xs text-gray-500 mt-2 font-semibold">{report.client_name || "Customer"}</p>
@@ -1006,18 +1102,18 @@ export default function OnsiteReportDetail() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-wrap gap-3 justify-between items-center">
           <button onClick={() => setDeleteDialog(true)}
             className="flex items-center gap-2 px-4 py-2 text-red-500 border border-red-200 rounded-xl text-sm font-semibold hover:bg-red-50 transition-colors">
-            🗑 Delete Report
+            <Trash2 className="w-4 h-4" /> Delete Report
           </button>
           <div className="flex gap-2">
             <button onClick={previewPDF} disabled={previewLoading}
               className="flex items-center gap-2 px-5 py-2.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-sm font-semibold hover:bg-blue-100 transition-colors disabled:opacity-60">
-              {previewLoading ? "Loading…" : "👁 Preview PDF"}
+              {previewLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+              {previewLoading ? "Loading…" : "Preview PDF"}
             </button>
             <button onClick={downloadPDF} disabled={pdfLoading}
               className="flex items-center gap-2 px-5 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] transition-colors disabled:opacity-60">
-              {pdfLoading
-                ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generating…</>
-                : "⬇ Download PDF"}
+              {pdfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              {pdfLoading ? "Generating…" : "Download PDF"}
             </button>
           </div>
         </div>

@@ -2,12 +2,27 @@ import { useState, useEffect } from "react";
 import API from "../services/api";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import {
+  Settings2,
+  Search,
+  Zap,
+  Wrench,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Info,
+  ChevronRight,
+  ChevronLeft,
+  Loader2,
+  ClipboardCheck,
+} from "lucide-react";
 
 const REPORT_TYPES = [
   {
     id: "commissioning",
     label: "Commissioning Report",
-    icon: "🔧",
+    icon: Settings2,
+    iconColor: "text-blue-600",
     color: "bg-blue-50 border-blue-300 text-blue-700",
     activeColor: "bg-blue-600 border-blue-600 text-white",
     description: "For new equipment installation and commissioning activities",
@@ -16,7 +31,8 @@ const REPORT_TYPES = [
   {
     id: "investigation",
     label: "Investigation Report",
-    icon: "🔍",
+    icon: Search,
+    iconColor: "text-purple-600",
     color: "bg-purple-50 border-purple-300 text-purple-700",
     activeColor: "bg-purple-600 border-purple-600 text-white",
     description: "For incident investigation and root cause analysis",
@@ -25,7 +41,8 @@ const REPORT_TYPES = [
   {
     id: "troubleshooting",
     label: "Troubleshooting Report",
-    icon: "⚡",
+    icon: Zap,
+    iconColor: "text-orange-600",
     color: "bg-orange-50 border-orange-300 text-orange-700",
     activeColor: "bg-orange-600 border-orange-600 text-white",
     description: "For diagnosing and resolving technical issues",
@@ -34,7 +51,8 @@ const REPORT_TYPES = [
   {
     id: "service",
     label: "Service Report",
-    icon: "🛠️",
+    icon: Wrench,
+    iconColor: "text-green-600",
     color: "bg-green-50 border-green-300 text-green-700",
     activeColor: "bg-green-600 border-green-600 text-white",
     description: "For preventive maintenance and service activities",
@@ -161,8 +179,6 @@ export default function CreateReport() {
   const [selectedType, setSelectedType] = useState(null);
   const [engineers, setEngineers] = useState([]);
   const [loading, setLoading] = useState(false);
-  // sectionIncluded[si] = true/false — whether section si+1 onwards is included in PDF
-  // Section 0 is always included; toggles start from index 1
   const [sectionIncluded, setSectionIncluded] = useState({});
 
   const [baseForm, setBaseForm] = useState({
@@ -179,13 +195,11 @@ export default function CreateReport() {
     API.get("/engineer/").then(res => setEngineers(res.data)).catch(() => {});
   }, []);
 
-  // Reset dataForm and section toggles when type changes
   useEffect(() => {
     setDataForm({});
     setSectionIncluded({});
   }, [selectedType]);
 
-  // Auto-generate report number when type is selected
   useEffect(() => {
     if (!selectedType) return;
     generateReportNumber(selectedType);
@@ -201,7 +215,6 @@ export default function CreateReport() {
     try {
       const res = await API.get("/report/list");
       const reports = (res.data || []).filter(r => r.report_type === type);
-      // Count reports of this type in current year
       const thisYear = reports.filter(r => {
         const num = r.report_number || "";
         return num.startsWith(`${prefix}-${yearStr}`);
@@ -235,7 +248,6 @@ export default function CreateReport() {
     if (!selectedType) return;
     try {
       setLoading(true);
-      // Build section_visibility map to pass to backend
       const sections = FIELD_MAP[selectedType] || [];
       const sectionVisibility = {};
       sections.forEach((sec, si) => {
@@ -247,7 +259,7 @@ export default function CreateReport() {
         engineer_id: baseForm.engineer_id ? parseInt(baseForm.engineer_id) : null,
         data_json: { ...dataForm, _section_visibility: sectionVisibility },
       });
-      toast.success("Report created successfully! 🚀");
+      toast.success("Report created successfully!");
       navigate(`/reports/${res.data.report_id}`);
     } catch {
       toast.error("Failed to create report");
@@ -260,6 +272,7 @@ export default function CreateReport() {
   const labelClass = "block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5";
 
   const sections = selectedType ? FIELD_MAP[selectedType] : [];
+  const selectedTypeObj = REPORT_TYPES.find(t => t.id === selectedType);
 
   return (
     <div className="w-full">
@@ -289,36 +302,47 @@ export default function CreateReport() {
         <div>
           <h2 className="text-lg font-semibold text-gray-700 mb-4">Select Report Type</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-            {REPORT_TYPES.map((type) => (
-              <button
-                key={type.id}
-                onClick={() => setSelectedType(type.id)}
-                className={`p-5 rounded-xl border-2 text-left transition-all duration-200 hover:shadow-md
-                  ${selectedType === type.id
-                    ? "border-primary bg-blue-50 shadow-md scale-[1.01]"
-                    : "border-gray-200 bg-white hover:border-gray-300"
-                  }`}
-              >
-                <div className="flex items-start gap-3">
-                  <span className="text-3xl">{type.icon}</span>
-                  <div>
-                    <p className="font-bold text-gray-800">{type.label}</p>
-                    <p className="text-xs text-gray-500 mt-1">{type.description}</p>
+            {REPORT_TYPES.map((type) => {
+              const IconComponent = type.icon;
+              return (
+                <button
+                  key={type.id}
+                  onClick={() => setSelectedType(type.id)}
+                  className={`p-5 rounded-xl border-2 text-left transition-all duration-200 hover:shadow-md
+                    ${selectedType === type.id
+                      ? "border-primary bg-blue-50 shadow-md scale-[1.01]"
+                      : "border-gray-200 bg-white hover:border-gray-300"
+                    }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`p-2 rounded-lg ${selectedType === type.id ? "bg-primary/10" : "bg-gray-100"}`}>
+                      <IconComponent
+                        size={22}
+                        className={selectedType === type.id ? "text-primary" : type.iconColor}
+                        strokeWidth={1.75}
+                      />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-800">{type.label}</p>
+                      <p className="text-xs text-gray-500 mt-1">{type.description}</p>
+                    </div>
                   </div>
-                </div>
-                {selectedType === type.id && (
-                  <div className="mt-3 flex items-center gap-1 text-primary text-xs font-semibold">
-                    <span>✓</span> Selected
-                  </div>
-                )}
-              </button>
-            ))}
+                  {selectedType === type.id && (
+                    <div className="mt-3 flex items-center gap-1 text-primary text-xs font-semibold">
+                      <CheckCircle2 size={13} strokeWidth={2.5} />
+                      Selected
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
           <button
             onClick={() => { if (selectedType) setStep(2); else toast.error("Please select a report type"); }}
-            className="bg-primary text-white px-8 py-3 rounded-xl font-semibold hover:bg-secondary transition-colors"
+            className="bg-primary text-white px-8 py-3 rounded-xl font-semibold hover:bg-secondary transition-colors flex items-center gap-2"
           >
-            Continue →
+            Continue
+            <ChevronRight size={16} strokeWidth={2.5} />
           </button>
         </div>
       )}
@@ -326,11 +350,15 @@ export default function CreateReport() {
       {/* Step 2: Basic Info */}
       {step === 2 && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center gap-2 mb-6">
-            <span className="text-2xl">{REPORT_TYPES.find(t => t.id === selectedType)?.icon}</span>
+          <div className="flex items-center gap-3 mb-6">
+            {selectedTypeObj && (
+              <div className="p-2.5 rounded-xl bg-primary/10">
+                <selectedTypeObj.icon size={22} className="text-primary" strokeWidth={1.75} />
+              </div>
+            )}
             <div>
               <h2 className="text-lg font-bold text-gray-800">Basic Information</h2>
-              <p className="text-sm text-gray-400">{REPORT_TYPES.find(t => t.id === selectedType)?.label}</p>
+              <p className="text-sm text-gray-400">{selectedTypeObj?.label}</p>
             </div>
           </div>
 
@@ -372,8 +400,12 @@ export default function CreateReport() {
           </div>
 
           <div className="flex gap-3 mt-6">
-            <button onClick={() => setStep(1)} className="px-6 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-colors">
-              ← Back
+            <button
+              onClick={() => setStep(1)}
+              className="px-6 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-colors flex items-center gap-2"
+            >
+              <ChevronLeft size={16} strokeWidth={2.5} />
+              Back
             </button>
             <button
               onClick={() => {
@@ -383,9 +415,10 @@ export default function CreateReport() {
                 }
                 setStep(3);
               }}
-              className="bg-primary text-white px-8 py-3 rounded-xl font-semibold hover:bg-secondary transition-colors"
+              className="bg-primary text-white px-8 py-3 rounded-xl font-semibold hover:bg-secondary transition-colors flex items-center gap-2"
             >
-              Continue →
+              Continue
+              <ChevronRight size={16} strokeWidth={2.5} />
             </button>
           </div>
         </div>
@@ -394,19 +427,21 @@ export default function CreateReport() {
       {/* Step 3: Report-specific fields */}
       {step === 3 && (
         <div>
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-2xl">{REPORT_TYPES.find(t => t.id === selectedType)?.icon}</span>
+          <div className="flex items-center gap-3 mb-4">
+            {selectedTypeObj && (
+              <div className="p-2.5 rounded-xl bg-primary/10">
+                <selectedTypeObj.icon size={22} className="text-primary" strokeWidth={1.75} />
+              </div>
+            )}
             <div>
               <h2 className="text-lg font-bold text-gray-800">Report Details</h2>
-              <p className="text-sm text-gray-400">{REPORT_TYPES.find(t => t.id === selectedType)?.label}</p>
+              <p className="text-sm text-gray-400">{selectedTypeObj?.label}</p>
             </div>
           </div>
 
           {/* Info hint for toggles */}
           <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 mb-5 text-xs text-blue-700">
-            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <Info size={15} className="flex-shrink-0" strokeWidth={2} />
             <span>Use <strong>Show in PDF / Hide in PDF</strong> buttons in each section to control what content will appear in the PDF document.</span>
           </div>
 
@@ -436,16 +471,12 @@ export default function CreateReport() {
                   >
                     {included ? (
                       <>
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                        <Eye size={13} strokeWidth={2} />
                         Show in PDF
                       </>
                     ) : (
                       <>
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 4.411m0 0L21 21" />
-                        </svg>
+                        <EyeOff size={13} strokeWidth={2} />
                         Hide in PDF
                       </>
                     )}
@@ -493,8 +524,12 @@ export default function CreateReport() {
           })}
 
           <div className="flex gap-3 mt-4">
-            <button onClick={() => setStep(2)} className="px-6 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-colors">
-              ← Back
+            <button
+              onClick={() => setStep(2)}
+              className="px-6 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-colors flex items-center gap-2"
+            >
+              <ChevronLeft size={16} strokeWidth={2.5} />
+              Back
             </button>
             <button
               onClick={handleSubmit}
@@ -503,10 +538,15 @@ export default function CreateReport() {
             >
               {loading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <Loader2 size={16} className="animate-spin" />
                   Creating...
                 </>
-              ) : "✓ Create Report"}
+              ) : (
+                <>
+                  <ClipboardCheck size={16} strokeWidth={2} />
+                  Create Report
+                </>
+              )}
             </button>
           </div>
         </div>

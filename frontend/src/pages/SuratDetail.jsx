@@ -2,10 +2,33 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import API from "../services/api";
 import toast from "react-hot-toast";
+import {
+  ArrowLeft,
+  Pencil,
+  Eye,
+  Download,
+  Trash2,
+  X,
+  Check,
+  Plus,
+  PackageOpen,
+  PackageCheck,
+  FileText,
+  CalendarDays,
+  Building2,
+  MapPin,
+  Briefcase,
+  User,
+  ClipboardList,
+  StickyNote,
+  PenLine,
+  AlertTriangle,
+  Loader2,
+} from "lucide-react";
 
 const SURAT_TYPE = {
-  serah: { label: "Handover of Goods/Services", icon: "📤", bg: "bg-blue-100", text: "text-blue-700" },
-  terima: { label: "Receive Goods", icon: "📥", bg: "bg-emerald-100", text: "text-emerald-700" },
+  serah: { label: "Handover of Goods/Services", Icon: PackageOpen, bg: "bg-blue-100", text: "text-blue-700" },
+  terima: { label: "Receive Goods", Icon: PackageCheck, bg: "bg-emerald-100", text: "text-emerald-700" },
 };
 const STATUS_CONFIG = {
   draft:  { label: "Draft",  bg: "bg-gray-100",    text: "text-gray-600" },
@@ -19,15 +42,18 @@ function DeleteDialog({ title, description, onConfirm, onCancel, loading }) {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
         <div className="bg-gradient-to-br from-red-50 to-rose-100 px-6 pt-6 pb-4 text-center">
           <div className="w-14 h-14 bg-red-100 border-4 border-red-200 rounded-full flex items-center justify-center mx-auto mb-3">
-            <svg className="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            <Trash2 className="w-7 h-7 text-red-500" />
           </div>
           <h3 className="text-base font-bold text-gray-900">{title}</h3>
           <p className="text-sm text-gray-500 mt-1">{description}</p>
         </div>
         <div className="px-6 py-4 flex gap-3">
-          <button onClick={onCancel} disabled={loading} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50">Cancel</button>
+          <button onClick={onCancel} disabled={loading} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50">
+            Cancel
+          </button>
           <button onClick={onConfirm} disabled={loading} className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 flex items-center justify-center gap-2 disabled:opacity-60">
-            {loading && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />} Delete
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+            Delete
           </button>
         </div>
       </div>
@@ -39,10 +65,16 @@ function PDFModal({ url, name, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex flex-col">
       <div className="flex items-center justify-between px-5 py-3 bg-[#0B3D91]">
-        <span className="text-white font-bold text-sm">📜 {name} — Preview</span>
+        <span className="text-white font-bold text-sm flex items-center gap-2">
+          <FileText className="w-4 h-4" /> {name} — Preview
+        </span>
         <div className="flex items-center gap-2">
-          <a href={url} download className="px-4 py-1.5 bg-white text-[#0B3D91] rounded-lg text-xs font-bold hover:bg-blue-50">⬇ Download</a>
-          <button onClick={onClose} className="text-white/70 hover:text-white text-xl px-2">✕</button>
+          <a href={url} download className="px-4 py-1.5 bg-white text-[#0B3D91] rounded-lg text-xs font-bold hover:bg-blue-50 flex items-center gap-1.5">
+            <Download className="w-3.5 h-3.5" /> Download
+          </a>
+          <button onClick={onClose} className="text-white/70 hover:text-white p-1">
+            <X className="w-5 h-5" />
+          </button>
         </div>
       </div>
       <iframe src={url} className="flex-1 w-full" style={{ border: "none" }} />
@@ -75,7 +107,7 @@ function SignaturePad({ label, value, onChange }) {
   const clearPad = () => { canvasRef.current.getContext("2d").clearRect(0, 0, 440, 160); setHasDrawn(false); };
   const saveSig = () => {
     if (!hasDrawn) { toast.error("Make a signature first"); return; }
-    onChange(canvasRef.current.toDataURL("image/png")); setShowPad(false); toast.success("Signature saved ✅");
+    onChange(canvasRef.current.toDataURL("image/png")); setShowPad(false); toast.success("Signature saved");
   };
 
   return (
@@ -85,21 +117,31 @@ function SignaturePad({ label, value, onChange }) {
         <div className="border border-gray-200 rounded-xl overflow-hidden bg-gray-50">
           <img src={value} alt="sig" className="h-16 mx-auto object-contain py-1" />
           <div className="border-t border-gray-100 px-3 py-2 flex gap-2">
-            <button type="button" onClick={() => setShowPad(true)} className="text-xs text-[#0B3D91] hover:underline">✏ Change</button>
-            <button type="button" onClick={() => onChange("")} className="text-xs text-red-500 hover:underline">× Delete</button>
+            <button type="button" onClick={() => setShowPad(true)} className="text-xs text-[#0B3D91] hover:underline flex items-center gap-1">
+              <Pencil className="w-3 h-3" /> Change
+            </button>
+            <button type="button" onClick={() => onChange("")} className="text-xs text-red-500 hover:underline flex items-center gap-1">
+              <X className="w-3 h-3" /> Delete
+            </button>
           </div>
         </div>
       ) : (
         <button type="button" onClick={() => setShowPad(true)} className="w-full border-2 border-dashed border-gray-200 rounded-xl py-5 text-center hover:border-[#0B3D91] hover:bg-blue-50 transition-all">
-          <p className="text-2xl mb-1">✍</p><p className="text-xs font-semibold text-gray-400">Click to sign</p>
+          <PenLine className="w-6 h-6 text-gray-300 mx-auto mb-1" />
+          <p className="text-xs font-semibold text-gray-400">Click to sign</p>
         </button>
       )}
       {showPad && (
         <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-              <div><h3 className="font-bold text-gray-800">Digital Signature</h3><p className="text-xs text-gray-400">{label}</p></div>
-              <button type="button" onClick={() => setShowPad(false)} className="text-gray-400 text-xl">✕</button>
+              <div>
+                <h3 className="font-bold text-gray-800">Digital Signature</h3>
+                <p className="text-xs text-gray-400">{label}</p>
+              </div>
+              <button type="button" onClick={() => setShowPad(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
             </div>
             <div className="p-4">
               <div className="border-2 border-dashed border-gray-200 rounded-xl overflow-hidden bg-gray-50 relative">
@@ -110,8 +152,12 @@ function SignaturePad({ label, value, onChange }) {
                 {!hasDrawn && <p className="absolute inset-0 flex items-center justify-center text-gray-300 text-sm pointer-events-none">Sign here...</p>}
               </div>
               <div className="flex gap-3 mt-3">
-                <button type="button" onClick={clearPad} className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600">Clean</button>
-                <button type="button" onClick={saveSig} className="flex-1 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-bold">✓ Save</button>
+                <button type="button" onClick={clearPad} className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600">
+                  Clean
+                </button>
+                <button type="button" onClick={saveSig} className="flex-1 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2">
+                  <Check className="w-4 h-4" /> Save
+                </button>
               </div>
             </div>
           </div>
@@ -166,7 +212,7 @@ export default function SuratDetail() {
 
   const handleSave = async () => {
     setSaving(true);
-    try { await API.put(`/surat/update/${id}`, form); toast.success("Saved successfully ✅"); setEditMode(false); fetchS(); }
+    try { await API.put(`/surat/update/${id}`, form); toast.success("Saved successfully"); setEditMode(false); fetchS(); }
     catch { toast.error("Failed to save"); }
     finally { setSaving(false); }
   };
@@ -196,41 +242,80 @@ export default function SuratDetail() {
     finally { setPdfLoading(false); }
   };
 
-  if (!s) return <div className="flex justify-center items-center h-40"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0B3D91]" /></div>;
+  if (!s) return (
+    <div className="flex justify-center items-center h-40">
+      <Loader2 className="w-10 h-10 animate-spin text-[#0B3D91]" />
+    </div>
+  );
 
   const tc = SURAT_TYPE[s.surat_type] || SURAT_TYPE.serah;
   const sc = STATUS_CONFIG[s.status] || STATUS_CONFIG.draft;
+  const TypeIcon = tc.Icon;
   const inputClass = "w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91] bg-white transition-all";
   const labelClass = "block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5";
 
   return (
     <div className="w-full">
-      {previewUrl && <PDFModal url={previewUrl} name={s.surat_number} onClose={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }} />}
-      {deleteDialog && <DeleteDialog title="Delete Letter?" description={`"${s.surat_number}" will be permanently deleted.`} onConfirm={handleDelete} onCancel={() => setDeleteDialog(false)} loading={deleting} />}
+      {previewUrl && (
+        <PDFModal
+          url={previewUrl}
+          name={s.surat_number}
+          onClose={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}
+        />
+      )}
+      {deleteDialog && (
+        <DeleteDialog
+          title="Delete Letter?"
+          description={`"${s.surat_number}" will be permanently deleted.`}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteDialog(false)}
+          loading={deleting}
+        />
+      )}
 
-      <button onClick={() => navigate("/surat")} className="flex items-center gap-2 text-sm text-gray-400 hover:text-[#0B3D91] mb-5 transition-colors">← Back</button>
+      {/* Back button */}
+      <button onClick={() => navigate("/surat")} className="flex items-center gap-2 text-sm text-gray-400 hover:text-[#0B3D91] mb-5 transition-colors">
+        <ArrowLeft className="w-4 h-4" /> Back
+      </button>
 
       {/* Header */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-4">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className={`text-xs font-bold px-3 py-1 rounded-full ${tc.bg} ${tc.text}`}>{tc.icon} {tc.label}</span>
+              <span className={`text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 ${tc.bg} ${tc.text}`}>
+                <TypeIcon className="w-3.5 h-3.5" /> {tc.label}
+              </span>
               <span className={`text-xs font-bold px-3 py-1 rounded-full ${sc.bg} ${sc.text}`}>{sc.label}</span>
             </div>
             <h1 className="text-2xl font-black text-[#0B3D91]">{s.surat_number}</h1>
-            {s.perihal && <p className="text-gray-500 text-sm mt-1">Subject: {s.perihal}</p>}
-            {s.surat_date && <p className="text-gray-400 text-xs mt-0.5">📅 {new Date(s.surat_date).toLocaleDateString("en-EN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>}
+            {s.perihal && (
+              <p className="text-gray-500 text-sm mt-1 flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-gray-400" /> Subject: {s.perihal}
+              </p>
+            )}
+            {s.surat_date && (
+              <p className="text-gray-400 text-xs mt-0.5 flex items-center gap-1.5">
+                <CalendarDays className="w-3.5 h-3.5" />
+                {new Date(s.surat_date).toLocaleDateString("en-EN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+              </p>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
-            {!editMode && <button onClick={openEdit} className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl text-sm font-semibold hover:bg-amber-100 transition-colors">✏ Edit</button>}
+            {!editMode && (
+              <button onClick={openEdit} className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl text-sm font-semibold hover:bg-amber-100 transition-colors">
+                <Pencil className="w-4 h-4" /> Edit
+              </button>
+            )}
             <button onClick={previewPDF} disabled={previewLoading} className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-sm font-semibold hover:bg-blue-100 disabled:opacity-60">
-              {previewLoading ? <div className="w-3.5 h-3.5 border-2 border-blue-700/30 border-t-blue-700 rounded-full animate-spin" /> : "👁"} Preview
+              {previewLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />} Preview
             </button>
             <button onClick={downloadPDF} disabled={pdfLoading} className="flex items-center gap-2 px-4 py-2 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] disabled:opacity-60">
-              {pdfLoading ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "⬇"} PDF
+              {pdfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} PDF
             </button>
-            <button onClick={() => setDeleteDialog(true)} className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-xl text-sm font-semibold hover:bg-red-100">🗑</button>
+            <button onClick={() => setDeleteDialog(true)} className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-xl text-sm font-semibold hover:bg-red-100">
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
@@ -239,22 +324,30 @@ export default function SuratDetail() {
       {editMode && (
         <div className="bg-white rounded-2xl border border-amber-200 shadow-sm p-6 mb-4">
           <div className="flex items-center justify-between mb-5">
-            <h3 className="text-sm font-bold text-amber-700 uppercase tracking-wider flex items-center gap-2"><span className="w-1.5 h-4 bg-amber-400 rounded-full" /> Edit Mode</h3>
-            <button onClick={() => setEditMode(false)} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
+            <h3 className="text-sm font-bold text-amber-700 uppercase tracking-wider flex items-center gap-2">
+              <span className="w-1.5 h-4 bg-amber-400 rounded-full" /> Edit Mode
+            </h3>
+            <button onClick={() => setEditMode(false)} className="text-gray-400 hover:text-gray-600">
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
           {/* Info */}
           <div className="mb-4">
-            <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3">Letter Information</h4>
+            <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3 flex items-center gap-2">
+              <FileText className="w-3.5 h-3.5" /> Letter Information
+            </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><label className={labelClass}>Letter Type</label>
+              <div>
+                <label className={labelClass}>Letter Type</label>
                 <select value={form.surat_type} onChange={e => set("surat_type", e.target.value)} className={inputClass}>
                   {Object.entries(SURAT_TYPE).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                 </select>
               </div>
               <div><label className={labelClass}>Letter Number</label><input value={form.surat_number} onChange={e => set("surat_number", e.target.value)} className={inputClass} /></div>
               <div><label className={labelClass}>Date</label><input type="date" value={form.surat_date} onChange={e => set("surat_date", e.target.value)} className={inputClass} /></div>
-              <div><label className={labelClass}>Status</label>
+              <div>
+                <label className={labelClass}>Status</label>
                 <select value={form.status} onChange={e => set("status", e.target.value)} className={inputClass}>
                   {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                 </select>
@@ -266,7 +359,9 @@ export default function SuratDetail() {
           {/* Pihak */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
-              <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3">The First Party</h4>
+              <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3 flex items-center gap-2">
+                <User className="w-3.5 h-3.5" /> The First Party
+              </h4>
               <div className="space-y-2">
                 <input value={form.pihak_pertama_nama} onChange={e => set("pihak_pertama_nama", e.target.value)} placeholder="Name" className={inputClass} />
                 <input value={form.pihak_pertama_jabatan} onChange={e => set("pihak_pertama_jabatan", e.target.value)} placeholder="Position" className={inputClass} />
@@ -275,7 +370,9 @@ export default function SuratDetail() {
               </div>
             </div>
             <div>
-              <h4 className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-3">The Second Party</h4>
+              <h4 className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <User className="w-3.5 h-3.5" /> The Second Party
+              </h4>
               <div className="space-y-2">
                 <input value={form.pihak_kedua_nama} onChange={e => set("pihak_kedua_nama", e.target.value)} placeholder="Name" className={inputClass} />
                 <input value={form.pihak_kedua_jabatan} onChange={e => set("pihak_kedua_jabatan", e.target.value)} placeholder="Position" className={inputClass} />
@@ -288,8 +385,12 @@ export default function SuratDetail() {
           {/* Items */}
           <div className="mb-4">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider">Item List</h4>
-              <button type="button" onClick={addItem} className="px-3 py-1.5 bg-[#0B3D91] text-white rounded-lg text-xs font-semibold">+ Add Item</button>
+              <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider flex items-center gap-2">
+                <ClipboardList className="w-3.5 h-3.5" /> Item List
+              </h4>
+              <button type="button" onClick={addItem} className="px-3 py-1.5 bg-[#0B3D91] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5">
+                <Plus className="w-3.5 h-3.5" /> Add Item
+              </button>
             </div>
             <div className="space-y-2">
               {form.barang_items.map((item, i) => (
@@ -300,7 +401,11 @@ export default function SuratDetail() {
                   <input className={"col-span-2 " + inputClass} value={item.satuan} onChange={e => updateItem(i, "satuan", e.target.value)} placeholder="unit" />
                   <input className={"col-span-2 " + inputClass} value={item.keterangan} onChange={e => updateItem(i, "keterangan", e.target.value)} placeholder="Description" />
                   <div className="col-span-1 flex justify-center">
-                    {form.barang_items.length > 1 && <button type="button" onClick={() => removeItem(i)} className="w-7 h-7 bg-red-50 text-red-500 rounded-lg text-sm">×</button>}
+                    {form.barang_items.length > 1 && (
+                      <button type="button" onClick={() => removeItem(i)} className="w-7 h-7 bg-red-50 text-red-500 rounded-lg flex items-center justify-center">
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -309,13 +414,17 @@ export default function SuratDetail() {
 
           {/* Catatan */}
           <div className="mb-4">
-            <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-2">Notes</h4>
+            <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-2 flex items-center gap-2">
+              <StickyNote className="w-3.5 h-3.5" /> Notes
+            </h4>
             <textarea value={form.catatan} onChange={e => set("catatan", e.target.value)} rows={2} className={inputClass + " resize-none"} />
           </div>
 
           {/* Signatures */}
           <div className="mb-4">
-            <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3">Signature</h4>
+            <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3 flex items-center gap-2">
+              <PenLine className="w-3.5 h-3.5" /> Signature
+            </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <SignaturePad label="First Party Signature" value={form.pihak_pertama_signature} onChange={v => set("pihak_pertama_signature", v)} />
               <SignaturePad label="Second Party Signature" value={form.pihak_kedua_signature} onChange={v => set("pihak_kedua_signature", v)} />
@@ -323,9 +432,15 @@ export default function SuratDetail() {
           </div>
 
           <div className="flex gap-3 pt-3 border-t border-gray-100">
-            <button onClick={() => setEditMode(false)} className="px-5 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50">Cancel</button>
+            <button onClick={() => setEditMode(false)} className="px-5 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50">
+              Cancel
+            </button>
             <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-bold hover:bg-[#1E5CC6] disabled:opacity-60 flex items-center gap-2">
-              {saving ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving…</> : "✓ Save Changes"}
+              {saving ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
+              ) : (
+                <><Check className="w-4 h-4" /> Save Changes</>
+              )}
             </button>
           </div>
         </div>
@@ -336,25 +451,34 @@ export default function SuratDetail() {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             {[
-              { title: "🏢 The First Party (Delivering Party)", nama: s.pihak_pertama_nama, jabatan: s.pihak_pertama_jabatan, perusahaan: s.pihak_pertama_perusahaan, alamat: s.pihak_pertama_alamat },
-              { title: "🏢 The Second Party (Receiving Party)", nama: s.pihak_kedua_nama, jabatan: s.pihak_kedua_jabatan, perusahaan: s.pihak_kedua_perusahaan, alamat: s.pihak_kedua_alamat },
+              { title: "The First Party (Delivering Party)", nama: s.pihak_pertama_nama, jabatan: s.pihak_pertama_jabatan, perusahaan: s.pihak_pertama_perusahaan, alamat: s.pihak_pertama_alamat },
+              { title: "The Second Party (Receiving Party)", nama: s.pihak_kedua_nama, jabatan: s.pihak_kedua_jabatan, perusahaan: s.pihak_kedua_perusahaan, alamat: s.pihak_kedua_alamat },
             ].map(({ title, ...info }) => (
               <div key={title} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3">{title}</h3>
-                {Object.entries({ Name: info.nama, Position: info.jabatan, Company: info.perusahaan, Address: info.alamat })
-                  .filter(([, v]) => v).map(([label, val]) => (
-                    <div key={label} className="flex gap-3 py-1.5 border-b border-gray-50 last:border-0">
-                      <span className="text-xs text-gray-400 w-24 flex-shrink-0 pt-0.5">{label}</span>
-                      <span className="text-sm text-gray-800 font-medium">{val}</span>
-                    </div>
-                  ))}
+                <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Building2 className="w-3.5 h-3.5" /> {title}
+                </h3>
+                {[
+                  { label: "Name", val: info.nama, Icon: User },
+                  { label: "Position", val: info.jabatan, Icon: Briefcase },
+                  { label: "Company", val: info.perusahaan, Icon: Building2 },
+                  { label: "Address", val: info.alamat, Icon: MapPin },
+                ].filter(({ val }) => val).map(({ label, val, Icon }) => (
+                  <div key={label} className="flex gap-3 py-1.5 border-b border-gray-50 last:border-0 items-start">
+                    <Icon className="w-3.5 h-3.5 text-gray-300 mt-0.5 flex-shrink-0" />
+                    <span className="text-xs text-gray-400 w-20 flex-shrink-0 pt-0.5">{label}</span>
+                    <span className="text-sm text-gray-800 font-medium">{val}</span>
+                  </div>
+                ))}
               </div>
             ))}
           </div>
 
           {/* Items table */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
-            <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4">📦 List of Items</h3>
+            <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4 flex items-center gap-2">
+              <ClipboardList className="w-3.5 h-3.5" /> List of Items
+            </h3>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -381,14 +505,18 @@ export default function SuratDetail() {
 
           {s.catatan && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
-              <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3">📝 Notes</h3>
+              <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3 flex items-center gap-2">
+                <StickyNote className="w-3.5 h-3.5" /> Notes
+              </h3>
               <p className="text-sm text-gray-700 whitespace-pre-wrap">{s.catatan}</p>
             </div>
           )}
 
           {/* Signatures */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
-            <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4">✍ Signature</h3>
+            <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4 flex items-center gap-2">
+              <PenLine className="w-3.5 h-3.5" /> Signature
+            </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {[
                 { label: "The First Party", sig: s.pihak_pertama_signature, nama: s.pihak_pertama_nama, jabatan: s.pihak_pertama_jabatan, perusahaan: s.pihak_pertama_perusahaan },
@@ -402,8 +530,11 @@ export default function SuratDetail() {
                     </div>
                   ) : (
                     <div className="border-2 border-dashed border-gray-200 rounded-xl py-6">
+                      <PenLine className="w-6 h-6 text-gray-200 mx-auto mb-1" />
                       <p className="text-gray-300 text-sm">No signature yet</p>
-                      <button onClick={openEdit} className="mt-1 text-xs text-[#0B3D91] hover:underline">Add</button>
+                      <button onClick={openEdit} className="mt-1 text-xs text-[#0B3D91] hover:underline flex items-center gap-1 mx-auto">
+                        <Plus className="w-3 h-3" /> Add
+                      </button>
                     </div>
                   )}
                   <p className="text-xs font-semibold text-gray-600 mt-2">{nama || "—"}</p>
@@ -416,11 +547,20 @@ export default function SuratDetail() {
         </>
       )}
 
+      {/* Bottom action bar */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-wrap gap-3 justify-between items-center">
-        <button onClick={() => setDeleteDialog(true)} className="flex items-center gap-2 px-4 py-2 text-red-500 border border-red-200 rounded-xl text-sm font-semibold hover:bg-red-50">🗑 Delete</button>
+        <button onClick={() => setDeleteDialog(true)} className="flex items-center gap-2 px-4 py-2 text-red-500 border border-red-200 rounded-xl text-sm font-semibold hover:bg-red-50">
+          <Trash2 className="w-4 h-4" /> Delete
+        </button>
         <div className="flex gap-2">
-          <button onClick={previewPDF} disabled={previewLoading} className="flex items-center gap-2 px-5 py-2.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-sm font-semibold hover:bg-blue-100 disabled:opacity-60">{previewLoading ? "Loading…" : "👁 Preview PDF"}</button>
-          <button onClick={downloadPDF} disabled={pdfLoading} className="flex items-center gap-2 px-5 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] disabled:opacity-60">{pdfLoading ? "Generating…" : "⬇ Download PDF"}</button>
+          <button onClick={previewPDF} disabled={previewLoading} className="flex items-center gap-2 px-5 py-2.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-sm font-semibold hover:bg-blue-100 disabled:opacity-60">
+            {previewLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+            {previewLoading ? "Loading…" : "Preview PDF"}
+          </button>
+          <button onClick={downloadPDF} disabled={pdfLoading} className="flex items-center gap-2 px-5 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] disabled:opacity-60">
+            {pdfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            {pdfLoading ? "Generating…" : "Download PDF"}
+          </button>
         </div>
       </div>
     </div>

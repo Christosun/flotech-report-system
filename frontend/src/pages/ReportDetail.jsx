@@ -3,6 +3,24 @@ import { useParams, useNavigate } from "react-router-dom";
 import API from "../services/api";
 import toast from "react-hot-toast";
 import { compressImages, formatBytes } from "../utils/imageCompressor";
+import {
+  ArrowLeft,
+  Pencil,
+  Eye,
+  Download,
+  Trash2,
+  X,
+  Check,
+  Camera,
+  FileText,
+  ChevronDown,
+  Image as ImageIcon,
+  Loader2,
+  AlertTriangle,
+  EyeOff,
+  Zap,
+  Info,
+} from "lucide-react";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -121,10 +139,7 @@ function DeleteDialog({ title, description, onConfirm, onCancel, loading }) {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
         <div className="bg-gradient-to-br from-red-50 to-rose-100 px-6 pt-6 pb-4 text-center">
           <div className="w-14 h-14 bg-red-100 border-4 border-red-200 rounded-full flex items-center justify-center mx-auto mb-3">
-            <svg className="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
+            <Trash2 className="w-7 h-7 text-red-500" />
           </div>
           <h3 className="text-base font-bold text-gray-900">{title}</h3>
           <p className="text-sm text-gray-500 mt-1">{description}</p>
@@ -136,7 +151,9 @@ function DeleteDialog({ title, description, onConfirm, onCancel, loading }) {
           </button>
           <button onClick={onConfirm} disabled={loading}
             className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-60">
-            {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
+            {loading
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : <Trash2 className="w-4 h-4" />}
             Delete
           </button>
         </div>
@@ -151,14 +168,17 @@ function PDFPreviewModal({ url, reportNumber, reportType, onClose }) {
     <div className="fixed inset-0 bg-black/80 z-50 flex flex-col">
       <div className="flex items-center justify-between px-5 py-3 bg-[#0B3D91]">
         <span className="text-white font-bold text-sm flex items-center gap-2">
-          <span className="opacity-70">📋</span> {reportNumber} — Preview
+          <FileText className="w-4 h-4 opacity-70" />
+          {reportNumber} — Preview
         </span>
         <div className="flex items-center gap-2">
           <a href={url} download={`${reportNumber}_${reportType}.pdf`}
             className="px-4 py-1.5 bg-white text-[#0B3D91] rounded-lg text-xs font-bold hover:bg-blue-50 flex items-center gap-1.5 transition-colors">
-            ⬇ Download
+            <Download className="w-3.5 h-3.5" /> Download
           </a>
-          <button onClick={onClose} className="text-white/70 hover:text-white text-xl px-2 transition-colors">✕</button>
+          <button onClick={onClose} className="text-white/70 hover:text-white px-2 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
         </div>
       </div>
       <iframe src={url} className="flex-1 w-full" title="PDF Preview" style={{ border: "none" }} />
@@ -244,12 +264,12 @@ function ImageCard({ img, onDelete, onCaptionSave }) {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-end justify-between p-2">
             <button onClick={() => setEditingCaption(true)} title="Edit caption"
-              className="w-7 h-7 bg-white/90 text-[#0B3D91] rounded-lg flex items-center justify-center text-xs hover:bg-white transition-colors shadow">
-              ✏
+              className="w-7 h-7 bg-white/90 text-[#0B3D91] rounded-lg flex items-center justify-center hover:bg-white transition-colors shadow">
+              <Pencil className="w-3.5 h-3.5" />
             </button>
             <button onClick={() => setDeleteDialog(true)} title="Delete photo"
-              className="w-7 h-7 bg-white/90 text-red-500 rounded-lg flex items-center justify-center text-xs hover:bg-white transition-colors shadow">
-              🗑
+              className="w-7 h-7 bg-white/90 text-red-500 rounded-lg flex items-center justify-center hover:bg-white transition-colors shadow">
+              <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -267,11 +287,16 @@ function ImageCard({ img, onDelete, onCaptionSave }) {
               />
               <div className="flex gap-1">
                 <button onClick={handleSaveCaption} disabled={saving}
-                  className="flex-1 py-1 bg-[#0B3D91] text-white text-xs rounded-lg font-semibold disabled:opacity-60">
-                  {saving ? "…" : "✓ Save"}
+                  className="flex-1 py-1 bg-[#0B3D91] text-white text-xs rounded-lg font-semibold disabled:opacity-60 flex items-center justify-center gap-1">
+                  {saving
+                    ? <Loader2 className="w-3 h-3 animate-spin" />
+                    : <Check className="w-3 h-3" />}
+                  Save
                 </button>
                 <button onClick={() => { setCaption(img.caption || ""); setEditingCaption(false); }}
-                  className="px-2 py-1 border border-gray-200 text-gray-500 text-xs rounded-lg">✕</button>
+                  className="px-2 py-1 border border-gray-200 text-gray-500 text-xs rounded-lg flex items-center justify-center">
+                  <X className="w-3 h-3" />
+                </button>
               </div>
             </div>
           ) : (
@@ -307,8 +332,8 @@ function CompressionStatus({ items }) {
         />
       </div>
       {savings > 0 && (
-        <p className="text-[10px] text-emerald-600 font-medium">
-          ✓ Saved {formatBytes(savings)} so far
+        <p className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
+          <Check className="w-3 h-3" /> Saved {formatBytes(savings)} so far
         </p>
       )}
     </div>
@@ -398,7 +423,6 @@ export default function ReportDetail() {
     const fileArr = Array.from(files).filter(f => f.type.startsWith("image/"));
     if (!fileArr.length) return;
 
-    // ── 1. Show compression progress ──────────────────────────
     setCompressing(true);
     const progressItems = fileArr.map((f, idx) => ({
       idx,
@@ -409,7 +433,6 @@ export default function ReportDetail() {
     }));
     setCompressItems(progressItems);
 
-    // ── 2. Compress each file individually (update progress) ──
     const compressed = [];
     for (let i = 0; i < fileArr.length; i++) {
       const original = fileArr[i];
@@ -425,7 +448,6 @@ export default function ReportDetail() {
           ),
         );
       } catch {
-        // Fall back to original on any error
         compressed.push(original);
         setCompressItems(prev =>
           prev.map(item => item.idx === i ? { ...item, done: true, savedBytes: 0 } : item),
@@ -435,13 +457,11 @@ export default function ReportDetail() {
 
     setCompressing(false);
 
-    // ── 3. Calculate total savings for toast ──────────────────
-    const originalTotal  = fileArr.reduce((s, f) => s + f.size, 0);
+    const originalTotal   = fileArr.reduce((s, f) => s + f.size, 0);
     const compressedTotal = compressed.reduce((s, f) => s + f.size, 0);
     const savedTotal      = originalTotal - compressedTotal;
     const savedPct        = originalTotal > 0 ? Math.round((savedTotal / originalTotal) * 100) : 0;
 
-    // ── 4. Upload compressed files ────────────────────────────
     const fd = new FormData();
     compressed.forEach(f => fd.append("images", f));
     setUploading(true);
@@ -504,7 +524,7 @@ export default function ReportDetail() {
 
   if (!report) return (
     <div className="flex justify-center items-center h-40">
-      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0B3D91]" />
+      <Loader2 className="h-10 w-10 animate-spin text-[#0B3D91]" />
     </div>
   );
 
@@ -536,7 +556,7 @@ export default function ReportDetail() {
       {/* Back */}
       <button onClick={() => navigate("/reports")}
         className="flex items-center gap-2 text-sm text-gray-400 hover:text-[#0B3D91] mb-5 transition-colors">
-        ← Back to Field Reports
+        <ArrowLeft className="w-4 h-4" /> Back to Field Reports
       </button>
 
       {/* Header Card */}
@@ -569,24 +589,24 @@ export default function ReportDetail() {
             {!editMode && (
               <button onClick={openEdit}
                 className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl text-sm font-semibold hover:bg-amber-100 transition-colors">
-                ✏ Edit
+                <Pencil className="w-4 h-4" /> Edit
               </button>
             )}
             <button onClick={previewPDF} disabled={previewLoading}
               className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-sm font-semibold hover:bg-blue-100 transition-colors disabled:opacity-60">
               {previewLoading
-                ? <><div className="w-3.5 h-3.5 border-2 border-blue-700/30 border-t-blue-700 rounded-full animate-spin" /> Loading…</>
-                : "👁 Preview"}
+                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…</>
+                : <><Eye className="w-4 h-4" /> Preview</>}
             </button>
             <button onClick={downloadPDF} disabled={pdfLoading}
               className="flex items-center gap-2 px-4 py-2 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] transition-colors disabled:opacity-60">
               {pdfLoading
-                ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generating…</>
-                : "⬇ Download PDF"}
+                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating…</>
+                : <><Download className="w-4 h-4" /> Download PDF</>}
             </button>
             <button onClick={() => setDeleteDialog(true)}
               className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-xl text-sm font-semibold hover:bg-red-100 transition-colors">
-              🗑
+              <Trash2 className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -599,7 +619,9 @@ export default function ReportDetail() {
             <h3 className="text-sm font-bold text-amber-700 uppercase tracking-wider flex items-center gap-2">
               <span className="w-1.5 h-4 bg-amber-400 rounded-full" /> Edit Mode
             </h3>
-            <button onClick={() => setEditMode(false)} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
+            <button onClick={() => setEditMode(false)} className="text-gray-400 hover:text-gray-600">
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
           {/* Base fields */}
@@ -671,18 +693,12 @@ export default function ReportDetail() {
                     }`}>
                     {included ? (
                       <>
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                        <Eye className="w-3.5 h-3.5" />
                         Show in PDF
                       </>
                     ) : (
                       <>
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                            d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 4.411m0 0L21 21" />
-                        </svg>
+                        <EyeOff className="w-3.5 h-3.5" />
                         Hide in PDF
                       </>
                     )}
@@ -717,14 +733,14 @@ export default function ReportDetail() {
 
           <div className="flex gap-3 pt-2 border-t border-gray-100 mt-4">
             <button onClick={() => setEditMode(false)}
-              className="px-5 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50">
-              Cancel
+              className="px-5 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50 flex items-center gap-2">
+              <X className="w-4 h-4" /> Cancel
             </button>
             <button onClick={handleSave} disabled={saving}
               className="px-6 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-bold hover:bg-[#1E5CC6] disabled:opacity-60 flex items-center gap-2">
               {saving
-                ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving…</>
-                : "✓ Save Changes"}
+                ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
+                : <><Check className="w-4 h-4" /> Save Changes</>}
             </button>
           </div>
         </div>
@@ -758,9 +774,8 @@ export default function ReportDetail() {
             <span className="w-1.5 h-4 bg-[#0B3D91] rounded-full" /> Documentation & Photos
           </h3>
           <div className="flex items-center gap-2">
-            {/* Compression badge */}
             <span className="text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
-              ⚡ Auto-compressed
+              <Zap className="w-2.5 h-2.5" /> Auto-compressed
             </span>
             {report.images?.length > 0 && (
               <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-semibold">
@@ -772,7 +787,7 @@ export default function ReportDetail() {
 
         {report.images?.length > 0 && (
           <div className="mb-4 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 flex items-start gap-2">
-            <span className="text-blue-400 text-sm">💡</span>
+            <Info className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
             <p className="text-xs text-blue-700">
               Hover photo for <strong>edit caption</strong> or <strong>delete</strong>. Captions appear in PDF.
             </p>
@@ -788,23 +803,22 @@ export default function ReportDetail() {
             ${dragActive ? "border-[#0B3D91] bg-blue-50" : "border-gray-200 hover:border-[#0B3D91] hover:bg-blue-50"}`}
           onClick={() => !compressing && !uploading && document.getElementById("fileInput").click()}
         >
-          {/* Compression progress */}
           {compressing && compressItems.length > 0 ? (
             <div className="px-2 py-1">
               <CompressionStatus items={compressItems} />
             </div>
           ) : uploading ? (
             <div className="flex items-center justify-center gap-3">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#0B3D91]" />
+              <Loader2 className="h-6 w-6 animate-spin text-[#0B3D91]" />
               <p className="text-gray-500 text-sm">Uploading…</p>
             </div>
           ) : (
             <>
-              <p className="text-2xl mb-1">📸</p>
+              <Camera className="w-8 h-8 text-gray-300 mx-auto mb-2" />
               <p className="text-gray-600 font-medium text-sm">Drop photo or click to upload</p>
               <p className="text-gray-400 text-xs mt-0.5">PNG, JPG, JPEG · Auto-compressed before upload</p>
-              <p className="text-[10px] text-emerald-500 font-medium mt-1.5">
-                ⚡ Images are automatically compressed to keep PDF fast & smooth
+              <p className="text-[10px] text-emerald-500 font-medium mt-1.5 flex items-center justify-center gap-1">
+                <Zap className="w-2.5 h-2.5" /> Images are automatically compressed to keep PDF fast & smooth
               </p>
             </>
           )}
@@ -826,7 +840,9 @@ export default function ReportDetail() {
             ))}
           </div>
         ) : (
-          <p className="text-center text-gray-300 text-sm py-4">No photos yet</p>
+          <p className="text-center text-gray-300 text-sm py-4 flex items-center justify-center gap-2">
+            <ImageIcon className="w-4 h-4" /> No photos yet
+          </p>
         )}
       </div>
 
@@ -834,16 +850,20 @@ export default function ReportDetail() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-wrap gap-3 justify-between items-center">
         <button onClick={() => setDeleteDialog(true)}
           className="flex items-center gap-2 px-4 py-2 text-red-500 border border-red-200 rounded-xl text-sm font-semibold hover:bg-red-50 transition-colors">
-          🗑 Delete Report
+          <Trash2 className="w-4 h-4" /> Delete Report
         </button>
         <div className="flex gap-2">
           <button onClick={previewPDF} disabled={previewLoading}
             className="flex items-center gap-2 px-5 py-2.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-sm font-semibold hover:bg-blue-100 transition-colors disabled:opacity-60">
-            {previewLoading ? "Loading…" : "👁 Preview PDF"}
+            {previewLoading
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Loading…</>
+              : <><Eye className="w-4 h-4" /> Preview PDF</>}
           </button>
           <button onClick={downloadPDF} disabled={pdfLoading}
             className="flex items-center gap-2 px-5 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] transition-colors disabled:opacity-60">
-            {pdfLoading ? "Generating…" : "⬇ Download PDF"}
+            {pdfLoading
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</>
+              : <><Download className="w-4 h-4" /> Download PDF</>}
           </button>
         </div>
       </div>

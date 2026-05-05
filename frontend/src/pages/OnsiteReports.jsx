@@ -2,6 +2,25 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 import toast from "react-hot-toast";
+import {
+  ClipboardList,
+  FileText,
+  Send,
+  CheckCircle,
+  Wrench,
+  Trash2,
+  SlidersHorizontal,
+  PlusCircle,
+  CheckSquare,
+  Square,
+  Search,
+  ChevronFirst,
+  ChevronLast,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Loader2,
+} from "lucide-react";
 
 const STATUS_CONFIG = {
   draft:     { label: "Draft",     bg: "bg-gray-100",    text: "text-gray-600" },
@@ -49,9 +68,13 @@ function Pagination({ total, page, pageSize, setPage, setPageSize }) {
       </span>
       <div className="flex items-center gap-1">
         <button onClick={() => setPage(1)} disabled={page === 1}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-[#0B3D91] hover:text-[#0B3D91] disabled:opacity-30 disabled:cursor-not-allowed text-xs">«</button>
+          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-[#0B3D91] hover:text-[#0B3D91] disabled:opacity-30 disabled:cursor-not-allowed">
+          <ChevronFirst className="w-3.5 h-3.5" />
+        </button>
         <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-[#0B3D91] hover:text-[#0B3D91] disabled:opacity-30 disabled:cursor-not-allowed text-xs">‹</button>
+          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-[#0B3D91] hover:text-[#0B3D91] disabled:opacity-30 disabled:cursor-not-allowed">
+          <ChevronLeft className="w-3.5 h-3.5" />
+        </button>
         {pageNums.map((n, i) => (
           <button key={i} onClick={() => typeof n === "number" && setPage(n)} disabled={n === "..."}
             className={`min-w-[32px] h-8 rounded-lg text-xs font-bold border transition-all
@@ -62,9 +85,13 @@ function Pagination({ total, page, pageSize, setPage, setPageSize }) {
           </button>
         ))}
         <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-[#0B3D91] hover:text-[#0B3D91] disabled:opacity-30 disabled:cursor-not-allowed text-xs">›</button>
+          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-[#0B3D91] hover:text-[#0B3D91] disabled:opacity-30 disabled:cursor-not-allowed">
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
         <button onClick={() => setPage(totalPages)} disabled={page === totalPages}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-[#0B3D91] hover:text-[#0B3D91] disabled:opacity-30 disabled:cursor-not-allowed text-xs">»</button>
+          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-[#0B3D91] hover:text-[#0B3D91] disabled:opacity-30 disabled:cursor-not-allowed">
+          <ChevronLast className="w-3.5 h-3.5" />
+        </button>
       </div>
     </div>
   );
@@ -77,10 +104,7 @@ function DeleteDialog({ title, description, onConfirm, onCancel, loading }) {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
         <div className="bg-gradient-to-br from-red-50 to-rose-100 px-6 pt-6 pb-4 text-center">
           <div className="w-14 h-14 bg-red-100 border-4 border-red-200 rounded-full flex items-center justify-center mx-auto mb-3">
-            <svg className="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
+            <Trash2 className="w-7 h-7 text-red-500" />
           </div>
           <h3 className="text-base font-bold text-gray-900">{title}</h3>
           <p className="text-sm text-gray-500 mt-1">{description}</p>
@@ -93,8 +117,8 @@ function DeleteDialog({ title, description, onConfirm, onCancel, loading }) {
           <button onClick={onConfirm} disabled={loading}
             className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-60">
             {loading
-              ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
-              : null}
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : <Trash2 className="w-4 h-4" />}
             {loading ? "Deleting..." : "Permanently Delete"}
           </button>
         </div>
@@ -147,18 +171,26 @@ function BulkActionBar({ selectedIds, allIds, onSelectAll, onClearAll, onBulkDel
           <button onClick={() => setShowDeleteConfirm(true)} disabled={deleting}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-red-500 border border-red-200 rounded-lg text-xs font-bold hover:bg-red-50 disabled:opacity-60 transition-all">
             {deleting
-              ? <div className="w-3.5 h-3.5 border-2 border-red-400/40 border-t-red-500 rounded-full animate-spin"/>
-              : "🗑"}
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : <Trash2 className="w-3.5 h-3.5" />}
             {deleting ? "Deleting..." : "Delete Selected"}
           </button>
           <button onClick={onClearAll}
-            className="px-3 py-1.5 text-gray-400 hover:text-gray-600 text-xs font-semibold rounded-lg hover:bg-gray-100 transition-all">
-            ✕ Cancel
+            className="flex items-center gap-1.5 px-3 py-1.5 text-gray-400 hover:text-gray-600 text-xs font-semibold rounded-lg hover:bg-gray-100 transition-all">
+            <X className="w-3.5 h-3.5" />
+            Cancel
           </button>
         </div>
       </div>
     </>
   );
+}
+
+// ─── Status Icon Helper ───────────────────────────────────────────────────────
+function StatusIcon({ status }) {
+  if (status === "approved")  return <CheckCircle className="w-3.5 h-3.5" />;
+  if (status === "submitted") return <Send className="w-3.5 h-3.5" />;
+  return <FileText className="w-3.5 h-3.5" />;
 }
 
 export default function OnsiteReports() {
@@ -191,7 +223,6 @@ export default function OnsiteReports() {
     catch { toast.error("Failed to load data"); }
   }, []);
 
-  // Tambah useEffect reset:
   useEffect(() => { setPage(1); setSelectedIds([]); }, [filters]);
 
   const filtered = reports.filter(r => {
@@ -208,13 +239,11 @@ export default function OnsiteReports() {
 
   const activeFiltersCount = Object.entries(filters).filter(([k, v]) => k !== "search" && v !== "").length;
 
-  // Pagination
   const totalPages     = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage       = Math.min(page, totalPages);
   const paginated      = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
   const allFilteredIds = filtered.map(r => r.id);
 
-  // Select helpers
   const toggleSelect  = id  => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   const onSelectAll   = ()  => setSelectedIds(allFilteredIds);
   const onClearAll    = ()  => { setSelectedIds([]); setSelectMode(false); };
@@ -223,10 +252,10 @@ export default function OnsiteReports() {
   const inputClass = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91] bg-white";
 
   const stats = [
-    { label: "Total",     val: reports.length,                                            icon: "📋", color: "bg-blue-50",    text: "text-[#0B3D91]"   },
-    { label: "Draft",     val: reports.filter(r => r.status === "draft").length,          icon: "📝", color: "bg-gray-50",    text: "text-gray-600"    },
-    { label: "Submitted", val: reports.filter(r => r.status === "submitted").length,      icon: "📤", color: "bg-blue-50",    text: "text-blue-600"    },
-    { label: "Approved",  val: reports.filter(r => r.status === "approved").length,       icon: "✅", color: "bg-emerald-50", text: "text-emerald-600" },
+    { label: "Total",     val: reports.length,                                       icon: <ClipboardList className="w-4 h-4" />, color: "bg-blue-50",    text: "text-[#0B3D91]"   },
+    { label: "Draft",     val: reports.filter(r => r.status === "draft").length,     icon: <FileText      className="w-4 h-4" />, color: "bg-gray-50",    text: "text-gray-600"    },
+    { label: "Submitted", val: reports.filter(r => r.status === "submitted").length, icon: <Send          className="w-4 h-4" />, color: "bg-blue-50",    text: "text-blue-600"    },
+    { label: "Approved",  val: reports.filter(r => r.status === "approved").length,  icon: <CheckCircle   className="w-4 h-4" />, color: "bg-emerald-50", text: "text-emerald-600" },
   ];
 
   return (
@@ -245,7 +274,9 @@ export default function OnsiteReports() {
                 ? "bg-amber-500 text-white border-amber-500"
                 : "bg-white text-gray-600 border-gray-200 hover:border-[#0B3D91] hover:text-[#0B3D91]"}`}
           >
-            {selectMode ? "✕ Deselect" : "☑ Select"}
+            {selectMode
+              ? <><X className="w-4 h-4" /> Deselect</>
+              : <><CheckSquare className="w-4 h-4" /> Select</>}
           </button>
           <button
             onClick={() => setShowFilter(!showFilter)}
@@ -254,9 +285,7 @@ export default function OnsiteReports() {
                 ? "bg-[#0B3D91] text-white border-[#0B3D91]"
                 : "bg-white text-gray-600 border-gray-200 hover:border-[#0B3D91] hover:text-[#0B3D91]"}`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
+            <SlidersHorizontal className="w-4 h-4" />
             Filter
             {activeFiltersCount > 0 && (
               <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
@@ -268,7 +297,8 @@ export default function OnsiteReports() {
             onClick={() => navigate("/onsite/create")}
             className="flex items-center gap-2 px-4 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] transition-colors"
           >
-            + New Onsite Report
+            <PlusCircle className="w-4 h-4" />
+            New Onsite Report
           </button>
         </div>
       </div>
@@ -277,7 +307,9 @@ export default function OnsiteReports() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         {stats.map(s => (
           <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-base mb-2 ${s.color}`}>{s.icon}</div>
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center mb-2 ${s.color} ${s.text}`}>
+              {s.icon}
+            </div>
             <p className={`text-2xl font-black ${s.text}`}>{s.val}</p>
             <p className="text-xs font-semibold text-gray-500 mt-0.5">{s.label}</p>
           </div>
@@ -286,9 +318,7 @@ export default function OnsiteReports() {
 
       {/* Search */}
       <div className="relative mb-4">
-        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
         <input
           type="text"
           placeholder="Search for report number, client, site, engineer..."
@@ -374,13 +404,13 @@ export default function OnsiteReports() {
       {/* List */}
       {loading ? (
         <div className="flex justify-center items-center h-40">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0B3D91]" />
+          <Loader2 className="w-10 h-10 animate-spin text-[#0B3D91]" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
-          <p className="text-4xl mb-3">📋</p>
+          <ClipboardList className="w-12 h-12 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500 font-medium">
-            {filters.search || activeFiltersCount > 0 ? "Tidak ada report yang cocok" : "No onsite report yet"}
+            {filters.search || activeFiltersCount > 0 ? "No matching reports found" : "No onsite report yet"}
           </p>
           {!filters.search && activeFiltersCount === 0 && (
             <button onClick={() => navigate("/onsite/create")} className="mt-4 px-5 py-2 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold">
@@ -390,19 +420,14 @@ export default function OnsiteReports() {
         </div>
       ) : (
         <div className="space-y-2">
-          {paginated.map(r => {   // ← ganti filtered → paginated
+          {paginated.map(r => {
             const sc = STATUS_CONFIG[r.status] || STATUS_CONFIG.draft;
             const isSelected = selectedIds.includes(r.id);
             return (
               <div
                 key={r.id}
                 onClick={(e) => {
-                  if (selectMode) {
-                    toggleSelect(r.id);
-                    return;
-                  }
-
-                  // 👉 Detect buka tab baru
+                  if (selectMode) { toggleSelect(r.id); return; }
                   if (e.ctrlKey || e.metaKey || e.button === 1) {
                     window.open(`/onsite/${r.id}`, "_blank");
                   } else {
@@ -410,10 +435,7 @@ export default function OnsiteReports() {
                   }
                 }}
                 onMouseDown={(e) => {
-                  // 👉 middle click (scroll mouse)
-                  if (!selectMode && e.button === 1) {
-                    window.open(`/onsite/${r.id}`, "_blank");
-                  }
+                  if (!selectMode && e.button === 1) window.open(`/onsite/${r.id}`, "_blank");
                 }}
                 className={`rounded-2xl border shadow-sm p-4 transition-all cursor-pointer group
                   ${isSelected
@@ -430,14 +452,15 @@ export default function OnsiteReports() {
                         className="w-4 h-4 accent-[#0B3D91] cursor-pointer mt-1 flex-shrink-0"/>
                     )}
                     <div className="w-9 h-9 bg-gradient-to-br from-[#0B3D91] to-[#1E5CC6] rounded-xl flex items-center justify-center flex-shrink-0">
-                      <span className="text-white text-sm">🔧</span>
+                      <Wrench className="w-4 h-4 text-white" />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-gray-900 group-hover:text-[#0B3D91] transition-colors text-sm">
                           {r.report_number}
                         </span>
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${sc.bg} ${sc.text}`}>
+                        <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${sc.bg} ${sc.text}`}>
+                          <StatusIcon status={r.status} />
                           {sc.label}
                         </span>
                       </div>

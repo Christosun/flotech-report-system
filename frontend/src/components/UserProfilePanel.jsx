@@ -439,13 +439,13 @@ export default function UserProfilePanel({ open, onClose }) {
                   checked={prefs.show_clock}
                   onChange={v => setP("show_clock", v)}
                   label="Real-time clock in topbar"
-                  description="Display digital clock and date in the right topbar area"
+                  description="Display digital clock and date in the right topbar area."
                 />
                 <Toggle
                   checked={prefs.compact_sidebar}
                   onChange={v => setP("compact_sidebar", v)}
                   label="Compact sidebar (icon only)"
-                  description="Minimize sidebar — show icons only without text labels"
+                  description="Minimize sidebar — show icons only without text labels."
                 />
               </div>
 

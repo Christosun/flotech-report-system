@@ -2,54 +2,113 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
-
-// ── Icon helper ───────────────────────────────────────────────────────────────
-const Ico = ({ d, size = 16, cls = "" }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
-    className={cls}>
-    <path d={d} />
-  </svg>
-);
+import {
+  Bell,
+  FileText,
+  Edit3,
+  Trophy,
+  TrendingDown,
+  ClipboardList,
+  Wrench,
+  CheckCircle,
+  Umbrella,
+  XCircle,
+  Clock,
+  Info,
+  X,
+  CheckCheck,
+  Trash2,
+} from "lucide-react";
 
 // ── Notification type config ──────────────────────────────────────────────────
 const TYPE_CFG = {
-  quotation_created:  { icon: "📄", color: "bg-blue-100 text-blue-600",    label: "Quotation" },
-  quotation_updated:  { icon: "✏️",  color: "bg-indigo-100 text-indigo-600", label: "Quotation" },
-  quotation_won:      { icon: "🏆", color: "bg-emerald-100 text-emerald-600", label: "Won!" },
-  quotation_lost:     { icon: "📉", color: "bg-red-100 text-red-500",      label: "Lost" },
-  report_created:     { icon: "📋", color: "bg-purple-100 text-purple-600", label: "Report" },
-  onsite_created:     { icon: "🔧", color: "bg-orange-100 text-orange-600", label: "Onsite" },
-  onsite_approved:    { icon: "✅", color: "bg-emerald-100 text-emerald-600", label: "Approved" },
-  leave_approved:     { icon: "🏖️", color: "bg-teal-100 text-teal-600",    label: "Leave" },
-  leave_rejected:     { icon: "❌", color: "bg-red-100 text-red-500",      label: "Leave" },
-  leave_pending:      { icon: "⏳", color: "bg-amber-100 text-amber-600",  label: "Leave" },
-  general:            { icon: "🔔", color: "bg-gray-100 text-gray-600",    label: "Info" },
+  quotation_created: {
+    Icon: FileText,
+    color: "bg-blue-100 text-blue-600",
+    label: "Quotation",
+  },
+  quotation_updated: {
+    Icon: Edit3,
+    color: "bg-indigo-100 text-indigo-600",
+    label: "Quotation",
+  },
+  quotation_won: {
+    Icon: Trophy,
+    color: "bg-emerald-100 text-emerald-600",
+    label: "Won!",
+  },
+  quotation_lost: {
+    Icon: TrendingDown,
+    color: "bg-red-100 text-red-500",
+    label: "Lost",
+  },
+  report_created: {
+    Icon: ClipboardList,
+    color: "bg-purple-100 text-purple-600",
+    label: "Report",
+  },
+  onsite_created: {
+    Icon: Wrench,
+    color: "bg-orange-100 text-orange-600",
+    label: "Onsite",
+  },
+  onsite_approved: {
+    Icon: CheckCircle,
+    color: "bg-emerald-100 text-emerald-600",
+    label: "Approved",
+  },
+  leave_approved: {
+    Icon: Umbrella,
+    color: "bg-teal-100 text-teal-600",
+    label: "Leave",
+  },
+  leave_rejected: {
+    Icon: XCircle,
+    color: "bg-red-100 text-red-500",
+    label: "Leave",
+  },
+  leave_pending: {
+    Icon: Clock,
+    color: "bg-amber-100 text-amber-600",
+    label: "Leave",
+  },
+  general: {
+    Icon: Info,
+    color: "bg-gray-100 text-gray-600",
+    label: "Info",
+  },
 };
 
 // ── Relative time helper ──────────────────────────────────────────────────────
 function timeAgo(isoStr) {
-  // Pastikan string diparsing sebagai UTC (tambahkan 'Z' jika belum ada suffix timezone)
-  const normalized = isoStr && !isoStr.endsWith("Z") && !isoStr.match(/[+-]\d{2}:\d{2}$/)
-    ? isoStr + "Z"
-    : isoStr;
+  const normalized =
+    isoStr && !isoStr.endsWith("Z") && !isoStr.match(/[+-]\d{2}:\d{2}$/)
+      ? isoStr + "Z"
+      : isoStr;
   const diff = Math.floor((Date.now() - new Date(normalized)) / 1000);
-  if (diff < 60)       return "just now";
-  if (diff < 3600)     return `${Math.floor(diff / 60)} minutes ago`;
-  if (diff < 86400)    return `${Math.floor(diff / 3600)} hours ago`;
-  if (diff < 604800)   return `${Math.floor(diff / 86400)} days ago`;
-  return new Date(normalized).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)} days ago`;
+  return new Date(normalized).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+  });
 }
 
 // ── Empty State ───────────────────────────────────────────────────────────────
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-2xl">
-        🔔
+      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+        <Bell size={28} className="text-gray-400" strokeWidth={1.5} />
       </div>
-      <p className="text-sm font-semibold text-gray-600 mb-1">No notification yet</p>
-      <p className="text-xs text-gray-400">Your team's latest activities will appear here.</p>
+      <p className="text-sm font-semibold text-gray-600 mb-1">
+        No notification yet
+      </p>
+      <p className="text-xs text-gray-400">
+        Your team's latest activities will appear here.
+      </p>
     </div>
   );
 }
@@ -57,6 +116,7 @@ function EmptyState() {
 // ── Single notification item ──────────────────────────────────────────────────
 function NotifItem({ notif, onRead, onDelete, onNavigate }) {
   const cfg = TYPE_CFG[notif.type] || TYPE_CFG.general;
+  const { Icon } = cfg;
 
   const handleClick = () => {
     if (!notif.is_read) onRead(notif.id);
@@ -67,20 +127,26 @@ function NotifItem({ notif, onRead, onDelete, onNavigate }) {
     <div
       onClick={handleClick}
       className={`group relative flex gap-3 px-4 py-3 transition-colors cursor-pointer
-        ${notif.is_read
-          ? "bg-white hover:bg-gray-50"
-          : "bg-blue-50/60 hover:bg-blue-50 border-l-2 border-[#0B3D91]"}`}
+        ${
+          notif.is_read
+            ? "bg-white hover:bg-gray-50"
+            : "bg-blue-50/60 hover:bg-blue-50 border-l-2 border-[#0B3D91]"
+        }`}
     >
       {/* Icon */}
-      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-base ${cfg.color}`}>
-        {cfg.icon}
+      <div
+        className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${cfg.color}`}
+      >
+        <Icon size={16} strokeWidth={2} />
       </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0 pr-8">
         <div className="flex items-start justify-between gap-2">
-          <p className={`text-xs font-semibold leading-snug line-clamp-2
-            ${notif.is_read ? "text-gray-700" : "text-gray-900"}`}>
+          <p
+            className={`text-xs font-semibold leading-snug line-clamp-2
+            ${notif.is_read ? "text-gray-700" : "text-gray-900"}`}
+          >
             {notif.title}
           </p>
           {!notif.is_read && (
@@ -91,32 +157,52 @@ function NotifItem({ notif, onRead, onDelete, onNavigate }) {
           {notif.message}
         </p>
         <div className="flex items-center gap-2 mt-1 flex-wrap">
-          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${cfg.color}`}>
+          <span
+            className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${cfg.color}`}
+          >
             {cfg.label}
           </span>
           {notif.actor_name && (
-            <span className="text-[10px] text-gray-400">by {notif.actor_name}</span>
+            <span className="text-[10px] text-gray-400">
+              by {notif.actor_name}
+            </span>
           )}
-          <span className="text-[10px] text-gray-400 ml-auto">{timeAgo(notif.created_at)}</span>
+          <span className="text-[10px] text-gray-400 ml-auto">
+            {timeAgo(notif.created_at)}
+          </span>
         </div>
       </div>
 
-      {/* Delete button — visible on hover (desktop) or always visible (mobile) */}
+      {/* Delete button */}
       <button
-        onClick={e => { e.stopPropagation(); onDelete(notif.id); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(notif.id);
+        }}
         className="absolute right-3 top-3 w-7 h-7 rounded-lg bg-gray-100 hover:bg-red-100
-          text-gray-400 hover:text-red-500 flex items-center justify-center text-xs
+          text-gray-400 hover:text-red-500 flex items-center justify-center
           opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
       >
-        ✕
+        <X size={12} strokeWidth={2.5} />
       </button>
     </div>
   );
 }
 
 // ── Notification Content (shared between mobile & desktop) ───────────────────
-function NotifContent({ notifs, unread, loading, tab, setTab, displayed,
-  handleMarkAllRead, handleClearRead, handleRead, handleDelete, handleNavigate }) {
+function NotifContent({
+  notifs,
+  unread,
+  loading,
+  tab,
+  setTab,
+  displayed,
+  handleMarkAllRead,
+  handleClearRead,
+  handleRead,
+  handleDelete,
+  handleNavigate,
+}) {
   return (
     <>
       {/* Header */}
@@ -131,13 +217,19 @@ function NotifContent({ notifs, unread, loading, tab, setTab, displayed,
         </div>
         <div className="flex items-center gap-1">
           {unread > 0 && (
-            <button onClick={handleMarkAllRead}
-              className="text-[11px] text-[#0B3D91] font-semibold hover:underline px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors">
+            <button
+              onClick={handleMarkAllRead}
+              className="flex items-center gap-1 text-[11px] text-[#0B3D91] font-semibold hover:underline px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
+            >
+              <CheckCheck size={12} strokeWidth={2.5} />
               Mark all read
             </button>
           )}
-          <button onClick={handleClearRead}
-            className="text-[11px] text-gray-400 font-semibold hover:text-gray-600 px-2 py-1 rounded-lg hover:bg-gray-50 transition-colors">
+          <button
+            onClick={handleClearRead}
+            className="flex items-center gap-1 text-[11px] text-gray-400 font-semibold hover:text-gray-600 px-2 py-1 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Trash2 size={11} strokeWidth={2} />
             Clean
           </button>
         </div>
@@ -145,12 +237,20 @@ function NotifContent({ notifs, unread, loading, tab, setTab, displayed,
 
       {/* Tabs */}
       <div className="flex gap-1 px-4 py-2 border-b border-gray-100 bg-gray-50/50 flex-shrink-0">
-        {[["all", "All"], ["unread", "Unread"]].map(([key, label]) => (
-          <button key={key} onClick={() => setTab(key)}
+        {[
+          ["all", "All"],
+          ["unread", "Unread"],
+        ].map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all
-              ${tab === key
-                ? "bg-white text-[#0B3D91] shadow-sm border border-gray-200"
-                : "text-gray-500 hover:text-gray-700"}`}>
+              ${
+                tab === key
+                  ? "bg-white text-[#0B3D91] shadow-sm border border-gray-200"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+          >
             {label}
             {key === "unread" && unread > 0 && (
               <span className="ml-1.5 bg-red-100 text-red-600 text-[10px] font-bold px-1.5 rounded-full">
@@ -170,7 +270,7 @@ function NotifContent({ notifs, unread, loading, tab, setTab, displayed,
         ) : displayed.length === 0 ? (
           <EmptyState />
         ) : (
-          displayed.map(n => (
+          displayed.map((n) => (
             <NotifItem
               key={n.id}
               notif={n}
@@ -196,15 +296,15 @@ function NotifContent({ notifs, unread, loading, tab, setTab, displayed,
 
 // ── Main NotificationPanel ────────────────────────────────────────────────────
 export default function NotificationPanel() {
-  const navigate                  = useNavigate();
-  const [open, setOpen]           = useState(false);
-  const [notifs, setNotifs]       = useState([]);
-  const [unread, setUnread]       = useState(0);
-  const [loading, setLoading]     = useState(false);
-  const [tab, setTab]             = useState("all");
-  const [isMobile, setIsMobile]   = useState(false);
-  const panelRef  = useRef(null);
-  const pollRef   = useRef(null);
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [notifs, setNotifs] = useState([]);
+  const [unread, setUnread] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [tab, setTab] = useState("all");
+  const [isMobile, setIsMobile] = useState(false);
+  const panelRef = useRef(null);
+  const pollRef = useRef(null);
 
   // ── Detect mobile ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -219,7 +319,7 @@ export default function NotificationPanel() {
     try {
       const r = await API.get("/notification/list?limit=40");
       setNotifs(r.data.notifications || []);
-      setUnread(r.data.unread_count  || 0);
+      setUnread(r.data.unread_count || 0);
     } catch {}
   }, []);
 
@@ -239,7 +339,10 @@ export default function NotificationPanel() {
 
   // Fetch full list saat panel dibuka
   useEffect(() => {
-    if (open) { setLoading(true); fetchNotifs().finally(() => setLoading(false)); }
+    if (open) {
+      setLoading(true);
+      fetchNotifs().finally(() => setLoading(false));
+    }
   }, [open, fetchNotifs]);
 
   // ── Lock body scroll saat mobile sheet terbuka ────────────────────────────
@@ -249,14 +352,17 @@ export default function NotificationPanel() {
     } else {
       document.body.style.overflow = "";
     }
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [isMobile, open]);
 
   // ── Close on outside click (desktop only) ─────────────────────────────────
   useEffect(() => {
     if (isMobile) return;
-    const handler = e => {
-      if (panelRef.current && !panelRef.current.contains(e.target)) setOpen(false);
+    const handler = (e) => {
+      if (panelRef.current && !panelRef.current.contains(e.target))
+        setOpen(false);
     };
     if (open) document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -266,24 +372,24 @@ export default function NotificationPanel() {
   const handleRead = async (id) => {
     try {
       await API.put(`/notification/read/${id}`);
-      setNotifs(p => p.map(n => n.id === id ? { ...n, is_read: true } : n));
-      setUnread(p => Math.max(0, p - 1));
+      setNotifs((p) => p.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
+      setUnread((p) => Math.max(0, p - 1));
     } catch {}
   };
 
   const handleDelete = async (id) => {
-    const notif = notifs.find(n => n.id === id);
+    const notif = notifs.find((n) => n.id === id);
     try {
       await API.delete(`/notification/delete/${id}`);
-      setNotifs(p => p.filter(n => n.id !== id));
-      if (notif && !notif.is_read) setUnread(p => Math.max(0, p - 1));
+      setNotifs((p) => p.filter((n) => n.id !== id));
+      if (notif && !notif.is_read) setUnread((p) => Math.max(0, p - 1));
     } catch {}
   };
 
   const handleMarkAllRead = async () => {
     try {
       await API.put("/notification/read-all");
-      setNotifs(p => p.map(n => ({ ...n, is_read: true })));
+      setNotifs((p) => p.map((n) => ({ ...n, is_read: true })));
       setUnread(0);
     } catch {}
   };
@@ -291,7 +397,7 @@ export default function NotificationPanel() {
   const handleClearRead = async () => {
     try {
       await API.delete("/notification/clear-read");
-      setNotifs(p => p.filter(n => !n.is_read));
+      setNotifs((p) => p.filter((n) => !n.is_read));
     } catch {}
   };
 
@@ -300,11 +406,21 @@ export default function NotificationPanel() {
     navigate(link);
   };
 
-  const displayed = tab === "unread" ? notifs.filter(n => !n.is_read) : notifs;
+  const displayed =
+    tab === "unread" ? notifs.filter((n) => !n.is_read) : notifs;
 
   const contentProps = {
-    notifs, unread, loading, tab, setTab, displayed,
-    handleMarkAllRead, handleClearRead, handleRead, handleDelete, handleNavigate,
+    notifs,
+    unread,
+    loading,
+    tab,
+    setTab,
+    displayed,
+    handleMarkAllRead,
+    handleClearRead,
+    handleRead,
+    handleDelete,
+    handleNavigate,
   };
 
   return (
@@ -312,17 +428,21 @@ export default function NotificationPanel() {
       {/* ── Bell Button ────────────────────────────────────────────────────── */}
       <div className="relative" ref={panelRef}>
         <button
-          onClick={() => setOpen(o => !o)}
+          onClick={() => setOpen((o) => !o)}
           className={`relative w-9 h-9 flex items-center justify-center rounded-xl border transition-all
-            ${open
-              ? "bg-[#0B3D91] text-white border-[#0B3D91]"
-              : "bg-white text-gray-500 border-gray-200 hover:border-[#0B3D91]/40 hover:text-[#0B3D91]"}`}
+            ${
+              open
+                ? "bg-[#0B3D91] text-white border-[#0B3D91]"
+                : "bg-white text-gray-500 border-gray-200 hover:border-[#0B3D91]/40 hover:text-[#0B3D91]"
+            }`}
         >
-          <Ico d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" size={16} />
+          <Bell size={16} strokeWidth={2} />
           {unread > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1
+            <span
+              className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1
               bg-red-500 text-white text-[10px] font-black rounded-full
-              flex items-center justify-center leading-none shadow-sm">
+              flex items-center justify-center leading-none shadow-sm"
+            >
               {unread > 99 ? "99+" : unread}
             </span>
           )}
@@ -330,9 +450,11 @@ export default function NotificationPanel() {
 
         {/* ── DESKTOP: Dropdown ──────────────────────────────────────────── */}
         {!isMobile && open && (
-          <div className="absolute right-0 top-full mt-2 w-[360px]
+          <div
+            className="absolute right-0 top-full mt-2 w-[360px]
             bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden
-            flex flex-col max-h-[calc(100vh-80px)]">
+            flex flex-col max-h-[calc(100vh-80px)]"
+          >
             <NotifContent {...contentProps} />
           </div>
         )}

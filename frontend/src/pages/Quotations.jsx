@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import {
+  FileText, BarChart2, Building2, Plus, Search, SlidersHorizontal,
+  Upload, CheckSquare, X, ChevronLeft, ChevronRight, ChevronsLeft,
+  ChevronsRight, Trash2, Download, FileSpreadsheet, CheckCircle2,
+  TrendingUp, DollarSign, Pencil, AlertTriangle, ChevronDown,
+  RefreshCw, Eye, ArrowUpRight, Circle
+} from "lucide-react";
 import API from "../services/api";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -54,7 +61,7 @@ const calcSub = it => {
   return (parseFloat(it.unit_price)||0) * (parseFloat(it.qty)||0) * (1 - (parseFloat(it.discount)||0) / 100);
 };
 
-// ─── Field (ORIGINAL — value ?? "" agar tidak pernah undefined/null) ──────────
+// ─── Field ────────────────────────────────────────────────────────────────────
 function Field({ label, type="text", value, onChange, placeholder, required, children, className="", rows=3, readOnly=false }) {
   const base = `peer w-full border rounded-xl px-3 pt-6 pb-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91] transition-all
     ${readOnly ? "border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed" : "border-gray-200 bg-white"}`;
@@ -72,13 +79,13 @@ function Field({ label, type="text", value, onChange, placeholder, required, chi
       )}
       <label className={lbl}>
         {label}{required && <span className="text-red-400 ml-0.5">*</span>}
-        {readOnly && <span className="text-gray-300 ml-1 font-normal normal-case">(otomatis)</span>}
+        {readOnly && <span className="text-gray-300 ml-1 font-normal normal-case">(auto)</span>}
       </label>
     </div>
   );
 }
 
-// ─── SelectField (ORIGINAL) ───────────────────────────────────────────────────
+// ─── SelectField ──────────────────────────────────────────────────────────────
 function SelectField({ label, value, onChange, options, placeholder, required, className="" }) {
   const base = "peer w-full border border-gray-200 rounded-xl px-3 pt-6 pb-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91] bg-white transition-all cursor-pointer";
   const lbl  = "absolute left-3 top-2 text-[10px] font-bold text-gray-400 uppercase tracking-wide pointer-events-none select-none";
@@ -93,18 +100,14 @@ function SelectField({ label, value, onChange, options, placeholder, required, c
   );
 }
 
-// ─── Customer Manager Modal (ORIGINAL) ───────────────────────────────────────
-// ─── Delete Dialog (reusable) ─────────────────────────────────────────────────
+// ─── Delete Dialog ────────────────────────────────────────────────────────────
 function DeleteDialog({ title, description, onConfirm, onCancel, loading }) {
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
         <div className="bg-gradient-to-br from-red-50 to-rose-100 px-6 pt-6 pb-4 text-center">
           <div className="w-14 h-14 bg-red-100 border-4 border-red-200 rounded-full flex items-center justify-center mx-auto mb-3">
-            <svg className="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
+            <Trash2 className="w-7 h-7 text-red-500" />
           </div>
           <h3 className="text-base font-bold text-gray-900">{title}</h3>
           <p className="text-sm text-gray-500 mt-1">{description}</p>
@@ -118,7 +121,7 @@ function DeleteDialog({ title, description, onConfirm, onCancel, loading }) {
             className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-60">
             {loading
               ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
-              : null}
+              : <Trash2 className="w-4 h-4" />}
             {loading ? "Deleting..." : "Permanently Delete"}
           </button>
         </div>
@@ -127,14 +130,15 @@ function DeleteDialog({ title, description, onConfirm, onCancel, loading }) {
   );
 }
 
+// ─── Customer Modal ───────────────────────────────────────────────────────────
 function CustomerModal({ onClose, onSelect }) {
-  const [list, setList]           = useState([]);
-  const [search, setSearch]       = useState("");
-  const [showForm, setShowForm]   = useState(false);
+  const [list, setList]             = useState([]);
+  const [search, setSearch]         = useState("");
+  const [showForm, setShowForm]     = useState(false);
   const [editTarget, setEditTarget] = useState(null);
-  const [form, setForm]           = useState({ company_name:"", address:"", phone:"", email:"", industry:"", notes:"" });
-  const [saving, setSaving]       = useState(false);
-  const [loading, setLoading]     = useState(true);
+  const [form, setForm]             = useState({ company_name:"", address:"", phone:"", email:"", industry:"", notes:"" });
+  const [saving, setSaving]         = useState(false);
+  const [loading, setLoading]       = useState(true);
 
   const load = useCallback(async () => {
     try { const r = await API.get("/customer/list"); setList(r.data); }
@@ -152,7 +156,7 @@ function CustomerModal({ onClose, onSelect }) {
     try {
       if (editTarget) await API.put(`/customer/update/${editTarget.id}`, form);
       else await API.post("/customer/create", form);
-      toast.success(editTarget ? "Customer updated ✅" : "Customer added 🎉");
+      toast.success(editTarget ? "Customer updated" : "Customer added");
       setShowForm(false); load();
     } catch { toast.error("Failed to save"); }
     finally { setSaving(false); }
@@ -190,21 +194,28 @@ function CustomerModal({ onClose, onSelect }) {
       )}
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
-          <h2 className="text-lg font-bold text-gray-800">🏢 Customer Database</h2>
+          <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-[#0B3D91]" />
+            Customer Database
+          </h2>
           <div className="flex items-center gap-2">
-            <button onClick={openAdd} className="text-xs font-bold text-[#0B3D91] hover:underline">+ Add Customer</button>
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 text-lg">✕</button>
+            <button onClick={openAdd} className="flex items-center gap-1 text-xs font-bold text-[#0B3D91] hover:underline">
+              <Plus className="w-3.5 h-3.5" /> Add Customer
+            </button>
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400">
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
         {showForm && (
           <div className="px-6 py-4 border-b border-gray-100 bg-blue-50/50 shrink-0">
-            <p className="text-xs font-bold text-[#0B3D91] uppercase tracking-wide mb-3">{editTarget ? "Edit Customer" : "Add New Customers"}</p>
+            <p className="text-xs font-bold text-[#0B3D91] uppercase tracking-wide mb-3">{editTarget ? "Edit Customer" : "Add New Customer"}</p>
             <div className="grid grid-cols-2 gap-2 mb-3">
               <Field label="Company Name" value={form.company_name} onChange={e=>setForm(p=>({...p,company_name:e.target.value}))} required className="col-span-2"/>
               <Field label="Phone"         value={form.phone}        onChange={e=>setForm(p=>({...p,phone:e.target.value}))}/>
-              <Field label="Email" type="email" value={form.email}     onChange={e=>setForm(p=>({...p,email:e.target.value}))}/>
-              <Field label="Industry"        value={form.industry}     onChange={e=>setForm(p=>({...p,industry:e.target.value}))}/>
-              <Field label="Address"          value={form.address}      onChange={e=>setForm(p=>({...p,address:e.target.value}))}/>
+              <Field label="Email" type="email" value={form.email}   onChange={e=>setForm(p=>({...p,email:e.target.value}))}/>
+              <Field label="Industry"      value={form.industry}     onChange={e=>setForm(p=>({...p,industry:e.target.value}))}/>
+              <Field label="Address"       value={form.address}      onChange={e=>setForm(p=>({...p,address:e.target.value}))}/>
             </div>
             <div className="flex gap-2">
               <button onClick={save} disabled={saving}
@@ -216,14 +227,17 @@ function CustomerModal({ onClose, onSelect }) {
           </div>
         )}
         <div className="px-4 py-3 border-b border-gray-100 shrink-0">
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Search customer..."
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91]"/>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search customer..."
+              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91]"/>
+          </div>
         </div>
         <div className="overflow-y-auto flex-1">
           {loading
             ? <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#0B3D91]"/></div>
             : filtered.length === 0
-              ? <p className="text-center text-gray-400 py-8 text-sm">No customer yet</p>
+              ? <p className="text-center text-gray-400 py-8 text-sm">No customers yet</p>
               : filtered.map(c => (
                 <div key={c.id} className="flex items-center justify-between px-4 py-3 hover:bg-blue-50/50 border-b border-gray-50 group">
                   <div className="flex-1 cursor-pointer" onClick={() => { onSelect(c); onClose(); }}>
@@ -231,8 +245,12 @@ function CustomerModal({ onClose, onSelect }) {
                     <p className="text-xs text-gray-400">{[c.phone, c.email].filter(Boolean).join(" · ")}</p>
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 text-xs">✏️</button>
-                    <button onClick={() => setDeleteTarget(c)}   className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 text-xs">🗑</button>
+                    <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => setDeleteTarget(c)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-400">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
               ))
@@ -243,7 +261,7 @@ function CustomerModal({ onClose, onSelect }) {
   );
 }
 
-// ─── Create Modal (ORIGINAL — identik 100% dengan versi asli project) ─────────
+// ─── Create Modal ─────────────────────────────────────────────────────────────
 function CreateModal({ onClose, onCreated }) {
   const [form, setForm] = useState({
     base_number:"", customer_name:"", customer_company:"", customer_email:"",
@@ -252,8 +270,8 @@ function CreateModal({ onClose, onCreated }) {
     sales_person:"", ref_no:"", shipment_terms:"", delivery:"", payment_terms:"",
     notes:"", terms:"", items:[{ ...EMPTY_ITEM }],
   });
-  const [saving, setSaving]       = useState(false);
-  const [loading, setLoading]     = useState(true);
+  const [saving, setSaving]         = useState(false);
+  const [loading, setLoading]       = useState(true);
   const [showCustDB, setShowCustDB] = useState(false);
   const f  = form;
   const sf = v => setForm(p => ({ ...p, ...v }));
@@ -265,11 +283,11 @@ function CreateModal({ onClose, onCreated }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const addItem    = ()       => sf({ items:[...f.items, { ...EMPTY_ITEM }] });
-  const rmItem     = i        => sf({ items:f.items.filter((_,idx) => idx !== i) });
-  const upItem     = (i,k,v)  => sf({ items:f.items.map((it,idx) => idx===i ? { ...it,[k]:v } : it) });
-  const addSubItem = i        => sf({ items:f.items.map((it,idx) => idx===i ? { ...it, sub_items:[...(it.sub_items||[]),{ ...EMPTY_SUB }] } : it) });
-  const rmSubItem  = (i,si)   => sf({ items:f.items.map((it,idx) => idx===i ? { ...it, sub_items:it.sub_items.filter((_,s) => s!==si) } : it) });
+  const addItem    = ()         => sf({ items:[...f.items, { ...EMPTY_ITEM }] });
+  const rmItem     = i          => sf({ items:f.items.filter((_,idx) => idx !== i) });
+  const upItem     = (i,k,v)   => sf({ items:f.items.map((it,idx) => idx===i ? { ...it,[k]:v } : it) });
+  const addSubItem = i          => sf({ items:f.items.map((it,idx) => idx===i ? { ...it, sub_items:[...(it.sub_items||[]),{ ...EMPTY_SUB }] } : it) });
+  const rmSubItem  = (i,si)    => sf({ items:f.items.map((it,idx) => idx===i ? { ...it, sub_items:it.sub_items.filter((_,s) => s!==si) } : it) });
   const upSubItem  = (i,si,k,v) => sf({ items:f.items.map((it,idx) => idx===i ? { ...it, sub_items:it.sub_items.map((s,sidx) => sidx===si ? { ...s,[k]:v } : s) } : it) });
 
   const subtotal = f.items.reduce((s,it) => s + calcSub(it), 0);
@@ -293,7 +311,7 @@ function CreateModal({ onClose, onCreated }) {
     setSaving(true);
     try {
       await API.post("/quotation/create", { ...f, total_amount:subtotal });
-      toast.success("Quotation created! 🎉"); onCreated(); onClose();
+      toast.success("Quotation created!"); onCreated(); onClose();
     } catch(e) { toast.error(e.response?.data?.error || "Failed"); }
     finally { setSaving(false); }
   };
@@ -310,10 +328,15 @@ function CreateModal({ onClose, onCreated }) {
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">
             <div>
-              <h2 className="text-lg font-bold text-gray-800">Create a New Quotation</h2>
+              <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-[#0B3D91]" />
+                Create New Quotation
+              </h2>
               <p className="text-xs font-mono text-[#0B3D91]">{loading ? "Generating..." : f.base_number}</p>
             </div>
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 text-lg">✕</button>
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400">
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
           <div className="p-6 space-y-7">
@@ -335,7 +358,9 @@ function CreateModal({ onClose, onCreated }) {
             <section className={sectionCls}>
               <div className="flex items-center justify-between">
                 <h3 className={sectionHdr}>② Customer Information</h3>
-                <button onClick={() => setShowCustDB(true)} className="text-xs font-bold text-[#0B3D91] hover:underline">📋 Select from Database</button>
+                <button onClick={() => setShowCustDB(true)} className="flex items-center gap-1 text-xs font-bold text-[#0B3D91] hover:underline">
+                  <Building2 className="w-3.5 h-3.5" /> Select from Database
+                </button>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <Field label="PIC Name"   value={f.customer_name}    onChange={e=>sf({customer_name:e.target.value})}    required/>
@@ -351,7 +376,9 @@ function CreateModal({ onClose, onCreated }) {
             <section className={sectionCls}>
               <div className="flex items-center justify-between">
                 <h3 className={sectionHdr}>③ Item &amp; Price</h3>
-                <button onClick={addItem} className="text-xs font-bold text-[#0B3D91] hover:underline">+ Add Item</button>
+                <button onClick={addItem} className="flex items-center gap-1 text-xs font-bold text-[#0B3D91] hover:underline">
+                  <Plus className="w-3.5 h-3.5" /> Add Item
+                </button>
               </div>
 
               {/* VAT toggle */}
@@ -377,7 +404,9 @@ function CreateModal({ onClose, onCreated }) {
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-xs font-extrabold text-gray-300 uppercase">Item {i+1}</span>
                       {f.items.length > 1 && (
-                        <button onClick={() => rmItem(i)} className="text-xs text-red-400 hover:text-red-600 font-semibold">Delete</button>
+                        <button onClick={() => rmItem(i)} className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 font-semibold">
+                          <Trash2 className="w-3 h-3" /> Delete
+                        </button>
                       )}
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -399,7 +428,7 @@ function CreateModal({ onClose, onCreated }) {
                       </div>
                     ) : (
                       <div className="mt-3 space-y-2">
-                        <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wide">↳ Variants / Sub-Items</p>
+                        <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wide">Variants / Sub-Items</p>
                         {item.sub_items.map((s, si) => (
                           <div key={`create-item-${i}-sub-${si}`}
                             className="flex items-center gap-2 bg-white rounded-lg p-2.5 border border-blue-100">
@@ -410,7 +439,7 @@ function CreateModal({ onClose, onCreated }) {
                             <input placeholder="Qty" type="number" value={s.qty ?? ""}
                               onChange={e => upSubItem(i,si,"qty",e.target.value)}
                               className="w-14 border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-center focus:outline-none focus:ring-2 focus:ring-[#0B3D91]"/>
-                            <input placeholder="Harga" type="number" value={s.unit_price ?? ""}
+                            <input placeholder="Price" type="number" value={s.unit_price ?? ""}
                               onChange={e => upSubItem(i,si,"unit_price",e.target.value)}
                               className="w-28 border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#0B3D91]"/>
                             <input placeholder="Disc%" type="number" value={s.discount ?? ""}
@@ -419,8 +448,9 @@ function CreateModal({ onClose, onCreated }) {
                             <span className="text-[10px] font-bold text-[#0B3D91] shrink-0 min-w-[60px] text-right">
                               {fmtRp(calcSubItem(s), f.currency)}
                             </span>
-                            <button onClick={() => rmSubItem(i,si)}
-                              className="text-red-400 hover:text-red-600 shrink-0 text-xs font-bold px-1">✕</button>
+                            <button onClick={() => rmSubItem(i,si)} className="text-red-400 hover:text-red-600 shrink-0">
+                              <X className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         ))}
                       </div>
@@ -428,8 +458,9 @@ function CreateModal({ onClose, onCreated }) {
 
                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
                       <button onClick={() => addSubItem(i)}
-                        className="text-[10px] font-bold text-blue-500 hover:text-blue-700 hover:underline">
-                        + {(!item.sub_items || item.sub_items.length === 0) ? "Add Variant (Different Size)" : "Add Variant"}
+                        className="flex items-center gap-1 text-[10px] font-bold text-blue-500 hover:text-blue-700 hover:underline">
+                        <Plus className="w-3 h-3" />
+                        {(!item.sub_items || item.sub_items.length === 0) ? "Add Variant (Different Size)" : "Add Variant"}
                       </button>
                       <div className="text-right">
                         <span className="text-xs text-gray-400">Subtotal: </span>
@@ -456,10 +487,10 @@ function CreateModal({ onClose, onCreated }) {
             <section className={sectionCls}>
               <h3 className={sectionHdr}>④ Terms &amp; Conditions</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Field label="Shipment Terms"            value={f.shipment_terms} onChange={e=>sf({shipment_terms:e.target.value})}/>
-                <Field label="Payment Terms"             value={f.payment_terms}  onChange={e=>sf({payment_terms:e.target.value})}/>
-                <Field label="Delivery / Lead Time"      value={f.delivery}       onChange={e=>sf({delivery:e.target.value})}/>
-                <Field label="Note to Customer"       type="textarea" rows={4} value={f.notes} onChange={e=>sf({notes:e.target.value})} className="sm:col-span-2"/>
+                <Field label="Shipment Terms"               value={f.shipment_terms} onChange={e=>sf({shipment_terms:e.target.value})}/>
+                <Field label="Payment Terms"                value={f.payment_terms}  onChange={e=>sf({payment_terms:e.target.value})}/>
+                <Field label="Delivery / Lead Time"         value={f.delivery}       onChange={e=>sf({delivery:e.target.value})}/>
+                <Field label="Note to Customer"          type="textarea" rows={4} value={f.notes} onChange={e=>sf({notes:e.target.value})} className="sm:col-span-2"/>
                 <Field label="Additional Terms (Optional)" type="textarea" value={f.terms} onChange={e=>sf({terms:e.target.value})} className="sm:col-span-2"/>
               </div>
             </section>
@@ -486,15 +517,13 @@ function CreateModal({ onClose, onCreated }) {
   );
 }
 
-// ─── Analytics Panel (ORIGINAL) ───────────────────────────────────────────────
 // ─── Analytics Panel ──────────────────────────────────────────────────────────
 function AnalyticsPanel({ quotations, onClose }) {
-  const [metric, setMetric]           = useState("count");
-  const [period, setPeriod]           = useState("month");
+  const [metric, setMetric]             = useState("count");
+  const [period, setPeriod]             = useState("month");
   const [activeStatus, setActiveStatus] = useState(null);
-  const [drillModal, setDrillModal]   = useState(null);
-  // Info bar — pakai index bukan object, agar tidak re-render seluruh list
-  const [hoveredIdx, setHoveredIdx]   = useState(null);
+  const [drillModal, setDrillModal]     = useState(null);
+  const [hoveredIdx, setHoveredIdx]     = useState(null);
   const statuses = Object.keys(STATUS_CFG);
 
   const data = (() => {
@@ -541,8 +570,7 @@ function AnalyticsPanel({ quotations, onClose }) {
     setDrillModal({ period: d.period, items });
   };
 
-  // Data bar yang sedang di-hover (untuk info bar)
-  const hoveredData = hoveredIdx !== null ? filteredData[hoveredIdx] : null;
+  const hoveredData  = hoveredIdx !== null ? filteredData[hoveredIdx] : null;
   const hoveredItems = hoveredData
     ? (activeStatus ? (hoveredData._filtered||[]) : (hoveredData._items||[]))
     : [];
@@ -557,14 +585,14 @@ function AnalyticsPanel({ quotations, onClose }) {
 
   return (
     <>
-      {/* ── Drill-down Modal ── */}
       {drillModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <div>
-                <h3 className="font-bold text-gray-800 text-base">
-                  📋 Quotations — {drillModal.period}
+                <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-[#0B3D91]" />
+                  Quotations — {drillModal.period}
                   {activeStatus && (
                     <span className={`ml-2 px-2.5 py-0.5 rounded-full text-xs font-bold ${STATUS_CFG[activeStatus]?.color}`}>
                       {STATUS_CFG[activeStatus]?.label}
@@ -573,7 +601,9 @@ function AnalyticsPanel({ quotations, onClose }) {
                 </h3>
                 <p className="text-xs text-gray-400 mt-0.5">{drillModal.items.length} quotation(s) found</p>
               </div>
-              <button onClick={() => setDrillModal(null)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 text-lg">✕</button>
+              <button onClick={() => setDrillModal(null)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400">
+                <X className="w-4 h-4" />
+              </button>
             </div>
             <div className="overflow-y-auto flex-1 divide-y divide-gray-50">
               {drillModal.items.length === 0 ? (
@@ -599,7 +629,9 @@ function AnalyticsPanel({ quotations, onClose }) {
                     </div>
                     <div className="text-right ml-3 shrink-0">
                       <p className="text-sm font-bold text-gray-800">{fmtRp(q.total_amount, q.currency)}</p>
-                      <p className="text-xs text-gray-400 mt-0.5 group-hover:text-[#0B3D91] transition-colors">View →</p>
+                      <p className="text-xs text-gray-400 mt-0.5 group-hover:text-[#0B3D91] transition-colors flex items-center gap-0.5 justify-end">
+                        View <ArrowUpRight className="w-3 h-3" />
+                      </p>
                     </div>
                   </div>
                 );
@@ -616,24 +648,27 @@ function AnalyticsPanel({ quotations, onClose }) {
         </div>
       )}
 
-      {/* ── Main Analytics Modal ── */}
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-4">
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-            <h2 className="text-lg font-bold text-gray-800">📊 Quotation Analytics</h2>
+            <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+              <BarChart2 className="w-5 h-5 text-[#0B3D91]" />
+              Quotation Analytics
+            </h2>
             <div className="flex items-center gap-2">
               {activeStatus && (
                 <button onClick={() => setActiveStatus(null)}
-                  className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 font-semibold transition-colors">
-                  ✕ Clear filter
+                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 font-semibold transition-colors">
+                  <X className="w-3 h-3" /> Clear filter
                 </button>
               )}
-              <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 text-lg">✕</button>
+              <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400">
+                <X className="w-4 h-4" />
+              </button>
             </div>
           </div>
           <div className="p-6">
 
-            {/* Status cards — clickable filter */}
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Click a status to filter</p>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-5">
               {statuses.map(st => {
@@ -655,7 +690,6 @@ function AnalyticsPanel({ quotations, onClose }) {
               })}
             </div>
 
-            {/* Controls */}
             <div className="flex gap-2 mb-4 flex-wrap">
               {[["count","Count"],["value","Value"]].map(([k,l]) => (
                 <button key={k} onClick={() => setMetric(k)}
@@ -666,18 +700,14 @@ function AnalyticsPanel({ quotations, onClose }) {
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${period===k?"bg-[#0B3D91] text-white":"bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>{l}</button>
               ))}
               <span className="ml-auto text-xs text-gray-400 flex items-center gap-1">
-                💡 Hover bar for info · Click to drill down
+                <Eye className="w-3 h-3" /> Hover bar for info · Click to drill down
               </span>
             </div>
 
-            {/* Bar chart */}
             {filteredData.length === 0 ? (
               <div className="text-center text-gray-400 py-12"><p>No data</p></div>
             ) : (
-              <div
-                className="space-y-1.5"
-                onMouseLeave={() => setHoveredIdx(null)}
-              >
+              <div className="space-y-1.5" onMouseLeave={() => setHoveredIdx(null)}>
                 {filteredData.map((d, idx) => {
                   const items   = activeStatus ? (d._filtered||[]) : (d._items||[]);
                   const count   = activeStatus ? items.length : statuses.reduce((s,st) => s+(d[st]||0), 0);
@@ -689,31 +719,19 @@ function AnalyticsPanel({ quotations, onClose }) {
                   const isHov   = hoveredIdx === idx;
 
                   return (
-                    <div
-                      key={d.period}
-                      className="flex items-center gap-3"
-                      onMouseEnter={() => !isEmpty && setHoveredIdx(idx)}
-                    >
+                    <div key={d.period} className="flex items-center gap-3" onMouseEnter={() => !isEmpty && setHoveredIdx(idx)}>
                       <div className="w-16 text-xs font-mono font-bold shrink-0 text-right"
                         style={{ color: isHov ? "#0B3D91" : "#6B7280" }}>
                         {d.period}
                       </div>
-
                       <div
                         className={`flex-1 relative h-9 bg-gray-100 rounded-lg overflow-hidden ${!isEmpty ? "cursor-pointer" : "cursor-default"}`}
-                        onClick={() => !isEmpty && openDrill(d)}
-                      >
-                        {/* Bar fill */}
+                        onClick={() => !isEmpty && openDrill(d)}>
                         {activeStatus ? (
-                          <div
-                            className="h-full rounded-lg transition-[width] duration-500"
-                            style={{ width:`${barW}%`, background: STATUS_COLORS[activeStatus] }}
-                          />
+                          <div className="h-full rounded-lg transition-[width] duration-500"
+                            style={{ width:`${barW}%`, background: STATUS_COLORS[activeStatus] }}/>
                         ) : (
-                          <div
-                            className="h-full rounded-lg transition-[width] duration-500 flex overflow-hidden"
-                            style={{ width:`${barW}%` }}
-                          >
+                          <div className="h-full rounded-lg transition-[width] duration-500 flex overflow-hidden" style={{ width:`${barW}%` }}>
                             {statuses.map(st => {
                               const v     = metric === "count" ? (d[st]||0) : (d[`${st}_val`]||0);
                               const total = metric === "count" ? count : value;
@@ -724,8 +742,6 @@ function AnalyticsPanel({ quotations, onClose }) {
                             })}
                           </div>
                         )}
-
-                        {/* Hover highlight — pure CSS, tidak geser layout */}
                         {!isEmpty && (
                           <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity bg-black/[0.06] rounded-lg pointer-events-none" />
                         )}
@@ -735,7 +751,6 @@ function AnalyticsPanel({ quotations, onClose }) {
                           </div>
                         )}
                       </div>
-
                       <div className="w-24 text-xs text-right shrink-0">
                         <span className="font-bold" style={{ color: isHov ? "#0B3D91" : "#374151" }}>
                           {metric === "count" ? count : fmtRp(value)}
@@ -750,21 +765,16 @@ function AnalyticsPanel({ quotations, onClose }) {
               </div>
             )}
 
-            {/* ── Info bar — SELALU ADA di DOM, hanya isi yang berubah, tidak ada layout shift ── */}
             <div className={`mt-3 rounded-xl border transition-all duration-150 overflow-hidden ${
               hoveredData ? "border-[#0B3D91]/15 bg-[#0B3D91]/[0.03]" : "border-gray-100 bg-gray-50/50"
             }`} style={{ minHeight: "52px" }}>
               {hoveredData ? (
                 <div className="px-4 py-3">
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <span className="text-xs font-bold text-[#0B3D91]">📅 {hoveredData.period}</span>
+                    <span className="text-xs font-bold text-[#0B3D91]">{hoveredData.period}</span>
                     <div className="flex gap-4 text-xs">
-                      <span className="text-gray-500">
-                        Count: <span className="font-bold text-gray-800">{hoveredCount}</span>
-                      </span>
-                      <span className="text-gray-500">
-                        Value: <span className="font-bold text-gray-800">{fmtRp(hoveredValue)}</span>
-                      </span>
+                      <span className="text-gray-500">Count: <span className="font-bold text-gray-800">{hoveredCount}</span></span>
+                      <span className="text-gray-500">Value: <span className="font-bold text-gray-800">{fmtRp(hoveredValue)}</span></span>
                       {activeStatus && (
                         <span className="text-gray-500">
                           Status: <span className="font-bold" style={{ color: STATUS_COLORS[activeStatus] }}>
@@ -775,7 +785,6 @@ function AnalyticsPanel({ quotations, onClose }) {
                     </div>
                     <span className="text-[10px] text-gray-400 italic">Click bar to open list</span>
                   </div>
-                  {/* Mini status breakdown — hanya tampil jika tidak filter status */}
                   {!activeStatus && (
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {statuses.filter(st => hoveredItems.some(q=>(q.status||"draft")===st)).map(st => {
@@ -796,7 +805,6 @@ function AnalyticsPanel({ quotations, onClose }) {
               )}
             </div>
 
-            {/* Legend */}
             <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-gray-100">
               {statuses.map(st => (
                 <button key={st}
@@ -821,12 +829,14 @@ function Chip({ label, onRm }) {
   return (
     <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#0B3D91]/10 text-[#0B3D91] text-xs font-semibold rounded-full">
       {label}
-      <button onClick={onRm} className="hover:bg-[#0B3D91]/20 rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-black">✕</button>
+      <button onClick={onRm} className="hover:bg-[#0B3D91]/20 rounded-full w-4 h-4 flex items-center justify-center">
+        <X className="w-2.5 h-2.5" />
+      </button>
     </span>
   );
 }
 
-// ─── Export Menu (ORIGINAL) ───────────────────────────────────────────────────
+// ─── Export Menu ──────────────────────────────────────────────────────────────
 function ExportMenu({ filteredIds, onClose }) {
   const [exportingXls, setExportingXls] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
@@ -849,14 +859,21 @@ function ExportMenu({ filteredIds, onClose }) {
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="text-lg font-bold text-gray-800">📤 Export Data</h2>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 text-lg">✕</button>
+          <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+            <Upload className="w-5 h-5 text-[#0B3D91]" />
+            Export Data
+          </h2>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400">
+            <X className="w-4 h-4" />
+          </button>
         </div>
         <div className="p-6 space-y-3">
-          <p className="text-xs text-gray-400 mb-4">{filteredIds.length} quotation will be exported</p>
+          <p className="text-xs text-gray-400 mb-4">{filteredIds.length} quotation(s) will be exported</p>
           <button onClick={() => doExport("excel")} disabled={exportingXls}
             className="w-full flex items-center gap-3 px-5 py-3.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-sm font-bold hover:bg-emerald-100 disabled:opacity-60 transition-all">
-            {exportingXls ? <div className="w-5 h-5 border-2 border-emerald-400/40 border-t-emerald-600 rounded-full animate-spin"/> : <span className="text-xl">📊</span>}
+            {exportingXls
+              ? <div className="w-5 h-5 border-2 border-emerald-400/40 border-t-emerald-600 rounded-full animate-spin"/>
+              : <FileSpreadsheet className="w-5 h-5" />}
             <div className="text-left">
               <p className="font-bold">Export Excel (.xlsx)</p>
               <p className="text-xs font-normal text-emerald-600">Spreadsheet with all data</p>
@@ -864,7 +881,9 @@ function ExportMenu({ filteredIds, onClose }) {
           </button>
           <button onClick={() => doExport("pdf")} disabled={exportingPdf}
             className="w-full flex items-center gap-3 px-5 py-3.5 bg-red-50 text-red-700 border border-red-200 rounded-xl text-sm font-bold hover:bg-red-100 disabled:opacity-60 transition-all">
-            {exportingPdf ? <div className="w-5 h-5 border-2 border-red-400/40 border-t-red-600 rounded-full animate-spin"/> : <span className="text-xl">📄</span>}
+            {exportingPdf
+              ? <div className="w-5 h-5 border-2 border-red-400/40 border-t-red-600 rounded-full animate-spin"/>
+              : <FileText className="w-5 h-5" />}
             <div className="text-left">
               <p className="font-bold">Export PDF (.pdf)</p>
               <p className="text-xs font-normal text-red-600">PDF report</p>
@@ -876,7 +895,7 @@ function ExportMenu({ filteredIds, onClose }) {
   );
 }
 
-// ─── Filter Panel (ORIGINAL) ──────────────────────────────────────────────────
+// ─── Filter Panel ─────────────────────────────────────────────────────────────
 function FilterPanel({ quotations, filters, setFilters, onClose }) {
   const [local, setLocal] = useState({ ...filters });
   const salesList = [...new Set(quotations.map(q=>q.sales_person).filter(Boolean))].sort();
@@ -894,24 +913,31 @@ function FilterPanel({ quotations, filters, setFilters, onClose }) {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div>
-            <h2 className="text-lg font-bold text-gray-800">🔍 Advanced Filters</h2>
-            {active > 0 && <p className="text-xs text-[#0B3D91] font-semibold">{active} filter aktif</p>}
+            <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+              <SlidersHorizontal className="w-5 h-5 text-[#0B3D91]" />
+              Advanced Filters
+            </h2>
+            {active > 0 && <p className="text-xs text-[#0B3D91] font-semibold">{active} active filter(s)</p>}
           </div>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 text-lg">✕</button>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400">
+            <X className="w-4 h-4" />
+          </button>
         </div>
         <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Search (No/Customer/Project/PIC)" value={local.search}   onChange={e=>setLocal({...local,search:e.target.value})} className="sm:col-span-2"/>
           <SelectField label="Status"       value={local.status}   onChange={e=>setLocal({...local,status:e.target.value})}   options={Object.entries(STATUS_CFG).map(([k,v])=>({value:k,label:v.label}))} placeholder="All Status"/>
           <SelectField label="Sales Person" value={local.sales}    onChange={e=>setLocal({...local,sales:e.target.value})}    options={salesList} placeholder="All Sales"/>
-          <SelectField label="Customer"     value={local.customer} onChange={e=>setLocal({...local,customer:e.target.value})} options={custList}  placeholder="All Customer"/>
-          <SelectField label="Currency"    value={local.currency} onChange={e=>setLocal({...local,currency:e.target.value})} options={["IDR","USD","SGD","EUR"]} placeholder="All Currency"/>
+          <SelectField label="Customer"     value={local.customer} onChange={e=>setLocal({...local,customer:e.target.value})} options={custList}  placeholder="All Customers"/>
+          <SelectField label="Currency"    value={local.currency} onChange={e=>setLocal({...local,currency:e.target.value})} options={["IDR","USD","SGD","EUR"]} placeholder="All Currencies"/>
           <Field label="Date From"   type="date"   value={local.dateFrom} onChange={e=>setLocal({...local,dateFrom:e.target.value})}/>
           <Field label="Date To" type="date"   value={local.dateTo}   onChange={e=>setLocal({...local,dateTo:e.target.value})}/>
           <Field label="Minimum Value"  type="number" value={local.minVal}   onChange={e=>setLocal({...local,minVal:e.target.value})}/>
           <Field label="Maximum Value" type="number" value={local.maxVal}   onChange={e=>setLocal({...local,maxVal:e.target.value})}/>
         </div>
         <div className="flex gap-3 px-6 py-4 border-t border-gray-100">
-          <button onClick={reset} className="px-4 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50">Reset All</button>
+          <button onClick={reset} className="flex items-center gap-1.5 px-4 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50">
+            <RefreshCw className="w-3.5 h-3.5" /> Reset All
+          </button>
           <button onClick={apply} className="flex-1 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-bold hover:bg-[#1E5CC6]">Apply Filter</button>
         </div>
       </div>
@@ -919,10 +945,10 @@ function FilterPanel({ quotations, filters, setFilters, onClose }) {
   );
 }
 
-// ─── Bulk Action Bar (NEW feature) ───────────────────────────────────────────
+// ─── Bulk Action Bar ──────────────────────────────────────────────────────────
 function BulkActionBar({ selectedIds, allIds, onSelectAll, onClearAll, onBulkDeleted }) {
-  const [deleting, setDeleting]             = useState(false);
-  const [pdfing,   setPdfing]               = useState(false);
+  const [deleting, setDeleting]                 = useState(false);
+  const [pdfing,   setPdfing]                   = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const isAllSelected = allIds.length > 0 && selectedIds.length === allIds.length;
 
@@ -930,7 +956,7 @@ function BulkActionBar({ selectedIds, allIds, onSelectAll, onClearAll, onBulkDel
     setDeleting(true);
     try {
       await Promise.all(selectedIds.map(id => API.delete(`/quotation/delete/${id}`)));
-      toast.success(`${selectedIds.length} quotation deleted`);
+      toast.success(`${selectedIds.length} quotation(s) deleted`);
       setShowDeleteConfirm(false);
       onBulkDeleted();
     } catch { toast.error("Some failed to delete"); }
@@ -963,7 +989,7 @@ function BulkActionBar({ selectedIds, allIds, onSelectAll, onClearAll, onBulkDel
     <>
       {showDeleteConfirm && (
         <DeleteDialog
-          title={`Delete ${selectedIds.length} Quotation?`}
+          title={`Delete ${selectedIds.length} Quotation(s)?`}
           description="All selected quotations will be permanently deleted. This action cannot be undone."
           onConfirm={handleDelete}
           onCancel={() => setShowDeleteConfirm(false)}
@@ -971,43 +997,47 @@ function BulkActionBar({ selectedIds, allIds, onSelectAll, onClearAll, onBulkDel
         />
       )}
       <div className="flex items-center gap-2 px-4 py-2.5 bg-[#0B3D91]/5 border border-[#0B3D91]/20 rounded-xl mb-3 flex-wrap">
-      <label className="flex items-center gap-2 cursor-pointer select-none">
-        <input type="checkbox" checked={isAllSelected} onChange={isAllSelected ? onClearAll : onSelectAll}
-          className="w-4 h-4 accent-[#0B3D91] cursor-pointer"/>
-        <span className="text-xs font-bold text-[#0B3D91]">
-          {isAllSelected ? "Deselect All" : `Select All (${allIds.length})`}
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input type="checkbox" checked={isAllSelected} onChange={isAllSelected ? onClearAll : onSelectAll}
+            className="w-4 h-4 accent-[#0B3D91] cursor-pointer"/>
+          <span className="text-xs font-bold text-[#0B3D91]">
+            {isAllSelected ? "Deselect All" : `Select All (${allIds.length})`}
+          </span>
+        </label>
+        <div className="h-4 w-px bg-[#0B3D91]/20 mx-1"/>
+        <span className="text-xs font-semibold text-[#0B3D91] bg-[#0B3D91]/10 px-2.5 py-1 rounded-full">
+          {selectedIds.length} selected
         </span>
-      </label>
-      <div className="h-4 w-px bg-[#0B3D91]/20 mx-1"/>
-      <span className="text-xs font-semibold text-[#0B3D91] bg-[#0B3D91]/10 px-2.5 py-1 rounded-full">
-        {selectedIds.length} selected
-      </span>
-      <div className="flex items-center gap-2 ml-auto flex-wrap">
-        <button onClick={handlePdf} disabled={pdfing}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-lg text-xs font-bold hover:bg-red-100 disabled:opacity-60 transition-all">
-          {pdfing ? <div className="w-3.5 h-3.5 border-2 border-red-400/40 border-t-red-600 rounded-full animate-spin"/> : "📄"}
-          {pdfing ? "Generating..." : "Download PDF"}
-        </button>
-        <button onClick={handleExcel}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-all">
-          📊 Export Excel
-        </button>
-        <button onClick={() => setShowDeleteConfirm(true)} disabled={deleting}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-red-500 border border-red-200 rounded-lg text-xs font-bold hover:bg-red-50 disabled:opacity-60 transition-all">
-          {deleting ? <div className="w-3.5 h-3.5 border-2 border-red-400/40 border-t-red-500 rounded-full animate-spin"/> : "🗑"}
-          {deleting ? "Deleting..." : "Delete Selected"}
-        </button>
-        <button onClick={onClearAll}
-          className="px-3 py-1.5 text-gray-400 hover:text-gray-600 text-xs font-semibold rounded-lg hover:bg-gray-100 transition-all">
-          ✕ Cancel
-        </button>
+        <div className="flex items-center gap-2 ml-auto flex-wrap">
+          <button onClick={handlePdf} disabled={pdfing}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-lg text-xs font-bold hover:bg-red-100 disabled:opacity-60 transition-all">
+            {pdfing
+              ? <div className="w-3.5 h-3.5 border-2 border-red-400/40 border-t-red-600 rounded-full animate-spin"/>
+              : <FileText className="w-3.5 h-3.5" />}
+            {pdfing ? "Generating..." : "Download PDF"}
+          </button>
+          <button onClick={handleExcel}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-all">
+            <FileSpreadsheet className="w-3.5 h-3.5" /> Export Excel
+          </button>
+          <button onClick={() => setShowDeleteConfirm(true)} disabled={deleting}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-red-500 border border-red-200 rounded-lg text-xs font-bold hover:bg-red-50 disabled:opacity-60 transition-all">
+            {deleting
+              ? <div className="w-3.5 h-3.5 border-2 border-red-400/40 border-t-red-500 rounded-full animate-spin"/>
+              : <Trash2 className="w-3.5 h-3.5" />}
+            {deleting ? "Deleting..." : "Delete Selected"}
+          </button>
+          <button onClick={onClearAll}
+            className="flex items-center gap-1 px-3 py-1.5 text-gray-400 hover:text-gray-600 text-xs font-semibold rounded-lg hover:bg-gray-100 transition-all">
+            <X className="w-3.5 h-3.5" /> Cancel
+          </button>
+        </div>
       </div>
-    </div>
     </>
   );
 }
 
-// ─── Pagination (NEW feature) ─────────────────────────────────────────────────
+// ─── Pagination ───────────────────────────────────────────────────────────────
 function Pagination({ total, page, pageSize, setPage, setPageSize }) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
@@ -1025,7 +1055,6 @@ function Pagination({ total, page, pageSize, setPage, setPageSize }) {
 
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-gray-100 bg-white rounded-b-2xl">
-      {/* Rows per page */}
       <div className="flex items-center gap-2">
         <span className="text-xs text-gray-400 font-medium whitespace-nowrap">Showing</span>
         <div className="flex gap-1">
@@ -1041,16 +1070,18 @@ function Pagination({ total, page, pageSize, setPage, setPageSize }) {
         </div>
         <span className="text-xs text-gray-400 font-medium whitespace-nowrap">rows</span>
       </div>
-      {/* Info */}
       <span className="text-xs text-gray-400 font-medium">
-        {total === 0 ? "Tidak ada data" : `${from}–${to} from ${total}`}
+        {total === 0 ? "No data" : `${from}–${to} of ${total}`}
       </span>
-      {/* Nav buttons */}
       <div className="flex items-center gap-1">
         <button onClick={() => setPage(1)} disabled={page === 1}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-[#0B3D91]/40 hover:text-[#0B3D91] disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold transition-all">«</button>
+          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-[#0B3D91]/40 hover:text-[#0B3D91] disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+          <ChevronsLeft className="w-3.5 h-3.5" />
+        </button>
         <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-[#0B3D91]/40 hover:text-[#0B3D91] disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold transition-all">‹</button>
+          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-[#0B3D91]/40 hover:text-[#0B3D91] disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+          <ChevronLeft className="w-3.5 h-3.5" />
+        </button>
         {pageNums.map((n, i) =>
           n === "..." ? (
             <span key={`e${i}`} className="w-8 h-8 flex items-center justify-center text-gray-300 text-xs">…</span>
@@ -1065,9 +1096,13 @@ function Pagination({ total, page, pageSize, setPage, setPageSize }) {
           )
         )}
         <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-[#0B3D91]/40 hover:text-[#0B3D91] disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold transition-all">›</button>
+          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-[#0B3D91]/40 hover:text-[#0B3D91] disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
         <button onClick={() => setPage(totalPages)} disabled={page === totalPages}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-[#0B3D91]/40 hover:text-[#0B3D91] disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold transition-all">»</button>
+          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-[#0B3D91]/40 hover:text-[#0B3D91] disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+          <ChevronsRight className="w-3.5 h-3.5" />
+        </button>
       </div>
     </div>
   );
@@ -1086,21 +1121,16 @@ export default function Quotations() {
     search:"", status:"", sales:"", customer:"", dateFrom:"", dateTo:"", currency:"", minVal:"", maxVal:""
   });
 
-  // Multi-select state
   const [selectedIds, setSelectedIds] = useState([]);
   const [selectMode,  setSelectMode]  = useState(false);
-
-  // Pagination state
-  const [page,     setPage]     = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [page,        setPage]        = useState(1);
+  const [pageSize,    setPageSize]    = useState(10);
 
   const fetchQ = useCallback(async () => {
     try { const r = await API.get("/quotation/list"); setQuotations(r.data); }
-    catch { toast.error("Failed to load quotation"); }
+    catch { toast.error("Failed to load quotations"); }
   }, []);
   useEffect(() => { fetchQ(); }, [fetchQ]);
-
-  // Reset page & selection when filters change
   useEffect(() => { setPage(1); setSelectedIds([]); }, [filters]);
 
   const activeFilters = Object.values(filters).filter(v => v && v !== "").length;
@@ -1123,10 +1153,10 @@ export default function Quotations() {
     return true;
   });
 
-  const totalPages       = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const safePage         = Math.min(page, totalPages);
-  const paginated        = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
-  const allFilteredIds   = filtered.map(q => q.id);
+  const totalPages     = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage       = Math.min(page, totalPages);
+  const paginated      = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const allFilteredIds = filtered.map(q => q.id);
 
   const totalPipeline = quotations.filter(q=>!["won","lost","cancel"].includes(q.status)).reduce((s,q)=>s+(q.total_amount||0),0);
   const totalWon      = quotations.filter(q=>q.status==="won").reduce((s,q)=>s+(q.total_amount||0),0);
@@ -1153,15 +1183,15 @@ export default function Quotations() {
         <div className="flex flex-wrap items-center gap-2">
           <button onClick={() => setShowCustMgr(true)}
             className="flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50 shadow-sm">
-            🏢 Customers
+            <Building2 className="w-4 h-4" /> Customers
           </button>
           <button onClick={() => setShowAnalytics(true)}
             className="flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50 shadow-sm">
-            📊 Analytics
+            <BarChart2 className="w-4 h-4" /> Analytics
           </button>
           <button onClick={() => setShowCreate(true)}
             className="flex items-center gap-1.5 px-5 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-bold hover:bg-[#1E5CC6] shadow-sm">
-            + New Quotation
+            <Plus className="w-4 h-4" /> New Quotation
           </button>
         </div>
       </div>
@@ -1169,13 +1199,15 @@ export default function Quotations() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         {[
-          { label:"Total Quotation", val:quotations.length,                              icon:"📄", color:"text-[#0B3D91]",    big:true },
-          { label:"Won",             val:quotations.filter(q=>q.status==="won").length,  icon:"✅", color:"text-emerald-600",  big:true },
-          { label:"Pipeline Value",  val:fmtRp(totalPipeline),                           icon:"📈", color:"text-orange-600"  },
-          { label:"Won Value",       val:fmtRp(totalWon),                                icon:"💰", color:"text-emerald-600" },
+          { label:"Total Quotation",  val: quotations.length,                              Icon: FileText,       color:"text-[#0B3D91]",   iconBg:"bg-blue-50",    big:true },
+          { label:"Won",              val: quotations.filter(q=>q.status==="won").length,  Icon: CheckCircle2,   color:"text-emerald-600", iconBg:"bg-emerald-50", big:true },
+          { label:"Pipeline Value",   val: fmtRp(totalPipeline),                           Icon: TrendingUp,     color:"text-orange-600",  iconBg:"bg-orange-50"  },
+          { label:"Won Value",        val: fmtRp(totalWon),                                Icon: DollarSign,     color:"text-emerald-600", iconBg:"bg-emerald-50" },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-            <p className="text-xl mb-1">{s.icon}</p>
+            <div className={`w-9 h-9 ${s.iconBg} rounded-xl flex items-center justify-center mb-2`}>
+              <s.Icon className={`w-4.5 h-4.5 ${s.color}`} size={18} />
+            </div>
             <p className={`font-black leading-tight ${s.big ? "text-2xl" : "text-lg"} ${s.color}`}>{s.val}</p>
             <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
           </div>
@@ -1185,9 +1217,10 @@ export default function Quotations() {
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <div className="flex-1 min-w-[180px] max-w-xs relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input value={filters.search} onChange={e => setFilters({ ...filters, search:e.target.value })}
-            placeholder="🔍 Search quotation..."
-            className="w-full pl-4 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91] shadow-sm"/>
+            placeholder="Search quotation..."
+            className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91] shadow-sm"/>
         </div>
         {/* Status tabs */}
         <div className="flex rounded-xl bg-white border border-gray-200 overflow-hidden shadow-sm">
@@ -1203,38 +1236,38 @@ export default function Quotations() {
         <button onClick={() => setShowFilter(true)}
           className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold border transition-all
             ${activeFilters > 0 ? "bg-[#0B3D91] text-white border-[#0B3D91]" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
-          ⚙️ Filter{activeFilters > 0 ? ` (${activeFilters})` : ""}
+          <SlidersHorizontal className="w-4 h-4" />
+          Filter{activeFilters > 0 ? ` (${activeFilters})` : ""}
         </button>
         <button onClick={() => setShowExport(true)}
           className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold border bg-white border-gray-200 text-gray-600 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 transition-all">
-          📤 Export
+          <Upload className="w-4 h-4" /> Export
         </button>
-        {/* Toggle select mode */}
         <button onClick={() => selectMode ? onClearAll() : setSelectMode(true)}
           className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold border transition-all
             ${selectMode ? "bg-[#0B3D91] text-white border-[#0B3D91]" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
-          ☑️ {selectMode ? "Select" : "Select"}
+          <CheckSquare className="w-4 h-4" /> Select
         </button>
       </div>
 
       {/* Active filter chips */}
       {activeFilters > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
-          {filters.search   && <Chip label={`Cari: "${filters.search}"`}                      onRm={() => setFilters({...filters,search:""})}/>}
+          {filters.search   && <Chip label={`Search: "${filters.search}"`}                    onRm={() => setFilters({...filters,search:""})}/>}
           {filters.status   && <Chip label={`Status: ${STATUS_CFG[filters.status]?.label}`}   onRm={() => setFilters({...filters,status:""})}/>}
           {filters.sales    && <Chip label={`Sales: ${filters.sales}`}                        onRm={() => setFilters({...filters,sales:""})}/>}
           {filters.customer && <Chip label={`Customer: ${filters.customer}`}                  onRm={() => setFilters({...filters,customer:""})}/>}
-          {filters.currency && <Chip label={`Mata Uang: ${filters.currency}`}                 onRm={() => setFilters({...filters,currency:""})}/>}
-          {filters.dateFrom && <Chip label={`Dari: ${filters.dateFrom}`}                      onRm={() => setFilters({...filters,dateFrom:""})}/>}
-          {filters.dateTo   && <Chip label={`Sampai: ${filters.dateTo}`}                      onRm={() => setFilters({...filters,dateTo:""})}/>}
+          {filters.currency && <Chip label={`Currency: ${filters.currency}`}                  onRm={() => setFilters({...filters,currency:""})}/>}
+          {filters.dateFrom && <Chip label={`From: ${filters.dateFrom}`}                      onRm={() => setFilters({...filters,dateFrom:""})}/>}
+          {filters.dateTo   && <Chip label={`To: ${filters.dateTo}`}                          onRm={() => setFilters({...filters,dateTo:""})}/>}
           {filters.minVal   && <Chip label={`Min: ${fmtRp(filters.minVal)}`}                  onRm={() => setFilters({...filters,minVal:""})}/>}
-          {filters.maxVal   && <Chip label={`Maks: ${fmtRp(filters.maxVal)}`}                 onRm={() => setFilters({...filters,maxVal:""})}/>}
+          {filters.maxVal   && <Chip label={`Max: ${fmtRp(filters.maxVal)}`}                  onRm={() => setFilters({...filters,maxVal:""})}/>}
           <button onClick={() => setFilters({search:"",status:"",sales:"",customer:"",dateFrom:"",dateTo:"",currency:"",minVal:"",maxVal:""})}
             className="px-3 py-1 text-xs font-bold text-red-500 hover:underline">Reset all</button>
         </div>
       )}
 
-      {/* Bulk action bar — tampil saat select mode aktif & ada yang dipilih */}
+      {/* Bulk action bar */}
       {selectMode && selectedIds.length > 0 && (
         <BulkActionBar
           selectedIds={selectedIds}
@@ -1276,36 +1309,27 @@ export default function Quotations() {
             {paginated.length === 0 ? (
               <tr>
                 <td colSpan={selectMode ? 10 : 9} className="px-4 py-12 text-center text-gray-400">
-                  <div className="text-3xl mb-2">📋</div>
-                  <p className="font-medium">{activeFilters > 0 ? "No results for this filter" : "There is no quotation yet"}</p>
-                  {activeFilters === 0 && <p className="text-xs mt-1">Klik "+ New Quotation" to start</p>}
+                  <div className="flex justify-center mb-2">
+                    <FileText className="w-8 h-8 text-gray-300" />
+                  </div>
+                  <p className="font-medium">{activeFilters > 0 ? "No results for this filter" : "No quotations yet"}</p>
+                  {activeFilters === 0 && <p className="text-xs mt-1">Click "+ New Quotation" to start</p>}
                 </td>
               </tr>
             ) : paginated.map((q, i) => {
               const sc         = STATUS_CFG[q.status] || STATUS_CFG.draft;
               const isSelected = selectedIds.includes(q.id);
               return (
-               <tr key={q.id}
-                onClick={(e) => {
-                  if (selectMode) {
-                    toggleSelect(q.id);
-                    return;
-                  }
-
-                  // 👉 Detect buka tab baru
-                  if (e.ctrlKey || e.metaKey || e.button === 1) {
-                    window.open(`/quotations/${q.id}`, "_blank");
-                  } else {
-                    navigate(`/quotations/${q.id}`);
-                  }
-                }}
-                onMouseDown={(e) => {
-                  // 👉 middle click (scroll mouse)
-                  if (!selectMode && e.button === 1) {
-                    window.open(`/quotations/${q.id}`, "_blank");
-                  }
-                }}
-                className={`${isSelected ? "bg-blue-50/70" : i%2===0?"bg-white":"bg-gray-50/40"} hover:bg-blue-50/50 cursor-pointer transition-colors`}>
+                <tr key={q.id}
+                  onClick={(e) => {
+                    if (selectMode) { toggleSelect(q.id); return; }
+                    if (e.ctrlKey || e.metaKey || e.button === 1) window.open(`/quotations/${q.id}`, "_blank");
+                    else navigate(`/quotations/${q.id}`);
+                  }}
+                  onMouseDown={(e) => {
+                    if (!selectMode && e.button === 1) window.open(`/quotations/${q.id}`, "_blank");
+                  }}
+                  className={`${isSelected ? "bg-blue-50/70" : i%2===0?"bg-white":"bg-gray-50/40"} hover:bg-blue-50/50 cursor-pointer transition-colors`}>
                   {selectMode && (
                     <td className="px-3 py-3 text-center" onClick={e => e.stopPropagation()}>
                       <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(q.id)}
@@ -1341,8 +1365,8 @@ export default function Quotations() {
                   <td className="px-3 py-3 text-center text-[10px] text-gray-400 hidden xl:table-cell">{fmtDT(q.updated_at)}</td>
                   <td className="px-3 py-3 text-center" onClick={e => e.stopPropagation()}>
                     <button onClick={() => navigate(`/quotations/${q.id}`)}
-                      className="px-2.5 py-1.5 bg-[#0B3D91]/10 text-[#0B3D91] rounded-lg text-[10px] font-bold hover:bg-[#0B3D91]/20 transition-colors whitespace-nowrap">
-                      Details
+                      className="px-2.5 py-1.5 bg-[#0B3D91]/10 text-[#0B3D91] rounded-lg text-[10px] font-bold hover:bg-[#0B3D91]/20 transition-colors whitespace-nowrap flex items-center gap-1 mx-auto">
+                      <Eye className="w-3 h-3" /> Details
                     </button>
                   </td>
                 </tr>
@@ -1351,7 +1375,6 @@ export default function Quotations() {
           </tbody>
         </table>
 
-        {/* Pagination */}
         <Pagination
           total={filtered.length}
           page={safePage}

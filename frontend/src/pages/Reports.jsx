@@ -2,27 +2,54 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 import toast from "react-hot-toast";
+import {
+  Settings2,
+  Search as SearchIcon,
+  Layers,
+  Wrench,
+  ClipboardList,
+  CheckCircle2,
+  RefreshCw,
+  FileText,
+  Trash2,
+  X,
+  CheckSquare,
+  Square,
+  ChevronFirst,
+  ChevronLast,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  Plus,
+  AlertTriangle,
+  User,
+  CalendarDays,
+  SlidersHorizontal,
+  BarChart3,
+} from "lucide-react";
 
-// ─── Constants (ORIGINAL — tidak diubah) ─────────────────────────────────────
+// ─── Constants ─────────────────────────────────────────────────────────────────
 const TYPE_BADGES = {
-  commissioning:   { label: "Commissioning",   bg: "bg-blue-100 text-blue-700",    icon: "⚙️",  hex: "#3b82f6" },
-  investigation:   { label: "Investigation",   bg: "bg-purple-100 text-purple-700", icon: "🔍", hex: "#8b5cf6" },
-  troubleshooting: { label: "Troubleshooting", bg: "bg-orange-100 text-orange-700", icon: "🔧", hex: "#f97316" },
-  service:         { label: "Service",         bg: "bg-green-100 text-green-700",   icon: "🛠️", hex: "#22c55e" },
+  commissioning:   { label: "Commissioning",   bg: "bg-blue-100 text-blue-700",    iconComp: Settings2,   hex: "#3b82f6" },
+  investigation:   { label: "Investigation",   bg: "bg-purple-100 text-purple-700", iconComp: SearchIcon,  hex: "#8b5cf6" },
+  troubleshooting: { label: "Troubleshooting", bg: "bg-orange-100 text-orange-700", iconComp: Wrench,      hex: "#f97316" },
+  service:         { label: "Service",         bg: "bg-green-100 text-green-700",   iconComp: Layers,      hex: "#22c55e" },
 };
+
 const STATUS_BADGES = {
   draft:         "bg-gray-100 text-gray-600",
   "in-progress": "bg-yellow-100 text-yellow-700",
   completed:     "bg-blue-100 text-blue-700",
   approved:      "bg-emerald-100 text-emerald-700",
 };
+
 const STATUS_LABELS = {
   draft: "Draft", "in-progress": "In Progress", completed: "Completed", approved: "Approved",
 };
 
 const PAGE_SIZE_OPTIONS = [5, 10, 25, 100];
 
-// ─── Pagination component (NEW) ───────────────────────────────────────────────
+// ─── Pagination ───────────────────────────────────────────────────────────────
 function Pagination({ total, page, pageSize, setPage, setPageSize }) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
@@ -60,9 +87,13 @@ function Pagination({ total, page, pageSize, setPage, setPageSize }) {
       </span>
       <div className="flex items-center gap-1">
         <button onClick={() => setPage(1)} disabled={page === 1}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-[#0B3D91]/40 hover:text-[#0B3D91] disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold transition-all">«</button>
+          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-[#0B3D91]/40 hover:text-[#0B3D91] disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+          <ChevronFirst size={14} />
+        </button>
         <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-[#0B3D91]/40 hover:text-[#0B3D91] disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold transition-all">‹</button>
+          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-[#0B3D91]/40 hover:text-[#0B3D91] disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+          <ChevronLeft size={14} />
+        </button>
         {pageNums.map((n, i) =>
           n === "..." ? (
             <span key={`e${i}`} className="w-8 h-8 flex items-center justify-center text-gray-300 text-xs">…</span>
@@ -77,9 +108,13 @@ function Pagination({ total, page, pageSize, setPage, setPageSize }) {
           )
         )}
         <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-[#0B3D91]/40 hover:text-[#0B3D91] disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold transition-all">›</button>
+          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-[#0B3D91]/40 hover:text-[#0B3D91] disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+          <ChevronRight size={14} />
+        </button>
         <button onClick={() => setPage(totalPages)} disabled={page === totalPages}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-[#0B3D91]/40 hover:text-[#0B3D91] disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold transition-all">»</button>
+          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-[#0B3D91]/40 hover:text-[#0B3D91] disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+          <ChevronLast size={14} />
+        </button>
       </div>
     </div>
   );
@@ -92,10 +127,7 @@ function DeleteDialog({ title, description, onConfirm, onCancel, loading }) {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
         <div className="bg-gradient-to-br from-red-50 to-rose-100 px-6 pt-6 pb-4 text-center">
           <div className="w-14 h-14 bg-red-100 border-4 border-red-200 rounded-full flex items-center justify-center mx-auto mb-3">
-            <svg className="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
+            <Trash2 className="w-7 h-7 text-red-500" />
           </div>
           <h3 className="text-base font-bold text-gray-900">{title}</h3>
           <p className="text-sm text-gray-500 mt-1">{description}</p>
@@ -109,7 +141,7 @@ function DeleteDialog({ title, description, onConfirm, onCancel, loading }) {
             className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-60">
             {loading
               ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
-              : null}
+              : <Trash2 size={14} />}
             {loading ? "Deleting..." : "Permanently Delete"}
           </button>
         </div>
@@ -118,7 +150,7 @@ function DeleteDialog({ title, description, onConfirm, onCancel, loading }) {
   );
 }
 
-// ─── Bulk Action Bar (NEW) ────────────────────────────────────────────────────
+// ─── Bulk Action Bar ──────────────────────────────────────────────────────────
 function BulkActionBar({ selectedIds, allIds, onSelectAll, onClearAll, onBulkDeleted }) {
   const [deleting, setDeleting]                   = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -163,12 +195,12 @@ function BulkActionBar({ selectedIds, allIds, onSelectAll, onClearAll, onBulkDel
             className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-red-500 border border-red-200 rounded-lg text-xs font-bold hover:bg-red-50 disabled:opacity-60 transition-all">
             {deleting
               ? <div className="w-3.5 h-3.5 border-2 border-red-400/40 border-t-red-500 rounded-full animate-spin"/>
-              : "🗑"}
+              : <Trash2 size={13} />}
             {deleting ? "Deleting..." : "Delete Selected"}
           </button>
           <button onClick={onClearAll}
-            className="px-3 py-1.5 text-gray-400 hover:text-gray-600 text-xs font-semibold rounded-lg hover:bg-gray-100 transition-all">
-            ✕ Cancel
+            className="flex items-center gap-1 px-3 py-1.5 text-gray-400 hover:text-gray-600 text-xs font-semibold rounded-lg hover:bg-gray-100 transition-all">
+            <X size={13} /> Cancel
           </button>
         </div>
       </div>
@@ -187,11 +219,9 @@ export default function Reports() {
     search: "", type: "", status: "", engineer_id: "", date_from: "", date_to: "",
   });
 
-  // NEW: multi-select state
   const [selectedIds, setSelectedIds] = useState([]);
   const [selectMode,  setSelectMode]  = useState(false);
 
-  // NEW: pagination state
   const [page,     setPage]     = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -211,10 +241,9 @@ export default function Reports() {
     catch { toast.error("Failed to load reports"); }
   }, []);
 
-  // Reset page & selection on filter change
   useEffect(() => { setPage(1); setSelectedIds([]); }, [filters]);
 
-  // ─── Filter logic (ORIGINAL) ───────────────────────────────────────────────
+  // ─── Filter logic ──────────────────────────────────────────────────────────
   const filtered = reports.filter(r => {
     const s = filters.search.toLowerCase();
     const matchSearch = !filters.search ||
@@ -222,7 +251,7 @@ export default function Reports() {
         .some(v => v?.toLowerCase().includes(s));
     const matchType   = !filters.type        || r.report_type === filters.type;
     const matchStatus = !filters.status      || r.status === filters.status;
-    const matchEng = !filters.engineer_id || 
+    const matchEng = !filters.engineer_id ||
       String(r.engineer_id) === String(filters.engineer_id) ||
       (r.engineer_name && engineers.find(e => String(e.id) === String(filters.engineer_id))?.name === r.engineer_name);
     const matchFrom   = !filters.date_from   || (r.report_date && r.report_date >= filters.date_from);
@@ -233,56 +262,55 @@ export default function Reports() {
   const activeFiltersCount = Object.entries(filters).filter(([k, v]) => k !== "search" && v !== "").length;
   const inputClass = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91] bg-white";
 
-  // ─── Pagination (NEW) ──────────────────────────────────────────────────────
+  // ─── Pagination ────────────────────────────────────────────────────────────
   const totalPages     = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage       = Math.min(page, totalPages);
   const paginated      = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
   const allFilteredIds = filtered.map(r => r.id);
 
-  // ─── Select helpers (NEW) ─────────────────────────────────────────────────
+  // ─── Select helpers ────────────────────────────────────────────────────────
   const toggleSelect  = id  => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   const onSelectAll   = ()  => setSelectedIds([...allFilteredIds]);
   const onClearAll    = ()  => { setSelectedIds([]); setSelectMode(false); };
   const onBulkDeleted = ()  => { fetchReports(); setSelectedIds([]); setSelectMode(false); };
 
-  // ─── NEW: KPI stats ────────────────────────────────────────────────────────
+  // ─── KPI stats ─────────────────────────────────────────────────────────────
   const stats = [
-    { label: "Total Reports",  val: reports.length,                                                      icon: "📋", color: "text-[#0B3D91]",    bg: "bg-blue-50",    big: true },
-    { label: "Approved",       val: reports.filter(r => r.status === "approved").length,                 icon: "✅", color: "text-emerald-600",  bg: "bg-emerald-50", big: true },
-    { label: "In Progress",    val: reports.filter(r => r.status === "in-progress").length,              icon: "🔄", color: "text-yellow-600",   bg: "bg-yellow-50"  },
-    { label: "Draft",          val: reports.filter(r => r.status === "draft").length,                    icon: "📝", color: "text-gray-500",     bg: "bg-gray-50"    },
+    { label: "Total Reports",  val: reports.length,                                        icon: ClipboardList,  color: "text-[#0B3D91]",   bg: "bg-blue-50",    iconColor: "text-[#0B3D91]",   big: true },
+    { label: "Approved",       val: reports.filter(r => r.status === "approved").length,   icon: CheckCircle2,   color: "text-emerald-600", bg: "bg-emerald-50", iconColor: "text-emerald-500", big: true },
+    { label: "In Progress",    val: reports.filter(r => r.status === "in-progress").length,icon: RefreshCw,      color: "text-yellow-600",  bg: "bg-yellow-50",  iconColor: "text-yellow-500"  },
+    { label: "Draft",          val: reports.filter(r => r.status === "draft").length,      icon: FileText,       color: "text-gray-500",    bg: "bg-gray-50",    iconColor: "text-gray-400"    },
   ];
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="w-full">
 
-      {/* ── Header (ORIGINAL layout preserved) ── */}
+      {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Reports</h1>
           <p className="text-gray-400 text-sm mt-0.5">{filtered.length} from {reports.length} reports</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {/* Select mode toggle (NEW) */}
+          {/* Select mode toggle */}
           <button
             onClick={() => selectMode ? onClearAll() : setSelectMode(true)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all
               ${selectMode
                 ? "bg-[#0B3D91] text-white border-[#0B3D91]"
                 : "bg-white text-gray-600 border-gray-200 hover:border-[#0B3D91] hover:text-[#0B3D91]"}`}>
-            ☑️ {selectMode ? "Select" : "Select"}
+            {selectMode ? <CheckSquare size={16} /> : <Square size={16} />}
+            Select
           </button>
-          {/* Filter button (ORIGINAL) */}
+          {/* Filter button */}
           <button
             onClick={() => setShowFilter(!showFilter)}
             className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all
               ${showFilter || activeFiltersCount > 0
                 ? "bg-[#0B3D91] text-white border-[#0B3D91]"
                 : "bg-white text-gray-600 border-gray-200 hover:border-[#0B3D91] hover:text-[#0B3D91]"}`}>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
+            <Filter size={16} />
             Filter
             {activeFiltersCount > 0 && (
               <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
@@ -290,39 +318,47 @@ export default function Reports() {
               </span>
             )}
           </button>
-          {/* New Report button (ORIGINAL) */}
+          {/* New Report button */}
           <button
             onClick={() => navigate("/reports/create")}
             className="flex items-center gap-2 px-4 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] transition-colors">
-            + New Official Report
+            <Plus size={16} />
+            New Official Report
           </button>
         </div>
       </div>
 
-      {/* ── NEW: KPI Stats Cards ── */}
+      {/* ── KPI Stats Cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-        {stats.map(s => (
-          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-base mb-2.5 ${s.bg}`}>
-              {s.icon}
+        {stats.map(s => {
+          const Icon = s.icon;
+          return (
+            <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-2.5 ${s.bg}`}>
+                <Icon size={18} className={s.iconColor} />
+              </div>
+              <p className={`font-black leading-tight ${s.big ? "text-2xl" : "text-xl"} ${s.color}`}>{s.val}</p>
+              <p className="text-xs text-gray-400 mt-0.5 font-medium">{s.label}</p>
             </div>
-            <p className={`font-black leading-tight ${s.big ? "text-2xl" : "text-xl"} ${s.color}`}>{s.val}</p>
-            <p className="text-xs text-gray-400 mt-0.5 font-medium">{s.label}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* ── NEW: Type breakdown mini-bar ── */}
+      {/* ── Type breakdown mini-bar ── */}
       {reports.length > 0 && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-5">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Report per Type</p>
+            <div className="flex items-center gap-2">
+              <BarChart3 size={14} className="text-gray-400" />
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Report per Type</p>
+            </div>
             <p className="text-xs text-gray-400">{reports.length} total</p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {Object.entries(TYPE_BADGES).map(([key, tb]) => {
               const count = reports.filter(r => r.report_type === key).length;
               const pct   = reports.length > 0 ? Math.round(count / reports.length * 100) : 0;
+              const TypeIcon = tb.iconComp;
               return (
                 <button
                   key={key}
@@ -331,8 +367,8 @@ export default function Reports() {
                     ${filters.type === key
                       ? "border-[#0B3D91]/40 bg-[#0B3D91]/5 ring-1 ring-[#0B3D91]/20"
                       : "border-gray-100 hover:border-gray-200 hover:bg-gray-50"}`}>
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm flex-shrink-0 ${tb.bg}`}>
-                    {tb.icon}
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${tb.bg}`}>
+                    <TypeIcon size={15} />
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-gray-700 truncate">{tb.label}</p>
@@ -345,11 +381,9 @@ export default function Reports() {
         </div>
       )}
 
-      {/* ── Search (ORIGINAL) ── */}
+      {/* ── Search ── */}
       <div className="relative mb-4">
-        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
+        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
         <input
           type="text"
           placeholder="Search for report number, client, project..."
@@ -359,11 +393,14 @@ export default function Reports() {
         />
       </div>
 
-      {/* ── Filter Panel (ORIGINAL) ── */}
+      {/* ── Filter Panel ── */}
       {showFilter && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-700 text-sm">Advanced Filter</h3>
+            <div className="flex items-center gap-2">
+              <SlidersHorizontal size={15} className="text-gray-500" />
+              <h3 className="font-semibold text-gray-700 text-sm">Advanced Filter</h3>
+            </div>
             <button
               onClick={() => setFilters({ search: filters.search, type: "", status: "", engineer_id: "", date_from: "", date_to: "" })}
               className="text-xs text-red-500 hover:underline">
@@ -372,7 +409,9 @@ export default function Reports() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Report Type</label>
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                <Settings2 size={11} /> Report Type
+              </label>
               <select value={filters.type} onChange={e => setFilters({ ...filters, type: e.target.value })} className={inputClass}>
                 <option value="">All Types</option>
                 <option value="commissioning">Commissioning</option>
@@ -382,7 +421,9 @@ export default function Reports() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Status</label>
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                <CheckCircle2 size={11} /> Status
+              </label>
               <select value={filters.status} onChange={e => setFilters({ ...filters, status: e.target.value })} className={inputClass}>
                 <option value="">All Status</option>
                 <option value="draft">Draft</option>
@@ -392,25 +433,31 @@ export default function Reports() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Engineer</label>
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                <User size={11} /> Engineer
+              </label>
               <select value={filters.engineer_id} onChange={e => setFilters({ ...filters, engineer_id: e.target.value })} className={inputClass}>
                 <option value="">All Engineers</option>
                 {engineers.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Date From</label>
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                <CalendarDays size={11} /> Date From
+              </label>
               <input type="date" value={filters.date_from} onChange={e => setFilters({ ...filters, date_from: e.target.value })} className={inputClass} />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Date To</label>
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                <CalendarDays size={11} /> Date To
+              </label>
               <input type="date" value={filters.date_to} onChange={e => setFilters({ ...filters, date_to: e.target.value })} className={inputClass} />
             </div>
           </div>
         </div>
       )}
 
-      {/* ── NEW: Status filter tabs ── */}
+      {/* ── Status filter tabs ── */}
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         {[["", "All"], ...Object.entries(STATUS_LABELS)].map(([st, lbl]) => (
           <button
@@ -429,7 +476,7 @@ export default function Reports() {
         ))}
       </div>
 
-      {/* ── NEW: Bulk Action Bar ── */}
+      {/* ── Bulk Action Bar ── */}
       {selectMode && selectedIds.length > 0 && (
         <BulkActionBar
           selectedIds={selectedIds}
@@ -440,26 +487,27 @@ export default function Reports() {
         />
       )}
 
-      {/* ── List / Table (ORIGINAL structure preserved, pagination + select added) ── */}
+      {/* ── List / Table ── */}
       {loading ? (
         <div className="flex justify-center items-center h-40">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0B3D91]" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
-          <p className="text-4xl mb-3">📋</p>
+          <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <ClipboardList size={32} className="text-gray-300" />
+          </div>
           <p className="text-gray-500 font-medium">
-            {filters.search || activeFiltersCount > 0 ? "Tidak ada report yang cocok" : "No reports yet"}
+            {filters.search || activeFiltersCount > 0 ? "No matching reports found" : "No reports yet"}
           </p>
         </div>
       ) : (
         <>
-          {/* ── Desktop Table (ORIGINAL, + select column + pagination) ── */}
+          {/* ── Desktop Table ── */}
           <div className="hidden lg:block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-gradient-to-r from-[#0B3D91] to-[#1E5CC6] text-white">
-                  {/* NEW: select checkbox header */}
                   {selectMode && (
                     <th className="w-10 px-4 py-3.5 text-center">
                       <input type="checkbox"
@@ -478,18 +526,14 @@ export default function Reports() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {paginated.map((r, i) => {
-                  const tb = TYPE_BADGES[r.report_type] || { label: r.report_type, bg: "bg-gray-100 text-gray-600" };
+                  const tb = TYPE_BADGES[r.report_type] || { label: r.report_type, bg: "bg-gray-100 text-gray-600", iconComp: FileText };
                   const sb = STATUS_BADGES[r.status] || "bg-gray-100 text-gray-600";
                   const isSelected = selectedIds.includes(r.id);
+                  const TypeIcon = tb.iconComp;
                   return (
                     <tr key={r.id}
                       onClick={(e) => {
-                        if (selectMode) {
-                          toggleSelect(r.id);
-                          return;
-                        }
-
-                        // 👉 Detect buka tab baru
+                        if (selectMode) { toggleSelect(r.id); return; }
                         if (e.ctrlKey || e.metaKey || e.button === 1) {
                           window.open(`/reports/${r.id}`, "_blank");
                         } else {
@@ -497,22 +541,17 @@ export default function Reports() {
                         }
                       }}
                       onMouseDown={(e) => {
-                        // 👉 middle click (scroll mouse)
-                        if (!selectMode && e.button === 1) {
-                          window.open(`/reports/${r.id}`, "_blank");
-                        }
-                      }}  
+                        if (!selectMode && e.button === 1) window.open(`/reports/${r.id}`, "_blank");
+                      }}
                       className={`transition-colors cursor-pointer group
                         ${isSelected ? "bg-blue-50/70" : i % 2 === 0 ? "bg-white" : "bg-gray-50/40"}
                         hover:bg-blue-50/60`}>
-                      {/* NEW: select checkbox cell */}
                       {selectMode && (
                         <td className="px-4 py-4 text-center" onClick={e => e.stopPropagation()}>
                           <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(r.id)}
                             className="w-4 h-4 accent-[#0B3D91] cursor-pointer"/>
                         </td>
                       )}
-                      {/* ORIGINAL cells */}
                       <td className="px-5 py-4">
                         <span className="font-bold text-sm text-[#0B3D91] group-hover:underline">{r.report_number}</span>
                       </td>
@@ -521,11 +560,22 @@ export default function Reports() {
                         <p className="text-xs text-gray-400 mt-0.5">{r.project_name}</p>
                       </td>
                       <td className="px-5 py-4">
-                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${tb.bg}`}>{tb.label}</span>
+                        <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${tb.bg}`}>
+                          <TypeIcon size={11} />
+                          {tb.label}
+                        </span>
                       </td>
-                      <td className="px-5 py-4 text-sm text-gray-600">{r.engineer_name || "—"}</td>
-                      <td className="px-5 py-4 text-sm text-gray-500 whitespace-nowrap">
-                        {r.report_date ? new Date(r.report_date).toLocaleDateString("id-ID") : "—"}
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                          <User size={13} className="text-gray-400 flex-shrink-0" />
+                          {r.engineer_name || "—"}
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-1.5 text-sm text-gray-500 whitespace-nowrap">
+                          <CalendarDays size={13} className="text-gray-400 flex-shrink-0" />
+                          {r.report_date ? new Date(r.report_date).toLocaleDateString("id-ID") : "—"}
+                        </div>
                       </td>
                       <td className="px-5 py-4">
                         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${sb}`}>
@@ -537,8 +587,6 @@ export default function Reports() {
                 })}
               </tbody>
             </table>
-
-            {/* NEW: Pagination for desktop table */}
             <Pagination
               total={filtered.length}
               page={safePage}
@@ -548,12 +596,13 @@ export default function Reports() {
             />
           </div>
 
-          {/* ── Mobile Cards (ORIGINAL, + select mode + pagination) ── */}
+          {/* ── Mobile Cards ── */}
           <div className="lg:hidden space-y-2">
             {paginated.map(r => {
-              const tb = TYPE_BADGES[r.report_type] || { label: r.report_type, bg: "bg-gray-100 text-gray-600" };
+              const tb = TYPE_BADGES[r.report_type] || { label: r.report_type, bg: "bg-gray-100 text-gray-600", iconComp: FileText };
               const sb = STATUS_BADGES[r.status] || "bg-gray-100 text-gray-600";
               const isSelected = selectedIds.includes(r.id);
+              const TypeIcon = tb.iconComp;
               return (
                 <div
                   key={r.id}
@@ -564,7 +613,6 @@ export default function Reports() {
                       : "bg-white border-gray-100 hover:shadow-md hover:border-[#0B3D91]/30"}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 min-w-0">
-                      {/* NEW: checkbox in select mode */}
                       {selectMode && (
                         <input type="checkbox" checked={isSelected}
                           onChange={e => { e.stopPropagation(); toggleSelect(r.id); }}
@@ -572,16 +620,21 @@ export default function Reports() {
                           className="w-4 h-4 accent-[#0B3D91] cursor-pointer mt-1 flex-shrink-0"/>
                       )}
                       <div className="w-9 h-9 bg-gradient-to-br from-[#0B3D91] to-[#1E5CC6] rounded-xl flex items-center justify-center flex-shrink-0">
-                        <span className="text-white text-sm">📋</span>
+                        <ClipboardList size={17} className="text-white" />
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-[#0B3D91] text-sm group-hover:underline">{r.report_number}</span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${tb.bg}`}>{tb.label}</span>
+                          <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${tb.bg}`}>
+                            <TypeIcon size={9} />
+                            {tb.label}
+                          </span>
                         </div>
                         <p className="text-sm text-gray-600 mt-0.5 truncate">{r.client_name}</p>
-                        <p className="text-xs text-gray-400 truncate">
-                          {[r.project_name, r.engineer_name].filter(Boolean).join(" · ")}
+                        <p className="text-xs text-gray-400 truncate flex items-center gap-1 mt-0.5">
+                          {r.engineer_name && <><User size={10} className="flex-shrink-0" />{r.engineer_name}</>}
+                          {r.engineer_name && r.project_name && <span className="mx-1">·</span>}
+                          {r.project_name}
                         </p>
                       </div>
                     </div>
@@ -590,7 +643,8 @@ export default function Reports() {
                         {r.status?.replace("-", " ").toUpperCase()}
                       </span>
                       {r.report_date && (
-                        <span className="text-[10px] text-gray-400">
+                        <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                          <CalendarDays size={10} />
                           {new Date(r.report_date).toLocaleDateString("id-ID")}
                         </span>
                       )}
@@ -599,8 +653,6 @@ export default function Reports() {
                 </div>
               );
             })}
-
-            {/* NEW: Pagination for mobile cards */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mt-2">
               <Pagination
                 total={filtered.length}

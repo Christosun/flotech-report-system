@@ -1,14 +1,3 @@
-/**
- * LeaveManagement.jsx
- *
- * IMPORTANT – Font Awesome is required.
- * Add this line inside <head> of your index.html if not already present:
- *
- *   <link rel="stylesheet"
- *         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
- *         crossorigin="anonymous" />
- */
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import API from "../services/api";
 

@@ -2,21 +2,77 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import API from "../services/api";
 import toast from "react-hot-toast";
+import {
+  FileText,
+  FileBadge,
+  FileCheck,
+  FileSignature,
+  Plus,
+  ArrowLeft,
+  Search,
+  Download,
+  Eye,
+  Pencil,
+  Trash2,
+  Save,
+  X,
+  ChevronDown,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  User,
+  Building2,
+  MapPin,
+  Calendar,
+  Paperclip,
+  Hash,
+  AlignLeft,
+  Bold,
+  Italic,
+  Underline,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
+  List,
+  ListOrdered,
+  IndentIncrease,
+  IndentDecrease,
+  Image,
+  Eraser,
+  Type,
+  Palette,
+  Loader2,
+  PenLine,
+  LayoutList,
+  ClipboardList,
+} from "lucide-react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const SURAT_TYPES = {
-  rekomendasi: { label: "Recomendation Letter", icon: "📋", color: "bg-blue-100 text-blue-700", accent: "#0B3D91" },
-  pernyataan:  { label: "Statement Letter",  icon: "📝", color: "bg-purple-100 text-purple-700", accent: "#7C3AED" },
+  rekomendasi: {
+    label: "Recomendation Letter",
+    Icon: FileBadge,
+    color: "bg-blue-100 text-blue-700",
+    accent: "#0B3D91",
+  },
+  pernyataan: {
+    label: "Statement Letter",
+    Icon: FileSignature,
+    color: "bg-purple-100 text-purple-700",
+    accent: "#7C3AED",
+  },
 };
 
 const STATUS_CFG = {
-  draft:  { label: "Draft",  bg: "bg-gray-100",    text: "text-gray-600",   dot: "bg-gray-400" },
-  final:  { label: "Final",  bg: "bg-blue-100",    text: "text-blue-700",   dot: "bg-blue-500" },
-  signed: { label: "Signed", bg: "bg-green-100",   text: "text-green-700",  dot: "bg-green-500" },
+  draft:  { label: "Draft",  bg: "bg-gray-100",  text: "text-gray-600",  dot: "bg-gray-400",  Icon: Clock },
+  final:  { label: "Final",  bg: "bg-blue-100",  text: "text-blue-700",  dot: "bg-blue-500",  Icon: FileCheck },
+  signed: { label: "Signed", bg: "bg-green-100", text: "text-green-700", dot: "bg-green-500", Icon: CheckCircle2 },
 };
 
-const MONTHS_ID = ["Januari","Februari","Maret","April","Mei","Juni",
-                   "Juli","Agustus","September","Oktober","November","Desember"];
+const MONTHS_ID = [
+  "Januari","Februari","Maret","April","Mei","Juni",
+  "Juli","Agustus","September","Oktober","November","Desember",
+];
 
 function formatDateID(dateStr) {
   if (!dateStr) return "-";
@@ -62,29 +118,37 @@ function RichEditor({ value, onChange }) {
 
   const insertImage = () => {
     const input = document.createElement("input");
-    input.type = "file"; input.accept = "image/*";
+    input.type = "file";
+    input.accept = "image/*";
     input.onchange = (e) => {
-      const file = e.target.files[0]; if (!file) return;
+      const file = e.target.files[0];
+      if (!file) return;
       const reader = new FileReader();
       reader.onload = (ev) => {
-        exec("insertHTML", `<img src="${ev.target.result}" style="max-width:100%;height:auto;display:block;margin:8px 0;border-radius:4px;" />`);
+        exec(
+          "insertHTML",
+          `<img src="${ev.target.result}" style="max-width:100%;height:auto;display:block;margin:8px 0;border-radius:4px;" />`
+        );
       };
       reader.readAsDataURL(file);
     };
     input.click();
   };
 
-  const btn = (cmd, label, title, isActive) => (
-    <button type="button" onMouseDown={(e) => { e.preventDefault(); exec(cmd); }}
+  const ToolBtn = ({ cmd, children, title, isActive }) => (
+    <button
+      type="button"
+      onMouseDown={(e) => { e.preventDefault(); exec(cmd); }}
       title={title}
-      className={`px-2 py-1.5 rounded text-xs font-bold transition-all hover:bg-[#0B3D91] hover:text-white
-        ${isActive ? "bg-[#0B3D91] text-white" : "text-gray-600 hover:bg-gray-100"}`}>
-      {label}
+      className={`p-1.5 rounded transition-all hover:bg-[#0B3D91] hover:text-white
+        ${isActive ? "bg-[#0B3D91] text-white" : "text-gray-500"}`}
+    >
+      {children}
     </button>
   );
 
-  const fontSizes = [1,2,3,4,5,6,7];
-  const fontSizeLabels = ["8","10","12","14","18","24","32"];
+  const fontSizes = [1, 2, 3, 4, 5, 6, 7];
+  const fontSizeLabels = ["8", "10", "12", "14", "18", "24", "32"];
 
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
@@ -92,54 +156,83 @@ function RichEditor({ value, onChange }) {
       <div className="bg-gray-50 border-b border-gray-200 px-3 py-2 flex flex-wrap gap-1 items-center">
         {/* Text style */}
         <div className="flex items-center gap-0.5 border-r border-gray-200 pr-2 mr-1">
-          {btn("bold",      "B", "Bold",      activeFormats.bold)}
-          {btn("italic",    "I", "Italic",    activeFormats.italic)}
-          {btn("underline", "U̲", "Underline", activeFormats.underline)}
+          <ToolBtn cmd="bold" title="Bold" isActive={activeFormats.bold}>
+            <Bold size={14} />
+          </ToolBtn>
+          <ToolBtn cmd="italic" title="Italic" isActive={activeFormats.italic}>
+            <Italic size={14} />
+          </ToolBtn>
+          <ToolBtn cmd="underline" title="Underline" isActive={activeFormats.underline}>
+            <Underline size={14} />
+          </ToolBtn>
         </div>
 
         {/* Font size */}
         <div className="flex items-center gap-1 border-r border-gray-200 pr-2 mr-1">
-          <span className="text-xs text-gray-400">Size</span>
-          <select onChange={(e) => exec("fontSize", e.target.value)}
-            className="text-xs border border-gray-200 rounded px-1 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-[#0B3D91]">
-            {fontSizes.map((s, i) => <option key={s} value={s}>{fontSizeLabels[i]}pt</option>)}
+          <Type size={12} className="text-gray-400" />
+          <select
+            onChange={(e) => exec("fontSize", e.target.value)}
+            className="text-xs border border-gray-200 rounded px-1 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-[#0B3D91]"
+          >
+            {fontSizes.map((s, i) => (
+              <option key={s} value={s}>{fontSizeLabels[i]}pt</option>
+            ))}
           </select>
         </div>
 
         {/* Font color */}
         <div className="flex items-center gap-1 border-r border-gray-200 pr-2 mr-1">
-          <span className="text-xs text-gray-400">Color</span>
-          <input type="color" defaultValue="#374151"
+          <Palette size={12} className="text-gray-400" />
+          <input
+            type="color"
+            defaultValue="#374151"
             onChange={(e) => exec("foreColor", e.target.value)}
-            className="w-7 h-7 rounded cursor-pointer border border-gray-200 p-0.5" />
+            className="w-7 h-7 rounded cursor-pointer border border-gray-200 p-0.5"
+          />
         </div>
 
         {/* Alignment */}
         <div className="flex items-center gap-0.5 border-r border-gray-200 pr-2 mr-1">
-          {btn("justifyLeft",   "⬛︎", "Align Left",    activeFormats.justifyLeft)}
-          {btn("justifyCenter", "☰", "Align Center",  activeFormats.justifyCenter)}
-          {btn("justifyRight",  "⬛️", "Align Right",   activeFormats.justifyRight)}
-          {btn("justifyFull",   "≡", "Justify",        activeFormats.justifyFull)}
+          <ToolBtn cmd="justifyLeft" title="Align Left" isActive={activeFormats.justifyLeft}>
+            <AlignLeft size={14} />
+          </ToolBtn>
+          <ToolBtn cmd="justifyCenter" title="Align Center" isActive={activeFormats.justifyCenter}>
+            <AlignCenter size={14} />
+          </ToolBtn>
+          <ToolBtn cmd="justifyRight" title="Align Right" isActive={activeFormats.justifyRight}>
+            <AlignRight size={14} />
+          </ToolBtn>
+          <ToolBtn cmd="justifyFull" title="Justify" isActive={activeFormats.justifyFull}>
+            <AlignJustify size={14} />
+          </ToolBtn>
         </div>
 
         {/* Lists */}
         <div className="flex items-center gap-0.5 border-r border-gray-200 pr-2 mr-1">
-          {btn("insertUnorderedList", "• List", "Bullet List", activeFormats.insertUnorderedList)}
-          {btn("insertOrderedList",   "1. List","Numbered List",activeFormats.insertOrderedList)}
+          <ToolBtn cmd="insertUnorderedList" title="Bullet List" isActive={activeFormats.insertUnorderedList}>
+            <List size={14} />
+          </ToolBtn>
+          <ToolBtn cmd="insertOrderedList" title="Numbered List" isActive={activeFormats.insertOrderedList}>
+            <ListOrdered size={14} />
+          </ToolBtn>
         </div>
 
         {/* Indent */}
         <div className="flex items-center gap-0.5 border-r border-gray-200 pr-2 mr-1">
-          {btn("indent",  "→ Indent",   "Indent",   false)}
-          {btn("outdent", "← Outdent",  "Outdent",  false)}
+          <ToolBtn cmd="indent" title="Indent" isActive={false}>
+            <IndentIncrease size={14} />
+          </ToolBtn>
+          <ToolBtn cmd="outdent" title="Outdent" isActive={false}>
+            <IndentDecrease size={14} />
+          </ToolBtn>
         </div>
 
         {/* Headings */}
         <div className="flex items-center gap-0.5 border-r border-gray-200 pr-2 mr-1">
-          <select onChange={(e) => {
-            exec("formatBlock", e.target.value);
-            e.target.value = "p";
-          }} className="text-xs border border-gray-200 rounded px-1 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-[#0B3D91]">
+          <select
+            onChange={(e) => { exec("formatBlock", e.target.value); e.target.value = "p"; }}
+            className="text-xs border border-gray-200 rounded px-1 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-[#0B3D91]"
+          >
             <option value="p">Paragraph</option>
             <option value="h2">Heading 1</option>
             <option value="h3">Heading 2</option>
@@ -149,15 +242,21 @@ function RichEditor({ value, onChange }) {
 
         {/* Extras */}
         <div className="flex items-center gap-0.5">
-          <button type="button" onMouseDown={(e) => { e.preventDefault(); insertImage(); }}
-            className="px-2 py-1.5 rounded text-xs font-bold text-gray-600 hover:bg-[#0B3D91] hover:text-white transition-all"
-            title="Insert Image">
-            🖼 Pictures
+          <button
+            type="button"
+            onMouseDown={(e) => { e.preventDefault(); insertImage(); }}
+            title="Insert Image"
+            className="p-1.5 rounded text-gray-500 hover:bg-[#0B3D91] hover:text-white transition-all"
+          >
+            <Image size={14} />
           </button>
-          <button type="button" onMouseDown={(e) => { e.preventDefault(); exec("removeFormat"); }}
-            className="px-2 py-1.5 rounded text-xs font-bold text-gray-600 hover:bg-red-500 hover:text-white transition-all"
-            title="Clear Formatting">
-            ✕ Clear
+          <button
+            type="button"
+            onMouseDown={(e) => { e.preventDefault(); exec("removeFormat"); }}
+            title="Clear Formatting"
+            className="p-1.5 rounded text-gray-500 hover:bg-red-500 hover:text-white transition-all"
+          >
+            <Eraser size={14} />
           </button>
         </div>
       </div>
@@ -171,18 +270,11 @@ function RichEditor({ value, onChange }) {
         onKeyUp={updateActiveFormats}
         onMouseUp={updateActiveFormats}
         className="min-h-[320px] p-5 text-sm text-gray-800 focus:outline-none"
-        style={{
-          lineHeight: "1.8",
-          fontFamily: "Georgia, serif",
-        }}
+        style={{ lineHeight: "1.8", fontFamily: "Georgia, serif" }}
         placeholder="Type the contents of the letter here..."
       />
       <style>{`
-        [contenteditable]:empty:before {
-          content: attr(placeholder);
-          color: #9CA3AF;
-          pointer-events: none;
-        }
+        [contenteditable]:empty:before { content: attr(placeholder); color: #9CA3AF; pointer-events: none; }
         [contenteditable] h2 { font-size: 1.3em; font-weight: bold; margin: 0.5em 0; }
         [contenteditable] h3 { font-size: 1.1em; font-weight: bold; margin: 0.5em 0; }
         [contenteditable] h4 { font-size: 1em; font-weight: bold; margin: 0.5em 0; }
@@ -198,12 +290,17 @@ function RichEditor({ value, onChange }) {
 // ─── Letter Preview ───────────────────────────────────────────────────────────
 function LetterPreview({ data, engineer }) {
   const tgl = data.surat_date
-    ? (() => { const d = new Date(data.surat_date); return `Jakarta, ${d.getDate()} ${MONTHS_ID[d.getMonth()]} ${d.getFullYear()}`; })()
+    ? (() => {
+        const d = new Date(data.surat_date);
+        return `Jakarta, ${d.getDate()} ${MONTHS_ID[d.getMonth()]} ${d.getFullYear()}`;
+      })()
     : "Jakarta, ____________________";
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden"
-         style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: "13px", lineHeight: "1.7" }}>
+    <div
+      className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden"
+      style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: "13px", lineHeight: "1.7" }}
+    >
       {/* Header */}
       <div className="px-10 pt-8 pb-4">
         <div className="flex items-start justify-between">
@@ -212,9 +309,9 @@ function LetterPreview({ data, engineer }) {
               PT FLOTECH CONTROLS INDONESIA
             </div>
             <div className="text-gray-500 text-xs mt-0.5" style={{ fontFamily: "Arial, sans-serif" }}>
-              Rukan Artha Gading Niaga, Blok F/7<br/>
-              Jl. Boulevard Artha Gading, Jakarta 14240<br/>
-              Telp: +6221 45850778 / Fax: +6221 45850779<br/>
+              Rukan Artha Gading Niaga, Blok F/7<br />
+              Jl. Boulevard Artha Gading, Jakarta 14240<br />
+              Telp: +6221 45850778 / Fax: +6221 45850779<br />
               <span className="text-[#1E5CC6]">e-Mail: salesjkt@flotech.co.id / Website: www.flotech.com.sg</span>
             </div>
           </div>
@@ -240,7 +337,6 @@ function LetterPreview({ data, engineer }) {
         </table>
       </div>
 
-      {/* Kepada */}
       {(data.kepada_nama || data.kepada_perusahaan) && (
         <div className="px-10 py-2" style={{ fontFamily: "Arial, sans-serif", fontSize: "13px" }}>
           <div>Yth.</div>
@@ -252,22 +348,22 @@ function LetterPreview({ data, engineer }) {
         </div>
       )}
 
-      {/* Salutation */}
       <div className="px-10 pt-3 pb-1" style={{ fontFamily: "Arial, sans-serif", fontSize: "13px" }}>
         Yours faithfully,
       </div>
 
-      {/* Body */}
-      <div className="px-10 py-2 prose prose-sm max-w-none"
-           style={{ fontFamily: "Arial, sans-serif", fontSize: "13px" }}
-           dangerouslySetInnerHTML={{ __html: data.content_html || '<p class="text-gray-400 italic">[The contents of the letter will appear here]</p>' }} />
+      <div
+        className="px-10 py-2 prose prose-sm max-w-none"
+        style={{ fontFamily: "Arial, sans-serif", fontSize: "13px" }}
+        dangerouslySetInnerHTML={{
+          __html: data.content_html || '<p class="text-gray-400 italic">[The contents of the letter will appear here]</p>',
+        }}
+      />
 
-      {/* Closing */}
       <div className="px-10 pt-3 pb-2" style={{ fontFamily: "Arial, sans-serif", fontSize: "13px" }}>
         <p>Thus we convey this letter. Thank you for your attention and cooperation.</p>
       </div>
 
-      {/* Signature */}
       <div className="px-10 pb-8 pt-2" style={{ fontFamily: "Arial, sans-serif", fontSize: "13px" }}>
         <div>{tgl}</div>
         <div className="font-bold text-[#0B3D91]">PT Flotech Controls Indonesia</div>
@@ -286,12 +382,11 @@ function LetterPreview({ data, engineer }) {
         )}
       </div>
 
-      {/* Footer */}
       <div className="border-t-2 border-[#0B3D91] bg-gray-50 px-10 py-3 text-center">
         <div className="font-bold text-[#0B3D91] text-xs">PT FLOTECH CONTROLS INDONESIA</div>
         <div className="text-gray-500 text-[10px]">
-          Rukan Artha Gading Niaga, Blok F/7  |  Jl. Boulevard Artha Gading, Jakarta 14240<br/>
-          Telp: +6221 45850778 / Fax: +6221 45850779  |  salesjkt@flotech.co.id  |  www.flotech.com.sg
+          Rukan Artha Gading Niaga, Blok F/7 | Jl. Boulevard Artha Gading, Jakarta 14240<br />
+          Telp: +6221 45850778 / Fax: +6221 45850779 | salesjkt@flotech.co.id | www.flotech.com.sg
         </div>
       </div>
     </div>
@@ -301,14 +396,14 @@ function LetterPreview({ data, engineer }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function SuratResmi() {
   const navigate = useNavigate();
-  const [view, setView] = useState("list"); // list | create | detail
+  const [view, setView] = useState("list");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [engineers, setEngineers] = useState([]);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
-  const [selected, setSelected] = useState(null); // detail data
+  const [selected, setSelected] = useState(null);
   const [saving, setSaving] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -325,7 +420,7 @@ export default function SuratResmi() {
     content_html: "", engineer_id: "", include_signature: true, status: "draft",
   };
   const [form, setForm] = useState(EMPTY_FORM);
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const fetchList = async () => {
     setLoading(true);
@@ -341,25 +436,18 @@ export default function SuratResmi() {
 
   useEffect(() => { fetchList(); fetchEngineers(); }, []);
 
-  const filtered = items.filter(s => {
+  const filtered = items.filter((s) => {
     const q = search.toLowerCase();
     const m = !search || [s.nomor, s.perihal, s.kepada_nama, s.kepada_perusahaan, s.engineer_name]
-      .some(v => v?.toLowerCase().includes(q));
-    return m && (!filterType || s.surat_type === filterType)
-              && (!filterStatus || s.status === filterStatus);
+      .some((v) => v?.toLowerCase().includes(q));
+    return m && (!filterType || s.surat_type === filterType) && (!filterStatus || s.status === filterStatus);
   });
 
-  const selectedEngineer = engineers.find(e => e.id === Number(form.engineer_id || selected?.engineer_id)) || null;
-  const engWithSig = selectedEngineer?.has_signature
-    ? { ...selectedEngineer, signature_data: engineers.find(e => e.id === selectedEngineer.id)?.signature_data }
-    : null;
-
-  // Fetch engineer with signature for preview
   const [engDetail, setEngDetail] = useState(null);
   useEffect(() => {
     const eid = form.engineer_id || selected?.engineer_id;
     if (!eid) { setEngDetail(null); return; }
-    API.get(`/engineer/${eid}`).then(r => setEngDetail(r.data)).catch(() => setEngDetail(null));
+    API.get(`/engineer/${eid}`).then((r) => setEngDetail(r.data)).catch(() => setEngDetail(null));
   }, [form.engineer_id, selected?.engineer_id]);
 
   const handleCreate = async () => {
@@ -367,7 +455,7 @@ export default function SuratResmi() {
     setSaving(true);
     try {
       const res = await API.post("/surat-resmi/create", form);
-      toast.success("The letter was created successfully! 📋");
+      toast.success("The letter was created successfully!");
       fetchList();
       const detail = await API.get(`/surat-resmi/detail/${res.data.id}`);
       setSelected(detail.data);
@@ -381,10 +469,9 @@ export default function SuratResmi() {
     setSaving(true);
     try {
       await API.put(`/surat-resmi/update/${selected.id}`, form);
-      toast.success("Letter updated! ✅");
+      toast.success("Letter updated!");
       const detail = await API.get(`/surat-resmi/detail/${selected.id}`);
-      setSelected(detail.data);
-      setForm(detail.data);
+      setSelected(detail.data); setForm(detail.data);
       setEditMode(false); fetchList();
     } catch { toast.error("Failed to save"); }
     finally { setSaving(false); }
@@ -405,7 +492,7 @@ export default function SuratResmi() {
       const r = await API.get(`/surat-resmi/detail/${id}`);
       setSelected(r.data); setForm(r.data);
       setView("detail"); setEditMode(false);
-    } catch { toast.error("Gagal memuat detail"); }
+    } catch { toast.error("Failed to load detail"); }
   };
 
   const handlePreview = async (id) => {
@@ -424,10 +511,10 @@ export default function SuratResmi() {
       const r = await API.get(`/surat-resmi/pdf/${id}`, { responseType: "blob" });
       const url = URL.createObjectURL(new Blob([r.data], { type: "application/pdf" }));
       Object.assign(document.createElement("a"), {
-        href: url, download: `Surat_${type}_${nomor || id}.pdf`
+        href: url, download: `Surat_${type}_${nomor || id}.pdf`,
       }).click();
       setTimeout(() => URL.revokeObjectURL(url), 5000);
-      toast.success("PDF downloaded! 📥");
+      toast.success("PDF downloaded!");
     } catch { toast.error("Failed to download PDF"); }
     finally { setPdfLoading(false); }
   };
@@ -436,11 +523,18 @@ export default function SuratResmi() {
   const labelCls = "block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5";
 
   const stats = [
-    { label: "Total", val: items.length, icon: "📄", color: "text-[#0B3D91]" },
-    { label: "Recomendation", val: items.filter(i => i.surat_type === "rekomendasi").length, icon: "📋", color: "text-blue-600" },
-    { label: "Statement", val: items.filter(i => i.surat_type === "pernyataan").length, icon: "📝", color: "text-purple-600" },
-    { label: "Signed", val: items.filter(i => i.status === "signed").length, icon: "✅", color: "text-green-600" },
+    { label: "Total Letters", val: items.length, Icon: FileText, color: "text-[#0B3D91]", bg: "bg-blue-50" },
+    { label: "Recomendation", val: items.filter((i) => i.surat_type === "rekomendasi").length, Icon: FileBadge, color: "text-blue-600", bg: "bg-blue-50" },
+    { label: "Statement", val: items.filter((i) => i.surat_type === "pernyataan").length, Icon: FileSignature, color: "text-purple-600", bg: "bg-purple-50" },
+    { label: "Signed", val: items.filter((i) => i.status === "signed").length, Icon: CheckCircle2, color: "text-green-600", bg: "bg-green-50" },
   ];
+
+  // Step icons for form sections
+  const StepBadge = ({ n }) => (
+    <span className="w-5 h-5 bg-[#0B3D91] text-white rounded-full flex items-center justify-center text-xs font-black flex-shrink-0">
+      {n}
+    </span>
+  );
 
   // ── LIST VIEW ────────────────────────────────────────────────────────────────
   if (view === "list") return (
@@ -448,20 +542,30 @@ export default function SuratResmi() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Official Letter</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Letter of Recommendation & Statement PT Flotech Controls Indonesia</p>
+          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <ClipboardList className="text-[#0B3D91]" size={26} />
+            Official Letter
+          </h1>
+          <p className="text-sm text-gray-400 mt-0.5">
+            Letter of Recommendation &amp; Statement PT Flotech Controls Indonesia
+          </p>
         </div>
-        <button onClick={() => { setForm(EMPTY_FORM); setView("create"); }}
-          className="self-start sm:self-auto flex items-center gap-2 px-5 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] transition-colors shadow-md">
-          + Create a Letter
+        <button
+          onClick={() => { setForm(EMPTY_FORM); setView("create"); }}
+          className="self-start sm:self-auto flex items-center gap-2 px-5 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] transition-colors shadow-md"
+        >
+          <Plus size={16} />
+          Create a Letter
         </button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        {stats.map(s => (
+        {stats.map((s) => (
           <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
-            <span className="text-2xl">{s.icon}</span>
+            <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center flex-shrink-0`}>
+              <s.Icon className={s.color} size={20} />
+            </div>
             <div>
               <div className={`text-2xl font-black ${s.color}`}>{s.val}</div>
               <div className="text-xs text-gray-400 font-medium">{s.label}</div>
@@ -473,18 +577,34 @@ export default function SuratResmi() {
       {/* Filters */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-5">
         <div className="flex flex-col sm:flex-row gap-3">
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="🔍 Search number, subject, to..."
-            className="flex-1 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91]" />
-          <select value={filterType} onChange={e => setFilterType(e.target.value)}
-            className="border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91] bg-white">
+          <div className="relative flex-1">
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search number, subject, to..."
+              className="w-full border border-gray-200 rounded-xl pl-9 pr-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91]"
+            />
+          </div>
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91] bg-white"
+          >
             <option value="">All Type</option>
-            {Object.entries(SURAT_TYPES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+            {Object.entries(SURAT_TYPES).map(([k, v]) => (
+              <option key={k} value={k}>{v.label}</option>
+            ))}
           </select>
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-            className="border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91] bg-white">
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91] bg-white"
+          >
             <option value="">All Status</option>
-            {Object.entries(STATUS_CFG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+            {Object.entries(STATUS_CFG).map(([k, v]) => (
+              <option key={k} value={k}>{v.label}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -492,18 +612,22 @@ export default function SuratResmi() {
       {/* List */}
       {loading ? (
         <div className="flex justify-center items-center h-40">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0B3D91]" />
+          <Loader2 className="animate-spin text-[#0B3D91]" size={36} />
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
-          <p className="text-5xl mb-3">📋</p>
+          <div className="flex justify-center mb-3">
+            <FileText size={48} className="text-gray-300" />
+          </div>
           <p className="text-gray-500 font-medium mb-4">
             {search || filterType || filterStatus ? "No matching letters found" : "No letter yet"}
           </p>
           {!search && !filterType && !filterStatus && (
-            <button onClick={() => { setForm(EMPTY_FORM); setView("create"); }}
-              className="px-5 py-2 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold">
-              Buat Surat Pertama
+            <button
+              onClick={() => { setForm(EMPTY_FORM); setView("create"); }}
+              className="px-5 py-2 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold flex items-center gap-2 mx-auto"
+            >
+              <Plus size={15} /> Create First Letter
             </button>
           )}
         </div>
@@ -514,25 +638,24 @@ export default function SuratResmi() {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  {["Number/Subject","Type","To","Engineer","Date","Status","Action"].map(h => (
+                  {["Number/Subject","Type","To","Engineer","Date","Status","Action"].map((h) => (
                     <th key={h} className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {filtered.map(s => {
+                {filtered.map((s) => {
                   const tc = SURAT_TYPES[s.surat_type] || SURAT_TYPES.rekomendasi;
                   const sc = STATUS_CFG[s.status] || STATUS_CFG.draft;
                   return (
-                    <tr key={s.id} className="hover:bg-blue-50/30 transition-colors cursor-pointer"
-                        onClick={() => openDetail(s.id)}>
+                    <tr key={s.id} className="hover:bg-blue-50/30 transition-colors cursor-pointer" onClick={() => openDetail(s.id)}>
                       <td className="px-4 py-3 max-w-[240px]">
                         <div className="font-semibold text-gray-800 text-sm truncate">{s.nomor || "—"}</div>
                         <div className="text-xs text-gray-400 truncate">{s.perihal || "—"}</div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${tc.color}`}>
-                          {tc.icon} {tc.label}
+                        <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${tc.color}`}>
+                          <tc.Icon size={12} /> {tc.label}
                         </span>
                       </td>
                       <td className="px-4 py-3 max-w-[160px]">
@@ -548,18 +671,22 @@ export default function SuratResmi() {
                       </td>
                       <td className="px-4 py-3">
                         <span className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full w-fit ${sc.bg} ${sc.text}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />{sc.label}
+                          <sc.Icon size={11} /> {sc.label}
                         </span>
                       </td>
-                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                         <div className="flex gap-1.5">
-                          <button onClick={() => openDetail(s.id)}
-                            className="px-3 py-1.5 bg-[#0B3D91] text-white rounded-lg text-xs font-semibold hover:bg-[#1E5CC6] transition-colors">
-                            Open
+                          <button
+                            onClick={() => openDetail(s.id)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0B3D91] text-white rounded-lg text-xs font-semibold hover:bg-[#1E5CC6] transition-colors"
+                          >
+                            <Eye size={12} /> Open
                           </button>
-                          <button onClick={() => handleDownload(s.id, s.nomor, s.surat_type)}
-                            className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-200 transition-colors">
-                            ⬇ PDF
+                          <button
+                            onClick={() => handleDownload(s.id, s.nomor, s.surat_type)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-200 transition-colors"
+                          >
+                            <Download size={12} /> PDF
                           </button>
                         </div>
                       </td>
@@ -572,7 +699,7 @@ export default function SuratResmi() {
 
           {/* Mobile cards */}
           <div className="md:hidden divide-y divide-gray-100">
-            {filtered.map(s => {
+            {filtered.map((s) => {
               const tc = SURAT_TYPES[s.surat_type] || SURAT_TYPES.rekomendasi;
               const sc = STATUS_CFG[s.status] || STATUS_CFG.draft;
               return (
@@ -582,11 +709,13 @@ export default function SuratResmi() {
                       <div className="font-semibold text-gray-800 text-sm truncate">{s.nomor || "—"}</div>
                       <div className="text-xs text-gray-500 truncate">{s.perihal}</div>
                     </div>
-                    <span className={`text-xs font-bold px-2 py-1 rounded-full flex-shrink-0 ${tc.color}`}>{tc.icon}</span>
+                    <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full flex-shrink-0 ${tc.color}`}>
+                      <tc.Icon size={11} />
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${sc.bg} ${sc.text}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />{sc.label}
+                      <sc.Icon size={10} /> {sc.label}
                     </span>
                     <span className="text-xs text-gray-400">{formatDateID(s.surat_date)}</span>
                   </div>
@@ -604,12 +733,17 @@ export default function SuratResmi() {
     const previewEngineer = form.engineer_id ? engDetail : null;
     return (
       <div>
-        <button onClick={() => setView("list")} className="flex items-center gap-2 text-sm text-gray-400 hover:text-[#0B3D91] mb-5 transition-colors">
-          ← Return to List
+        <button
+          onClick={() => setView("list")}
+          className="flex items-center gap-2 text-sm text-gray-400 hover:text-[#0B3D91] mb-5 transition-colors"
+        >
+          <ArrowLeft size={16} /> Return to List
         </button>
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Create an Official Letter</h1>
-          <p className="text-gray-400 text-sm mt-1">Recommendation Letter & Professional Statement Letter</p>
+          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <Plus className="text-[#0B3D91]" size={24} /> Create an Official Letter
+          </h1>
+          <p className="text-gray-400 text-sm mt-1">Recommendation Letter &amp; Professional Statement Letter</p>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -618,16 +752,15 @@ export default function SuratResmi() {
             {/* Tipe Surat */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4 flex items-center gap-2">
-                <span className="w-5 h-5 bg-[#0B3D91] text-white rounded-full flex items-center justify-center text-xs font-black">1</span>
-                Letter Type
+                <StepBadge n="1" /> Letter Type
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 {Object.entries(SURAT_TYPES).map(([k, v]) => (
-                  <button key={k} type="button" onClick={() => set("surat_type", k)}
-                    className={`p-4 rounded-xl border-2 text-left transition-all ${form.surat_type === k
-                      ? "border-[#0B3D91] bg-[#EEF3FB]"
-                      : "border-gray-200 hover:border-gray-300"}`}>
-                    <div className="text-2xl mb-1">{v.icon}</div>
+                  <button
+                    key={k} type="button" onClick={() => set("surat_type", k)}
+                    className={`p-4 rounded-xl border-2 text-left transition-all ${form.surat_type === k ? "border-[#0B3D91] bg-[#EEF3FB]" : "border-gray-200 hover:border-gray-300"}`}
+                  >
+                    <v.Icon className={`mb-2 ${form.surat_type === k ? "text-[#0B3D91]" : "text-gray-400"}`} size={24} />
                     <div className="text-sm font-bold text-gray-800">{v.label}</div>
                   </button>
                 ))}
@@ -637,29 +770,36 @@ export default function SuratResmi() {
             {/* Info Surat */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4 flex items-center gap-2">
-                <span className="w-5 h-5 bg-[#0B3D91] text-white rounded-full flex items-center justify-center text-xs font-black">2</span>
-                Letter Information
+                <StepBadge n="2" /> Letter Information
               </h3>
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={labelCls}>Letter Number</label>
-                    <input value={form.nomor} onChange={e => set("nomor", e.target.value)}
+                    <label className={labelCls}>
+                      <Hash size={10} className="inline mr-1" /> Letter Number
+                    </label>
+                    <input value={form.nomor} onChange={(e) => set("nomor", e.target.value)}
                       placeholder="BRR/04/F-JKT/18/02/2026" className={inputCls} />
                   </div>
                   <div>
-                    <label className={labelCls}>Date *</label>
-                    <input type="date" value={form.surat_date} onChange={e => set("surat_date", e.target.value)} className={inputCls} />
+                    <label className={labelCls}>
+                      <Calendar size={10} className="inline mr-1" /> Date *
+                    </label>
+                    <input type="date" value={form.surat_date} onChange={(e) => set("surat_date", e.target.value)} className={inputCls} />
                   </div>
                 </div>
                 <div>
-                  <label className={labelCls}>Subject *</label>
-                  <input value={form.perihal} onChange={e => set("perihal", e.target.value)}
+                  <label className={labelCls}>
+                    <AlignLeft size={10} className="inline mr-1" /> Subject *
+                  </label>
+                  <input value={form.perihal} onChange={(e) => set("perihal", e.target.value)}
                     placeholder="Technical Recommendations for Flowmeter Installation..." className={inputCls} />
                 </div>
                 <div>
-                  <label className={labelCls}>Attachment</label>
-                  <input value={form.lampiran} onChange={e => set("lampiran", e.target.value)}
+                  <label className={labelCls}>
+                    <Paperclip size={10} className="inline mr-1" /> Attachment
+                  </label>
+                  <input value={form.lampiran} onChange={(e) => set("lampiran", e.target.value)}
                     placeholder="1 Field Documentation File" className={inputCls} />
                 </div>
               </div>
@@ -668,30 +808,29 @@ export default function SuratResmi() {
             {/* Kepada */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4 flex items-center gap-2">
-                <span className="w-5 h-5 bg-[#0B3D91] text-white rounded-full flex items-center justify-center text-xs font-black">3</span>
-                Addressed to
+                <StepBadge n="3" /> Addressed to
               </h3>
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={labelCls}>Name/Team</label>
-                    <input value={form.kepada_nama} onChange={e => set("kepada_nama", e.target.value)}
+                    <label className={labelCls}><User size={10} className="inline mr-1" /> Name/Team</label>
+                    <input value={form.kepada_nama} onChange={(e) => set("kepada_nama", e.target.value)}
                       placeholder="Tim WTP R-04 ASG" className={inputCls} />
                   </div>
                   <div>
-                    <label className={labelCls}>Position</label>
-                    <input value={form.kepada_jabatan} onChange={e => set("kepada_jabatan", e.target.value)}
+                    <label className={labelCls}><LayoutList size={10} className="inline mr-1" /> Position</label>
+                    <input value={form.kepada_jabatan} onChange={(e) => set("kepada_jabatan", e.target.value)}
                       placeholder="Project Manager" className={inputCls} />
                   </div>
                 </div>
                 <div>
-                  <label className={labelCls}>Company/Agency</label>
-                  <input value={form.kepada_perusahaan} onChange={e => set("kepada_perusahaan", e.target.value)}
+                  <label className={labelCls}><Building2 size={10} className="inline mr-1" /> Company/Agency</label>
+                  <input value={form.kepada_perusahaan} onChange={(e) => set("kepada_perusahaan", e.target.value)}
                     placeholder="PT. Company Example" className={inputCls} />
                 </div>
                 <div>
-                  <label className={labelCls}>Address</label>
-                  <textarea value={form.kepada_alamat} onChange={e => set("kepada_alamat", e.target.value)}
+                  <label className={labelCls}><MapPin size={10} className="inline mr-1" /> Address</label>
+                  <textarea value={form.kepada_alamat} onChange={(e) => set("kepada_alamat", e.target.value)}
                     rows={2} placeholder="In Place" className={inputCls + " resize-none"} />
                 </div>
               </div>
@@ -700,54 +839,53 @@ export default function SuratResmi() {
             {/* Isi Surat */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4 flex items-center gap-2">
-                <span className="w-5 h-5 bg-[#0B3D91] text-white rounded-full flex items-center justify-center text-xs font-black">4</span>
-                Content of Letter
+                <StepBadge n="4" /> Content of Letter
               </h3>
-              <RichEditor value={form.content_html} onChange={v => set("content_html", v)} />
+              <RichEditor value={form.content_html} onChange={(v) => set("content_html", v)} />
             </div>
 
             {/* Signature */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4 flex items-center gap-2">
-                <span className="w-5 h-5 bg-[#0B3D91] text-white rounded-full flex items-center justify-center text-xs font-black">5</span>
-                Signatory
+                <StepBadge n="5" /> Signatory
               </h3>
               <div className="space-y-3">
                 <div>
-                  <label className={labelCls}>Select Engineer/Letter Maker</label>
-                  <select value={form.engineer_id} onChange={e => set("engineer_id", e.target.value)} className={inputCls}>
+                  <label className={labelCls}><PenLine size={10} className="inline mr-1" /> Select Engineer/Letter Maker</label>
+                  <select value={form.engineer_id} onChange={(e) => set("engineer_id", e.target.value)} className={inputCls}>
                     <option value="">- There isn't any -</option>
-                    {engineers.map(e => (
+                    {engineers.map((e) => (
                       <option key={e.id} value={e.id}>
-                        {e.name} {e.position ? `— ${e.position}` : ""} {e.has_signature ? "✍️" : ""}
+                        {e.name}{e.position ? ` — ${e.position}` : ""}{e.has_signature ? " ✍" : ""}
                       </option>
                     ))}
                   </select>
                 </div>
                 {form.engineer_id && (
                   <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <div className={`relative w-10 h-5 rounded-full transition-colors ${form.include_signature ? "bg-[#0B3D91]" : "bg-gray-300"}`}
-                           onClick={() => set("include_signature", !form.include_signature)}>
-                        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.include_signature ? "translate-x-5" : "translate-x-0.5"}`} />
-                      </div>
-                      <span className="text-sm font-medium text-gray-700">
-                        {form.include_signature ? "Include a digital signature" : "Leave the signature blank"}
-                      </span>
-                    </label>
+                    <div
+                      className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer ${form.include_signature ? "bg-[#0B3D91]" : "bg-gray-300"}`}
+                      onClick={() => set("include_signature", !form.include_signature)}
+                    >
+                      <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.include_signature ? "translate-x-5" : "translate-x-0.5"}`} />
+                    </div>
+                    <span className="text-sm font-medium text-gray-700">
+                      {form.include_signature ? "Include a digital signature" : "Leave the signature blank"}
+                    </span>
                   </div>
                 )}
                 {form.engineer_id && engDetail && (
                   <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl">
-                    <div className="w-10 h-10 bg-[#0B3D91] rounded-xl flex items-center justify-center text-white font-bold">
+                    <div className="w-10 h-10 bg-[#0B3D91] rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0">
                       {engDetail.name?.charAt(0)}
                     </div>
                     <div>
                       <div className="font-semibold text-gray-800 text-sm">{engDetail.name}</div>
                       <div className="text-xs text-gray-500">{engDetail.position}</div>
                       {engDetail.signature_data
-                        ? <span className="text-xs text-green-600 font-medium">✍️ Signatures available</span>
-                        : <span className="text-xs text-orange-500 font-medium">⚠️ No signature yet</span>}
+                        ? <span className="text-xs text-green-600 font-medium flex items-center gap-1"><CheckCircle2 size={11} /> Signature available</span>
+                        : <span className="text-xs text-orange-500 font-medium flex items-center gap-1"><AlertCircle size={11} /> No signature yet</span>
+                      }
                     </div>
                     {engDetail.signature_data && form.include_signature && (
                       <img src={engDetail.signature_data} alt="TTD" className="h-10 ml-auto opacity-80" />
@@ -755,9 +893,11 @@ export default function SuratResmi() {
                   </div>
                 )}
                 <div>
-                  <label className={labelCls}>Letter Status</label>
-                  <select value={form.status} onChange={e => set("status", e.target.value)} className={inputCls}>
-                    {Object.entries(STATUS_CFG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                  <label className={labelCls}><FileCheck size={10} className="inline mr-1" /> Letter Status</label>
+                  <select value={form.status} onChange={(e) => set("status", e.target.value)} className={inputCls}>
+                    {Object.entries(STATUS_CFG).map(([k, v]) => (
+                      <option key={k} value={k}>{v.label}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -765,13 +905,18 @@ export default function SuratResmi() {
 
             {/* Actions */}
             <div className="flex gap-3">
-              <button onClick={() => setView("list")}
-                className="px-5 py-3 border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:border-gray-300 transition-colors">
-                Cancel
+              <button
+                onClick={() => setView("list")}
+                className="px-5 py-3 border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:border-gray-300 transition-colors flex items-center gap-2"
+              >
+                <X size={15} /> Cancel
               </button>
-              <button onClick={handleCreate} disabled={saving}
-                className="flex-1 py-3 bg-[#0B3D91] text-white rounded-xl text-sm font-bold hover:bg-[#1E5CC6] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-md">
-                {saving ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving...</> : "💾 Save Letter"}
+              <button
+                onClick={handleCreate} disabled={saving}
+                className="flex-1 py-3 bg-[#0B3D91] text-white rounded-xl text-sm font-bold hover:bg-[#1E5CC6] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-md"
+              >
+                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                {saving ? "Saving..." : "Save Letter"}
               </button>
             </div>
           </div>
@@ -780,7 +925,8 @@ export default function SuratResmi() {
           <div className="hidden xl:block">
             <div className="sticky top-20">
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-sm font-bold text-gray-600">📄 Letter Preview</span>
+                <FileText size={15} className="text-gray-500" />
+                <span className="text-sm font-bold text-gray-600">Letter Preview</span>
                 <span className="text-xs text-gray-400">(Automatic updates)</span>
               </div>
               <div className="overflow-y-auto max-h-[calc(100vh-8rem)]">
@@ -797,8 +943,6 @@ export default function SuratResmi() {
   if (view === "detail" && selected) {
     const tc = SURAT_TYPES[selected.surat_type] || SURAT_TYPES.rekomendasi;
     const sc = STATUS_CFG[selected.status] || STATUS_CFG.draft;
-    const displayForm = editMode ? form : selected;
-    const displayEngineer = editMode ? engDetail : engDetail;
 
     return (
       <div>
@@ -806,19 +950,27 @@ export default function SuratResmi() {
         {deleteConfirm && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-              <div className="text-2xl mb-3">🗑️</div>
-              <h3 className="font-bold text-gray-800 mb-2">Delete Letter?</h3>
-              <p className="text-sm text-gray-500 mb-5">
+              <div className="flex justify-center mb-3">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <Trash2 size={22} className="text-red-500" />
+                </div>
+              </div>
+              <h3 className="font-bold text-gray-800 mb-2 text-center">Delete Letter?</h3>
+              <p className="text-sm text-gray-500 mb-5 text-center">
                 Letter <strong>{selected.nomor}</strong> will be permanently deleted and cannot be restored.
               </p>
               <div className="flex gap-3">
-                <button onClick={() => setDeleteConfirm(false)}
-                  className="flex-1 py-2.5 border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:border-gray-300">
+                <button
+                  onClick={() => setDeleteConfirm(false)}
+                  className="flex-1 py-2.5 border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:border-gray-300"
+                >
                   Cancel
                 </button>
-                <button onClick={handleDelete} disabled={deleting}
-                  className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 disabled:opacity-50 flex items-center justify-center gap-2">
-                  {deleting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "Hapus"}
+                <button
+                  onClick={handleDelete} disabled={deleting}
+                  className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {deleting ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />} Delete
                 </button>
               </div>
             </div>
@@ -829,14 +981,23 @@ export default function SuratResmi() {
         {showPreviewModal && previewUrl && (
           <div className="fixed inset-0 bg-black/80 z-50 flex flex-col">
             <div className="flex items-center justify-between px-5 py-3 bg-[#0B3D91]">
-              <span className="text-white font-bold text-sm">📋 {selected.nomor} — Preview PDF</span>
+              <span className="text-white font-bold text-sm flex items-center gap-2">
+                <FileText size={16} /> {selected.nomor} — Preview PDF
+              </span>
               <div className="flex items-center gap-2">
-                <a href={previewUrl} download={`Surat_${selected.surat_type}_${selected.nomor || selected.id}.pdf`}
-                  className="px-4 py-1.5 bg-white text-[#0B3D91] rounded-lg text-xs font-bold hover:bg-blue-50 flex items-center gap-1.5">
-                  ⬇ Download
+                <a
+                  href={previewUrl}
+                  download={`Surat_${selected.surat_type}_${selected.nomor || selected.id}.pdf`}
+                  className="px-4 py-1.5 bg-white text-[#0B3D91] rounded-lg text-xs font-bold hover:bg-blue-50 flex items-center gap-1.5"
+                >
+                  <Download size={13} /> Download
                 </a>
-                <button onClick={() => { setShowPreviewModal(false); URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}
-                  className="text-white/70 hover:text-white text-xl px-2">✕</button>
+                <button
+                  onClick={() => { setShowPreviewModal(false); URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}
+                  className="text-white/70 hover:text-white p-1"
+                >
+                  <X size={20} />
+                </button>
               </div>
             </div>
             <iframe src={previewUrl} className="flex-1 w-full" title="PDF Preview" style={{ border: "none" }} />
@@ -844,60 +1005,77 @@ export default function SuratResmi() {
         )}
 
         {/* Nav */}
-        <button onClick={() => { setView("list"); setSelected(null); setEditMode(false); }}
-          className="flex items-center gap-2 text-sm text-gray-400 hover:text-[#0B3D91] mb-5 transition-colors">
-          ← Return to List
+        <button
+          onClick={() => { setView("list"); setSelected(null); setEditMode(false); }}
+          className="flex items-center gap-2 text-sm text-gray-400 hover:text-[#0B3D91] mb-5 transition-colors"
+        >
+          <ArrowLeft size={16} /> Return to List
         </button>
 
         {/* Top bar */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div className="flex items-start gap-3">
-              <span className="text-3xl">{tc.icon}</span>
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${tc.color} flex-shrink-0`}>
+                <tc.Icon size={24} />
+              </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${tc.color}`}>{tc.label}</span>
+                  <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${tc.color}`}>
+                    <tc.Icon size={11} /> {tc.label}
+                  </span>
                   <span className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${sc.bg} ${sc.text}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />{sc.label}
+                    <sc.Icon size={11} /> {sc.label}
                   </span>
                 </div>
                 <h2 className="text-xl font-bold text-gray-800 mt-1">{selected.nomor || "No Number"}</h2>
                 <p className="text-sm text-gray-500">{selected.perihal}</p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {formatDateID(selected.surat_date)} • Created {formatDateID(selected.created_at)}
+                <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                  <Calendar size={11} /> {formatDateID(selected.surat_date)} • Created {formatDateID(selected.created_at)}
                 </p>
               </div>
             </div>
             <div className="flex gap-2 flex-wrap">
               {!editMode ? (
                 <>
-                  <button onClick={() => { setEditMode(true); setForm(selected); }}
-                    className="px-4 py-2 border-2 border-[#0B3D91] text-[#0B3D91] rounded-xl text-sm font-semibold hover:bg-[#EEF3FB] transition-colors">
-                    ✏️ Edit
+                  <button
+                    onClick={() => { setEditMode(true); setForm(selected); }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 border-2 border-[#0B3D91] text-[#0B3D91] rounded-xl text-sm font-semibold hover:bg-[#EEF3FB] transition-colors"
+                  >
+                    <Pencil size={14} /> Edit
                   </button>
-                  <button onClick={() => handlePreview(selected.id)} disabled={previewLoading}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 transition-colors disabled:opacity-50 flex items-center gap-1.5">
-                    {previewLoading ? <div className="w-3.5 h-3.5 border-2 border-gray-400 border-t-gray-700 rounded-full animate-spin" /> : "👁️"} Preview
+                  <button
+                    onClick={() => handlePreview(selected.id)} disabled={previewLoading}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  >
+                    {previewLoading ? <Loader2 size={14} className="animate-spin" /> : <Eye size={14} />} Preview
                   </button>
-                  <button onClick={() => handleDownload(selected.id, selected.nomor, selected.surat_type)} disabled={pdfLoading}
-                    className="px-4 py-2 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] transition-colors disabled:opacity-50 flex items-center gap-1.5">
-                    {pdfLoading ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "⬇️"} Download PDF
+                  <button
+                    onClick={() => handleDownload(selected.id, selected.nomor, selected.surat_type)} disabled={pdfLoading}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] transition-colors disabled:opacity-50"
+                  >
+                    {pdfLoading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Download PDF
                   </button>
-                  <button onClick={() => setDeleteConfirm(true)}
-                    className="px-4 py-2 bg-red-50 text-red-500 rounded-xl text-sm font-semibold hover:bg-red-100 transition-colors">
-                    🗑️
+                  <button
+                    onClick={() => setDeleteConfirm(true)}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-50 text-red-500 rounded-xl text-sm font-semibold hover:bg-red-100 transition-colors"
+                  >
+                    <Trash2 size={14} />
                   </button>
                 </>
               ) : (
                 <>
-                  <button onClick={() => { setEditMode(false); setForm(selected); }}
-                    className="px-4 py-2 border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:border-gray-300">
-                    Cancel
+                  <button
+                    onClick={() => { setEditMode(false); setForm(selected); }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:border-gray-300"
+                  >
+                    <X size={14} /> Cancel
                   </button>
-                  <button onClick={handleUpdate} disabled={saving}
-                    className="px-4 py-2 bg-[#0B3D91] text-white rounded-xl text-sm font-bold hover:bg-[#1E5CC6] disabled:opacity-50 flex items-center gap-2">
-                    {saving ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
-                    Save Changes
+                  <button
+                    onClick={handleUpdate} disabled={saving}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0B3D91] text-white rounded-xl text-sm font-bold hover:bg-[#1E5CC6] disabled:opacity-50"
+                  >
+                    {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save Changes
                   </button>
                 </>
               )}
@@ -907,18 +1085,18 @@ export default function SuratResmi() {
 
         {/* Content */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {/* Form / Info */}
           <div className="space-y-4">
             {editMode ? (
               <>
-                {/* Edit form (same as create) */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                  <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4">Letter Type</h3>
+                  <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <FileText size={14} /> Letter Type
+                  </h3>
                   <div className="grid grid-cols-2 gap-3">
                     {Object.entries(SURAT_TYPES).map(([k, v]) => (
                       <button key={k} type="button" onClick={() => set("surat_type", k)}
                         className={`p-4 rounded-xl border-2 text-left transition-all ${form.surat_type === k ? "border-[#0B3D91] bg-[#EEF3FB]" : "border-gray-200"}`}>
-                        <div className="text-2xl mb-1">{v.icon}</div>
+                        <v.Icon className={`mb-2 ${form.surat_type === k ? "text-[#0B3D91]" : "text-gray-400"}`} size={22} />
                         <div className="text-sm font-bold text-gray-800">{v.label}</div>
                       </button>
                     ))}
@@ -926,68 +1104,81 @@ export default function SuratResmi() {
                 </div>
 
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                  <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4">Letter Information</h3>
+                  <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <Hash size={14} /> Letter Information
+                  </h3>
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div><label className={labelCls}>Letter Number</label>
-                        <input value={form.nomor || ""} onChange={e => set("nomor", e.target.value)} className={inputCls} /></div>
+                        <input value={form.nomor || ""} onChange={(e) => set("nomor", e.target.value)} className={inputCls} /></div>
                       <div><label className={labelCls}>Date</label>
-                        <input type="date" value={form.surat_date || ""} onChange={e => set("surat_date", e.target.value)} className={inputCls} /></div>
+                        <input type="date" value={form.surat_date || ""} onChange={(e) => set("surat_date", e.target.value)} className={inputCls} /></div>
                     </div>
                     <div><label className={labelCls}>Subject *</label>
-                      <input value={form.perihal || ""} onChange={e => set("perihal", e.target.value)} className={inputCls} /></div>
+                      <input value={form.perihal || ""} onChange={(e) => set("perihal", e.target.value)} className={inputCls} /></div>
                     <div><label className={labelCls}>Attachment</label>
-                      <input value={form.lampiran || ""} onChange={e => set("lampiran", e.target.value)} className={inputCls} /></div>
+                      <input value={form.lampiran || ""} onChange={(e) => set("lampiran", e.target.value)} className={inputCls} /></div>
                   </div>
                 </div>
 
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                  <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4">Addressed to</h3>
+                  <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <User size={14} /> Addressed to
+                  </h3>
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div><label className={labelCls}>Name/Team</label>
-                        <input value={form.kepada_nama || ""} onChange={e => set("kepada_nama", e.target.value)} className={inputCls} /></div>
+                        <input value={form.kepada_nama || ""} onChange={(e) => set("kepada_nama", e.target.value)} className={inputCls} /></div>
                       <div><label className={labelCls}>Position</label>
-                        <input value={form.kepada_jabatan || ""} onChange={e => set("kepada_jabatan", e.target.value)} className={inputCls} /></div>
+                        <input value={form.kepada_jabatan || ""} onChange={(e) => set("kepada_jabatan", e.target.value)} className={inputCls} /></div>
                     </div>
                     <div><label className={labelCls}>Company</label>
-                      <input value={form.kepada_perusahaan || ""} onChange={e => set("kepada_perusahaan", e.target.value)} className={inputCls} /></div>
+                      <input value={form.kepada_perusahaan || ""} onChange={(e) => set("kepada_perusahaan", e.target.value)} className={inputCls} /></div>
                     <div><label className={labelCls}>Address</label>
-                      <textarea value={form.kepada_alamat || ""} onChange={e => set("kepada_alamat", e.target.value)} rows={2} className={inputCls + " resize-none"} /></div>
+                      <textarea value={form.kepada_alamat || ""} onChange={(e) => set("kepada_alamat", e.target.value)} rows={2} className={inputCls + " resize-none"} /></div>
                   </div>
                 </div>
 
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                  <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4">Content of Letter</h3>
-                  <RichEditor value={form.content_html || ""} onChange={v => set("content_html", v)} />
+                  <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <AlignLeft size={14} /> Content of Letter
+                  </h3>
+                  <RichEditor value={form.content_html || ""} onChange={(v) => set("content_html", v)} />
                 </div>
 
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                  <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4">Signatory</h3>
+                  <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <PenLine size={14} /> Signatory
+                  </h3>
                   <div className="space-y-3">
                     <div><label className={labelCls}>Engineer</label>
-                      <select value={form.engineer_id || ""} onChange={e => set("engineer_id", e.target.value)} className={inputCls}>
+                      <select value={form.engineer_id || ""} onChange={(e) => set("engineer_id", e.target.value)} className={inputCls}>
                         <option value="">- There isn't any -</option>
-                        {engineers.map(e => <option key={e.id} value={e.id}>{e.name}{e.position ? ` — ${e.position}` : ""} {e.has_signature ? "✍️" : ""}</option>)}
+                        {engineers.map((e) => (
+                          <option key={e.id} value={e.id}>{e.name}{e.position ? ` — ${e.position}` : ""}{e.has_signature ? " ✍" : ""}</option>
+                        ))}
                       </select>
                     </div>
                     <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                      <div className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer ${form.include_signature ? "bg-[#0B3D91]" : "bg-gray-300"}`}
-                           onClick={() => set("include_signature", !form.include_signature)}>
+                      <div
+                        className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer ${form.include_signature ? "bg-[#0B3D91]" : "bg-gray-300"}`}
+                        onClick={() => set("include_signature", !form.include_signature)}
+                      >
                         <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.include_signature ? "translate-x-5" : "translate-x-0.5"}`} />
                       </div>
                       <span className="text-sm text-gray-700">{form.include_signature ? "Include a digital signature" : "Leave the signature blank"}</span>
                     </div>
                     <div><label className={labelCls}>Status</label>
-                      <select value={form.status || "draft"} onChange={e => set("status", e.target.value)} className={inputCls}>
-                        {Object.entries(STATUS_CFG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                      <select value={form.status || "draft"} onChange={(e) => set("status", e.target.value)} className={inputCls}>
+                        {Object.entries(STATUS_CFG).map(([k, v]) => (
+                          <option key={k} value={k}>{v.label}</option>
+                        ))}
                       </select>
                     </div>
                   </div>
                 </div>
               </>
             ) : (
-              /* Read-only detail view */
               <>
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                   <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -1033,14 +1224,17 @@ export default function SuratResmi() {
                       <span className="w-1.5 h-4 bg-[#0B3D91] rounded-full" /> Signatory
                     </h3>
                     <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl">
-                      <div className="w-10 h-10 bg-[#0B3D91] rounded-xl flex items-center justify-center text-white font-bold">
+                      <div className="w-10 h-10 bg-[#0B3D91] rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0">
                         {selected.engineer_name?.charAt(0)}
                       </div>
                       <div>
                         <div className="font-semibold text-gray-800 text-sm">{selected.engineer_name}</div>
                         <div className="text-xs text-gray-500">{selected.engineer_position}</div>
-                        <span className="text-xs text-blue-600 font-medium">
-                          {selected.include_signature ? "✍️ Signature included" : "⬜ Signature is left blank"}
+                        <span className="text-xs text-blue-600 font-medium flex items-center gap-1">
+                          {selected.include_signature
+                            ? <><CheckCircle2 size={11} /> Signature included</>
+                            : <><X size={11} /> Signature is left blank</>
+                          }
                         </span>
                       </div>
                     </div>
@@ -1054,7 +1248,8 @@ export default function SuratResmi() {
           <div className="hidden xl:block">
             <div className="sticky top-20">
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-sm font-bold text-gray-600">📄 Preview Letter</span>
+                <FileText size={15} className="text-gray-500" />
+                <span className="text-sm font-bold text-gray-600">Preview Letter</span>
               </div>
               <div className="overflow-y-auto max-h-[calc(100vh-8rem)]">
                 <LetterPreview data={editMode ? form : selected} engineer={engDetail} />
@@ -1067,7 +1262,7 @@ export default function SuratResmi() {
         <div className="xl:hidden mt-6">
           <details className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <summary className="px-5 py-4 font-bold text-gray-700 cursor-pointer text-sm flex items-center gap-2">
-              📄 Lihat Preview Surat
+              <FileText size={15} className="text-[#0B3D91]" /> View Letter Preview
             </summary>
             <div className="px-4 pb-4">
               <LetterPreview data={editMode ? form : selected} engineer={engDetail} />
