@@ -338,7 +338,8 @@ def build_report_pdf(report_id):
     section_header_style = ps('SH', fontSize=10, fontName='Helvetica-Bold', textColor=primary_color, spaceBefore=12, spaceAfter=4)
     label_style          = ps('Label', fontSize=9, fontName='Helvetica-Bold', textColor=gray_color)
     value_style          = ps('Value', fontSize=10, textColor=dark_color)
-    body_style           = ps('Body', fontSize=10, textColor=text_color, spaceAfter=4, leading=14)
+    # Multi-line body style with proper line spacing
+    body_style           = ps('Body', fontSize=10, textColor=text_color, spaceAfter=4, leading=15, wordWrap='LTR')
     caption_style        = ps('Caption', fontSize=8, textColor=gray_color, alignment=1, leading=11, spaceBefore=3, spaceAfter=6)
 
     elements = []
@@ -366,11 +367,6 @@ def build_report_pdf(report_id):
         "service": "SERVICE REPORT",
     }
     header_title = type_labels.get(report.report_type or "", "FIELD REPORT")
-    header_right = Table([[
-        Paragraph(header_title, title_style),
-        Paragraph(FLOTECH_INFO["name"], subtitle_style),
-        Paragraph(FLOTECH_INFO["city"], subtitle_style),
-    ]], colWidths=[None])
     header_right_block = Table(
         [[Paragraph(header_title, title_style)],
          [Paragraph(FLOTECH_INFO["name"], subtitle_style)],
@@ -432,133 +428,225 @@ def build_report_pdf(report_id):
 
     def info_row(label, value):
         if not value: return
-        row = [[Paragraph(label, label_style), Paragraph(str(value), value_style)]]
+        # Escape XML special chars and preserve line breaks
+        safe_value = str(value).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        row = [[Paragraph(label, label_style), Paragraph(safe_value, value_style)]]
         t = Table(row, colWidths=[5*cm, 12*cm])
         t.setStyle(TableStyle([('PADDING', (0, 0), (-1, -1), 6), ('LINEBELOW', (0, 0), (-1, 0), 0.3, border_gray), ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
         elements.append(t)
 
     def text_block(label, text):
         if not text: return
-        bd = [[Paragraph(f"<b>{label}</b>", label_style)], [Paragraph(str(text), body_style)]]
+        # Escape XML special chars and convert newlines to ReportLab line breaks
+        safe_text = str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        # Convert \n to <br/> for multi-line support
+        safe_text = safe_text.replace("\n", "<br/>")
+        bd = [[Paragraph(f"<b>{label}</b>", label_style)], [Paragraph(safe_text, body_style)]]
         t = Table(bd, colWidths=[17*cm])
         t.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), accent_color),
             ('BOX', (0, 0), (-1, -1), 0.3, border_gray),
             ('PADDING', (0, 0), (-1, -1), 7),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ]))
         elements.append(t)
         elements.append(Spacer(1, 0.2*cm))
 
+    # ─────────────────────────────────────────────────────────────────────────
+    # COMMISSIONING REPORT
+    # Fields (synced with CreateReport.jsx COMMISSIONING_FIELDS):
+    #   Section 0: site_location, equipment_name, equipment_model, serial_number, manufacturer, installation_date
+    #   Section 1: visual_inspection, safety_checks, electrical_checks, mechanical_checks
+    #   Section 2: test_procedures, performance_parameters, test_results
+    #   Section 3: commissioning_result, issues_found, recommendations, client_acceptance
+    # ─────────────────────────────────────────────────────────────────────────
     if rtype == "commissioning":
-        # Section 0: Site & Equipment Information
         if _sv_key(0):
             section_title("SITE & EQUIPMENT INFORMATION")
-            for k, l in [("site_location","Site Location"),("equipment_name","Equipment Name"),
-                         ("equipment_model","Equipment Model"),("serial_number","Serial Number"),
-                         ("manufacturer","Manufacturer"),("installation_date","Installation Date")]:
+            for k, l in [
+                ("site_location",     "Site Location"),
+                ("equipment_name",    "Equipment Name"),
+                ("equipment_model",   "Equipment Model / Type"),
+                ("serial_number",     "Serial Number"),
+                ("manufacturer",      "Manufacturer"),
+                ("installation_date", "Installation Date"),
+            ]:
                 info_row(l, data.get(k))
             elements.append(Spacer(1, 0.3*cm))
-        # Section 1: Pre-Commissioning Checks
+
         if _sv_key(1):
             section_title("PRE-COMMISSIONING CHECKS")
-            for k, l in [("visual_inspection","Visual Inspection"),("safety_checks","Safety Checks"),
-                         ("electrical_checks","Electrical Checks"),("mechanical_checks","Mechanical Checks")]:
+            for k, l in [
+                ("visual_inspection", "Visual Inspection Result"),
+                ("safety_checks",     "Safety Checks Performed"),
+                ("electrical_checks", "Electrical Checks"),
+                ("mechanical_checks", "Mechanical Checks"),
+            ]:
                 text_block(l, data.get(k))
-        # Section 2: Commissioning Test Results
+
         if _sv_key(2):
             section_title("COMMISSIONING TEST RESULTS")
-            for k, l in [("test_procedures","Test Procedures"),("performance_parameters","Performance Parameters"),
-                         ("test_results","Test Results")]:
+            for k, l in [
+                ("test_procedures",        "Test Procedures Performed"),
+                ("performance_parameters", "Performance Parameters (setpoints, values)"),
+                ("test_results",           "Test Results & Measurements"),
+            ]:
                 text_block(l, data.get(k))
-        # Section 3: Final Status
+
         if _sv_key(3):
             section_title("FINAL STATUS")
             info_row("Commissioning Result", data.get("commissioning_result"))
-            for k, l in [("issues_found","Issues Found"),("recommendations","Recommendations"),
-                         ("client_acceptance","Client Acceptance")]:
+            for k, l in [
+                ("issues_found",      "Issues Found"),
+                ("recommendations",   "Recommendations"),
+                ("client_acceptance", "Client Acceptance / Notes"),
+            ]:
                 text_block(l, data.get(k))
 
+    # ─────────────────────────────────────────────────────────────────────────
+    # INVESTIGATION REPORT
+    # Fields (synced with CreateReport.jsx INVESTIGATION_FIELDS):
+    #   Section 0: incident_date, incident_location, equipment_involved, reported_by
+    #   Section 1: incident_description, symptoms_observed, impact_severity
+    #   Section 2: investigation_method, root_cause, contributing_factors, evidence_data
+    #   Section 3: immediate_actions, long_term_actions, preventive_measures, follow_up, conclusion
+    # ─────────────────────────────────────────────────────────────────────────
     elif rtype == "investigation":
-        # Section 0: Incident Information
         if _sv_key(0):
             section_title("INCIDENT INFORMATION")
-            for k, l in [("incident_date","Incident Date"),("incident_location","Location"),
-                         ("equipment_involved","Equipment Involved"),("reported_by","Reported By")]:
+            for k, l in [
+                ("incident_date",      "Incident Date & Time"),
+                ("incident_location",  "Incident Location"),
+                ("equipment_involved", "Equipment / System Involved"),
+                ("reported_by",        "Reported By"),
+            ]:
                 info_row(l, data.get(k))
             elements.append(Spacer(1, 0.3*cm))
-        # Section 1: Problem Description
+
         if _sv_key(1):
             section_title("PROBLEM DESCRIPTION")
-            text_block("Incident Description", data.get("incident_description"))
-            text_block("Symptoms Observed", data.get("symptoms_observed"))
-            text_block("Impact & Severity", data.get("impact_severity"))
-        # Section 2: Investigation Findings
-        if _sv_key(2):
-            section_title("INVESTIGATION FINDINGS")
-            for k, l in [("investigation_method","Investigation Method"),("root_cause","Root Cause"),
-                         ("contributing_factors","Contributing Factors"),("evidence_data","Evidence & Data")]:
-                text_block(l, data.get(k))
-        # Section 3: Corrective Actions
-        if _sv_key(3):
-            section_title("CORRECTIVE ACTIONS")
-            for k, l in [("immediate_actions","Immediate Actions"),("long_term_actions","Long Term Actions"),
-                         ("preventive_measures","Preventive Measures"),("follow_up","Follow-up"),
-                         ("conclusion","Conclusion")]:
+            for k, l in [
+                ("incident_description", "Incident Description"),
+                ("symptoms_observed",    "Symptoms Observed"),
+                ("impact_severity",      "Impact & Severity Level"),
+            ]:
                 text_block(l, data.get(k))
 
+        if _sv_key(2):
+            section_title("INVESTIGATION FINDINGS")
+            for k, l in [
+                ("investigation_method",  "Investigation Method Used"),
+                ("root_cause",            "Root Cause Analysis"),
+                ("contributing_factors",  "Contributing Factors"),
+                ("evidence_data",         "Evidence & Supporting Data"),
+            ]:
+                text_block(l, data.get(k))
+
+        if _sv_key(3):
+            section_title("CORRECTIVE ACTIONS")
+            for k, l in [
+                ("immediate_actions",   "Immediate Actions Taken"),
+                ("long_term_actions",   "Long-term Corrective Actions"),
+                ("preventive_measures", "Preventive Measures"),
+                ("follow_up",           "Follow-up Required"),
+                ("conclusion",          "Conclusion"),
+            ]:
+                text_block(l, data.get(k))
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # TROUBLESHOOTING REPORT
+    # Fields (synced with CreateReport.jsx TROUBLESHOOTING_FIELDS):
+    #   Section 0: equipment_system, location, problem_reported_by, problem_date, problem_description
+    #   Section 1: symptoms, initial_assessment, diagnostic_steps, tests_measurements, fault_found
+    #   Section 2: solution_applied, parts_replaced, verification_tests, result_after_fix, recommendations
+    # ─────────────────────────────────────────────────────────────────────────
     elif rtype == "troubleshooting":
-        # Section 0: Problem Identification
         if _sv_key(0):
             section_title("PROBLEM IDENTIFICATION")
-            text_block("Problem Description", data.get("problem_description"))
-            for k, l in [("equipment_system","Equipment / System"),("location","Location"),
-                         ("problem_reported_by","Reported By"),("problem_date","Date Occurred")]:
+            for k, l in [
+                ("equipment_system",      "Equipment / System"),
+                ("location",              "Location"),
+                ("problem_reported_by",   "Problem Reported By"),
+                ("problem_date",          "Date Problem Occurred"),
+            ]:
                 info_row(l, data.get(k))
+            text_block("Problem Description", data.get("problem_description"))
             elements.append(Spacer(1, 0.3*cm))
-        # Section 1: Diagnostic Process
+
         if _sv_key(1):
             section_title("DIAGNOSTIC PROCESS")
-            for k, l in [("symptoms","Symptoms Observed"),("initial_assessment","Initial Assessment"),
-                         ("diagnostic_steps","Diagnostic Steps"),("tests_measurements","Tests & Measurements"),
-                         ("fault_found","Fault / Root Cause")]:
+            for k, l in [
+                ("symptoms",           "Symptoms Observed"),
+                ("initial_assessment", "Initial Assessment"),
+                ("diagnostic_steps",   "Diagnostic Steps Taken"),
+                ("tests_measurements", "Tests & Measurements Performed"),
+                ("fault_found",        "Fault / Root Cause Found"),
+            ]:
                 text_block(l, data.get(k))
-        # Section 2: Resolution
+
         if _sv_key(2):
             section_title("RESOLUTION")
-            for k, l in [("solution_applied","Solution Applied"),("parts_replaced","Parts Replaced"),
-                         ("verification_tests","Verification Tests"),("recommendations","Recommendations")]:
+            for k, l in [
+                ("solution_applied",    "Solution Applied"),
+                ("parts_replaced",      "Parts / Components Replaced"),
+                ("verification_tests",  "Verification Tests After Fix"),
+                ("recommendations",     "Recommendations for Future"),
+            ]:
                 text_block(l, data.get(k))
             info_row("Result After Fix", data.get("result_after_fix"))
 
+    # ─────────────────────────────────────────────────────────────────────────
+    # SERVICE REPORT
+    # Fields (synced with CreateReport.jsx SERVICE_FIELDS):
+    #   Section 0: equipment_asset, asset_id, location, service_type, last_service_date
+    #   Section 1: work_description, activities_performed, parts_used, calibration_data, service_duration
+    #   Section 2: condition_before, issues_found, condition_after
+    #   Section 3: next_service_date, recommendations, client_notes
+    # ─────────────────────────────────────────────────────────────────────────
     elif rtype == "service":
-        # Section 0: Service Information
         if _sv_key(0):
             section_title("SERVICE INFORMATION")
-            for k, l in [("equipment_asset","Equipment / Asset"),("asset_id","Asset ID / Tag"),
-                         ("location","Location"),("service_type","Service Type"),
-                         ("last_service_date","Last Service Date")]:
+            for k, l in [
+                ("equipment_asset",   "Equipment / Asset Name"),
+                ("asset_id",          "Asset ID / Tag Number"),
+                ("location",          "Location"),
+                ("service_type",      "Service Type"),
+                ("last_service_date", "Last Service Date"),
+            ]:
                 info_row(l, data.get(k))
             elements.append(Spacer(1, 0.3*cm))
-        # Section 1: Service Performed
+
         if _sv_key(1):
             section_title("SERVICE PERFORMED")
-            for k, l in [("work_description","Work Description"),("activities_performed","Activities Performed"),
-                         ("parts_used","Parts / Materials Used"),("calibration_data","Calibration Data"),
-                         ("service_duration","Service Duration")]:
+            for k, l in [
+                ("work_description",     "Work Description"),
+                ("activities_performed", "Activities Performed (Detail)"),
+                ("parts_used",           "Parts / Materials Used"),
+                ("calibration_data",     "Calibration / Measurement Data"),
+                ("service_duration",     "Service Duration"),
+            ]:
                 text_block(l, data.get(k))
-        # Section 2: Findings & Observations
+
         if _sv_key(2):
             section_title("FINDINGS & OBSERVATIONS")
-            for k, l in [("condition_before","Condition Before"),("issues_found","Issues Found"),
-                         ("condition_after","Condition After")]:
+            for k, l in [
+                ("condition_before", "Condition Before Service"),
+                ("issues_found",     "Issues / Anomalies Found"),
+                ("condition_after",  "Condition After Service"),
+            ]:
                 text_block(l, data.get(k))
-        # Section 3: Next Service
+
         if _sv_key(3):
             section_title("SERVICE OUTCOME")
             info_row("Next Recommended Service Date", data.get("next_service_date"))
-            for k, l in [("recommendations","Recommendations"),("client_notes","Client Notes")]:
+            for k, l in [
+                ("recommendations", "Recommendations"),
+                ("client_notes",    "Client Notes / Sign-off"),
+            ]:
                 text_block(l, data.get(k))
+
     else:
+        # Generic fallback for unknown report types
         if data:
             section_title("REPORT DATA")
             for k, v in data.items():
@@ -567,7 +655,7 @@ def build_report_pdf(report_id):
 
     # ─── IMAGES (before signatures) ────────────────────────────
     if report.images:
-        elements.append(Spacer(1, 0.6*cm))
+        elements.append(Spacer(1, 0.3*cm))
         section_title("DOCUMENTATION & PHOTOS")
         img_table_data = []
         row_imgs = []
@@ -591,7 +679,8 @@ def build_report_pdf(report_id):
                 row_imgs.append(Paragraph("Image error", body_style))
 
             caption_text = getattr(img_obj, 'caption', '') or ""
-            row_caps.append(Paragraph(f"Foto {i+1}" + (f": {caption_text}" if caption_text else ""), caption_style))
+            safe_caption = caption_text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            row_caps.append(Paragraph(f"Foto {i+1}" + (f": {safe_caption}" if safe_caption else ""), caption_style))
 
             if len(row_imgs) == 2 or i == len(report.images) - 1:
                 while len(row_imgs) < 2: row_imgs.append(""); row_caps.append("")
