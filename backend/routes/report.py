@@ -554,7 +554,7 @@ def build_report_pdf(report_id):
                 text_block(l, data.get(k))
         # Section 3: Next Service
         if _sv_key(3):
-            section_title("NEXT SERVICE")
+            section_title("SERVICE OUTCOME")
             info_row("Next Recommended Service Date", data.get("next_service_date"))
             for k, l in [("recommendations","Recommendations"),("client_notes","Client Notes")]:
                 text_block(l, data.get(k))

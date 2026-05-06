@@ -24,7 +24,15 @@ import {
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
-/* ─── Field definitions (reused for edit mode) ─────────────────── */
+// ─── Which section indices use multi-line textareas with taller rows ─────────
+// Section 0 = "header/info" — short inputs. Sections 1,2,3 get tall textareas.
+const MULTILINE_SECTION_THRESHOLD = 1;
+
+function getTextareaRows(sectionIndex) {
+  return sectionIndex >= MULTILINE_SECTION_THRESHOLD ? 6 : 3;
+}
+
+/* ─── Field definitions (synced between Create & Edit) ─────────────────────── */
 const COMMISSIONING_FIELDS = [
   { section: "Site & Equipment Information", fields: [
     { name: "site_location", label: "Site Location", type: "text" },
@@ -52,6 +60,7 @@ const COMMISSIONING_FIELDS = [
     { name: "client_acceptance", label: "Client Acceptance / Notes", type: "textarea" },
   ]},
 ];
+
 const INVESTIGATION_FIELDS = [
   { section: "Incident Information", fields: [
     { name: "incident_date", label: "Incident Date", type: "datetime-local" },
@@ -62,56 +71,77 @@ const INVESTIGATION_FIELDS = [
   { section: "Problem Description", fields: [
     { name: "incident_description", label: "Incident Description", type: "textarea" },
     { name: "symptoms_observed", label: "Symptoms Observed", type: "textarea" },
+    { name: "impact_severity", label: "Impact & Severity Level", type: "textarea" },
   ]},
   { section: "Investigation Findings", fields: [
+    { name: "investigation_method", label: "Investigation Method Used", type: "textarea" },
     { name: "root_cause", label: "Root Cause Analysis", type: "textarea" },
     { name: "contributing_factors", label: "Contributing Factors", type: "textarea" },
-    { name: "findings", label: "Findings", type: "textarea" },
+    { name: "evidence_data", label: "Evidence & Supporting Data", type: "textarea" },
   ]},
   { section: "Corrective Actions", fields: [
-    { name: "immediate_actions", label: "Immediate Actions", type: "textarea" },
-    { name: "long_term_actions", label: "Long Term Actions", type: "textarea" },
+    { name: "immediate_actions", label: "Immediate Actions Taken", type: "textarea" },
+    { name: "long_term_actions", label: "Long-term Corrective Actions", type: "textarea" },
     { name: "preventive_measures", label: "Preventive Measures", type: "textarea" },
-    { name: "investigation_result", label: "Investigation Result", type: "text" },
+    { name: "follow_up", label: "Follow-up Required", type: "textarea" },
+    { name: "conclusion", label: "Conclusion", type: "textarea" },
   ]},
 ];
+
 const TROUBLESHOOTING_FIELDS = [
   { section: "Problem Identification", fields: [
-    { name: "problem_description", label: "Problem Description", type: "textarea" },
-    { name: "equipment_name", label: "Equipment", type: "text" },
-    { name: "serial_number", label: "Serial Number", type: "text" },
+    { name: "equipment_system", label: "Equipment / System", type: "text" },
     { name: "location", label: "Location", type: "text" },
+    { name: "problem_reported_by", label: "Problem Reported By", type: "text" },
+    { name: "problem_date", label: "Date Problem Occurred", type: "date" },
+    { name: "problem_description", label: "Problem Description", type: "textarea" },
   ]},
-  { section: "Troubleshooting Steps", fields: [
-    { name: "diagnostic_steps", label: "Diagnostic Steps", type: "textarea" },
-    { name: "tests_performed", label: "Tests Performed", type: "textarea" },
-    { name: "findings", label: "Findings", type: "textarea" },
+  { section: "Diagnostic Process", fields: [
+    { name: "symptoms", label: "Symptoms Observed", type: "textarea" },
+    { name: "initial_assessment", label: "Initial Assessment", type: "textarea" },
+    { name: "diagnostic_steps", label: "Diagnostic Steps Taken", type: "textarea" },
+    { name: "tests_measurements", label: "Tests & Measurements Performed", type: "textarea" },
+    { name: "fault_found", label: "Fault / Root Cause Found", type: "textarea" },
   ]},
   { section: "Resolution", fields: [
-    { name: "actions_taken", label: "Actions Taken", type: "textarea" },
-    { name: "parts_replaced", label: "Parts Replaced", type: "textarea" },
-    { name: "resolution_status", label: "Resolution Status", type: "text" },
-    { name: "recommendations", label: "Recommendations", type: "textarea" },
+    { name: "solution_applied", label: "Solution Applied", type: "textarea" },
+    { name: "parts_replaced", label: "Parts / Components Replaced", type: "textarea" },
+    { name: "verification_tests", label: "Verification Tests After Fix", type: "textarea" },
+    { name: "result_after_fix", label: "Result After Fix", type: "text" },
+    { name: "recommendations", label: "Recommendations for Future", type: "textarea" },
   ]},
 ];
+
+// ─── SERVICE FIELDS — fully synced with CreateReport.jsx & report.py ─────────
 const SERVICE_FIELDS = [
   { section: "Service Information", fields: [
-    { name: "service_type", label: "Service Type", type: "text" },
-    { name: "equipment_name", label: "Equipment", type: "text" },
-    { name: "serial_number", label: "Serial Number", type: "text" },
+    { name: "equipment_asset", label: "Equipment / Asset Name", type: "text" },
+    { name: "asset_id", label: "Asset ID / Tag Number", type: "text" },
     { name: "location", label: "Location", type: "text" },
+    { name: "service_type", label: "Service Type (Preventive / Corrective / Periodic)", type: "text" },
+    { name: "last_service_date", label: "Last Service Date", type: "date" },
   ]},
-  { section: "Work Performed", fields: [
+  { section: "Service Performed", fields: [
     { name: "work_description", label: "Work Description", type: "textarea" },
-    { name: "parts_used", label: "Parts Used", type: "textarea" },
-    { name: "test_results", label: "Test Results", type: "textarea" },
+    { name: "activities_performed", label: "Activities Performed (Detail)", type: "textarea" },
+    { name: "parts_used", label: "Parts / Materials Used", type: "textarea" },
+    { name: "calibration_data", label: "Calibration / Measurement Data", type: "textarea" },
+    { name: "service_duration", label: "Service Duration (hours)", type: "text" },
+  ]},
+  { section: "Findings & Observations", fields: [
+    { name: "condition_before", label: "Condition Before Service", type: "textarea" },
+    { name: "issues_found", label: "Issues / Anomalies Found", type: "textarea" },
+    { name: "condition_after", label: "Condition After Service", type: "textarea" },
   ]},
   { section: "Service Outcome", fields: [
-    { name: "service_result", label: "Service Result", type: "text" },
+    { name: "service_result", label: "Service Result (Pass / Fail / Conditional)", type: "text" },
+    { name: "next_service_date", label: "Next Recommended Service Date", type: "date" },
     { name: "recommendations", label: "Recommendations", type: "textarea" },
+    { name: "client_notes", label: "Client Notes / Sign-off", type: "textarea" },
     { name: "follow_up", label: "Follow-up Required", type: "textarea" },
   ]},
 ];
+
 const FIELD_MAP = {
   commissioning: COMMISSIONING_FIELDS,
   investigation: INVESTIGATION_FIELDS,
@@ -202,6 +232,7 @@ function DataSection({ title, data, keys }) {
           return (
             <div key={key}>
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">{label}</p>
+              {/* preserve newlines entered by the user */}
               <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{val}</p>
             </div>
           );
@@ -391,7 +422,7 @@ export default function ReportDetail() {
     setEditMode(true);
   };
 
-  const toggleEditSection   = (si) => setEditSectionVis(prev => ({ ...prev, [si]: !(prev[si] ?? true) }));
+  const toggleEditSection     = (si) => setEditSectionVis(prev => ({ ...prev, [si]: !(prev[si] ?? true) }));
   const isEditSectionIncluded = (si) => editSectionVis[si] ?? true;
 
   const handleSave = async () => {
@@ -624,6 +655,16 @@ export default function ReportDetail() {
             </button>
           </div>
 
+          {/* Info hint */}
+          <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-5 text-xs text-blue-700">
+            <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span>
+              Text areas in sections 2–4 support <strong>multi-line input</strong>.
+              Press <kbd className="bg-blue-100 px-1 py-0.5 rounded text-[10px] font-mono">Enter</kbd> for a new line,{" "}
+              <kbd className="bg-blue-100 px-1 py-0.5 rounded text-[10px] font-mono">Shift+Enter</kbd> for a blank line.
+            </span>
+          </div>
+
           {/* Base fields */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
             <div>
@@ -673,16 +714,24 @@ export default function ReportDetail() {
 
           {/* Dynamic fields per report type */}
           {sections.map((sec, si) => {
-            const included = isEditSectionIncluded(si);
+            const included         = isEditSectionIncluded(si);
+            const isMultiline      = si >= MULTILINE_SECTION_THRESHOLD;
             return (
               <div key={si} className={`mb-4 rounded-xl border p-4 transition-all ${
                 included ? "bg-white border-gray-100" : "bg-gray-50 border-gray-200 opacity-60"
               }`}>
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider flex items-center gap-2">
-                    <span className="w-5 h-5 bg-[#0B3D91] text-white rounded-full flex items-center justify-center text-[10px] font-bold">{si + 1}</span>
-                    {sec.section}
-                  </h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-5 h-5 bg-[#0B3D91] text-white rounded-full flex items-center justify-center text-[10px] font-bold">{si + 1}</span>
+                      {sec.section}
+                    </h4>
+                    {isMultiline && included && (
+                      <span className="text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-0.5 rounded-full font-semibold">
+                        Multi-line
+                      </span>
+                    )}
+                  </div>
                   <button
                     type="button"
                     onClick={() => toggleEditSection(si)}
@@ -715,13 +764,20 @@ export default function ReportDetail() {
                       <div key={field.name} className={field.type === "textarea" ? "sm:col-span-2" : ""}>
                         <label className={labelClass}>{field.label}</label>
                         {field.type === "textarea" ? (
-                          <textarea value={editData[field.name] || ""} rows={3}
+                          <textarea
+                            value={editData[field.name] || ""}
+                            rows={getTextareaRows(si)}
                             onChange={e => setEditData({ ...editData, [field.name]: e.target.value })}
-                            className={inputClass + " resize-none"} />
+                            className={inputClass + " resize-y leading-relaxed"}
+                            style={{ minHeight: isMultiline ? "120px" : "80px" }}
+                          />
                         ) : (
-                          <input type={field.type || "text"} value={editData[field.name] || ""}
+                          <input
+                            type={field.type || "text"}
+                            value={editData[field.name] || ""}
                             onChange={e => setEditData({ ...editData, [field.name]: e.target.value })}
-                            className={inputClass} />
+                            className={inputClass}
+                          />
                         )}
                       </div>
                     ))}
@@ -761,7 +817,7 @@ export default function ReportDetail() {
           {Object.entries(report.data_json).map(([k, v]) => v ? (
             <div key={k} className="mb-3">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">{k.replace(/_/g, " ")}</p>
-              <p className="text-sm text-gray-800">{String(v)}</p>
+              <p className="text-sm text-gray-800 whitespace-pre-wrap">{String(v)}</p>
             </div>
           ) : null)}
         </div>

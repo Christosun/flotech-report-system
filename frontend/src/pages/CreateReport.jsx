@@ -139,6 +139,11 @@ const TROUBLESHOOTING_FIELDS = [
   ]},
 ];
 
+// ─── SERVICE FIELDS (synced with ReportDetail.jsx & report.py) ──────────────
+// Section 0: Service Information  (text/date fields — short inputs)
+// Section 1: Service Performed    (textarea — multi-line)
+// Section 2: Findings & Observations (textarea — multi-line)
+// Section 3: Service Outcome      (textarea + date — multi-line for text areas)
 const SERVICE_FIELDS = [
   { section: "Service Information", fields: [
     { name: "equipment_asset", label: "Equipment / Asset Name", type: "text", required: true },
@@ -159,10 +164,12 @@ const SERVICE_FIELDS = [
     { name: "issues_found", label: "Issues / Anomalies Found", type: "textarea" },
     { name: "condition_after", label: "Condition After Service", type: "textarea" },
   ]},
-  { section: "Next Service", fields: [
+  { section: "Service Outcome", fields: [
+    { name: "service_result", label: "Service Result (Pass / Fail / Conditional)", type: "text", required: true },
     { name: "next_service_date", label: "Next Recommended Service Date", type: "date" },
     { name: "recommendations", label: "Recommendations", type: "textarea" },
     { name: "client_notes", label: "Client Notes / Sign-off", type: "textarea" },
+    { name: "follow_up", label: "Follow-up Required", type: "textarea" },
   ]},
 ];
 
@@ -172,6 +179,15 @@ const FIELD_MAP = {
   troubleshooting: TROUBLESHOOTING_FIELDS,
   service: SERVICE_FIELDS,
 };
+
+// ─── Which section indices use multi-line textareas with taller rows ─────────
+// Section 0 is always "header/info" — short inputs OK.
+// Sections 1, 2, 3 (index >= 1) get tall textareas (6 rows) + Enter = newline.
+const MULTILINE_SECTION_THRESHOLD = 1; // sections with index >= this value get tall textareas
+
+function getTextareaRows(sectionIndex) {
+  return sectionIndex >= MULTILINE_SECTION_THRESHOLD ? 6 : 3;
+}
 
 export default function CreateReport() {
   const navigate = useNavigate();
@@ -238,6 +254,11 @@ export default function CreateReport() {
   const handleBaseChange = (e) => setBaseForm({ ...baseForm, [e.target.name]: e.target.value });
   const handleDataChange = (e) => setDataForm({ ...dataForm, [e.target.name]: e.target.value });
 
+  // Allow Enter key in textareas to produce a real newline (default browser behaviour).
+  // For sections >= MULTILINE_SECTION_THRESHOLD, we also support Shift+Enter for a blank line.
+  // Nothing special needed — <textarea> already handles Enter natively.
+  // We only intercept to prevent accidental form submit (no <form> element here, so N/A).
+
   const toggleSection = (si) => {
     setSectionIncluded(prev => ({ ...prev, [si]: !(prev[si] ?? true) }));
   };
@@ -297,7 +318,7 @@ export default function CreateReport() {
         ))}
       </div>
 
-      {/* Step 1: Select Report Type */}
+      {/* ── Step 1: Select Report Type ──────────────────────────── */}
       {step === 1 && (
         <div>
           <h2 className="text-lg font-semibold text-gray-700 mb-4">Select Report Type</h2>
@@ -347,7 +368,7 @@ export default function CreateReport() {
         </div>
       )}
 
-      {/* Step 2: Basic Info */}
+      {/* ── Step 2: Basic Info ──────────────────────────────────── */}
       {step === 2 && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center gap-3 mb-6">
@@ -424,7 +445,7 @@ export default function CreateReport() {
         </div>
       )}
 
-      {/* Step 3: Report-specific fields */}
+      {/* ── Step 3: Report-specific fields ─────────────────────── */}
       {step === 3 && (
         <div>
           <div className="flex items-center gap-3 mb-4">
@@ -439,14 +460,18 @@ export default function CreateReport() {
             </div>
           </div>
 
-          {/* Info hint for toggles */}
-          <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 mb-5 text-xs text-blue-700">
-            <Info size={15} className="flex-shrink-0" strokeWidth={2} />
-            <span>Use <strong>Show in PDF / Hide in PDF</strong> buttons in each section to control what content will appear in the PDF document.</span>
+          {/* Info hint for toggles + multi-line note */}
+          <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-5 text-xs text-blue-700">
+            <Info size={15} className="flex-shrink-0 mt-0.5" strokeWidth={2} />
+            <span>
+              Use <strong>Show in PDF / Hide in PDF</strong> buttons to control what appears in the PDF.
+              {" "}Text areas in sections 2–4 support <strong>multi-line input</strong> — press <kbd className="bg-blue-100 px-1 py-0.5 rounded text-[10px] font-mono">Enter</kbd> for a new line, <kbd className="bg-blue-100 px-1 py-0.5 rounded text-[10px] font-mono">Shift+Enter</kbd> for a blank line.
+            </span>
           </div>
 
           {sections.map((section, si) => {
             const included = isSectionIncluded(si);
+            const isMultilineSection = si >= MULTILINE_SECTION_THRESHOLD;
             return (
               <div
                 key={si}
@@ -454,12 +479,19 @@ export default function CreateReport() {
                   included ? "bg-white border-gray-100" : "bg-gray-50 border-gray-200 opacity-60"
                 }`}
               >
-                {/* Section header with toggle */}
+                {/* Section header */}
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-bold text-primary uppercase tracking-wider flex items-center gap-2">
-                    <span className="w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-xs">{si + 1}</span>
-                    {section.section}
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-xs">{si + 1}</span>
+                      {section.section}
+                    </h3>
+                    {isMultilineSection && included && (
+                      <span className="text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-0.5 rounded-full font-semibold">
+                        Multi-line
+                      </span>
+                    )}
+                  </div>
                   <button
                     type="button"
                     onClick={() => toggleSection(si)}
@@ -501,9 +533,10 @@ export default function CreateReport() {
                             name={field.name}
                             value={dataForm[field.name] || ""}
                             onChange={handleDataChange}
-                            rows={3}
+                            rows={getTextareaRows(si)}
                             placeholder={`Enter ${field.label.toLowerCase()}...`}
-                            className={inputClass + " resize-none"}
+                            className={inputClass + " resize-y leading-relaxed"}
+                            style={{ minHeight: isMultilineSection ? "120px" : "80px" }}
                           />
                         ) : (
                           <input
