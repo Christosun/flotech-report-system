@@ -727,62 +727,94 @@ export default function OnsiteReportDetail() {
         />
       )}
 
-      {/* ── HEADER ───────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4 mb-5">
-        <div>
-          <button onClick={() => navigate("/onsite")}
-            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-[#0B3D91] mb-2 transition-colors">
-            <ArrowLeft className="w-4 h-4" /> Back
-          </button>
-          <h1 className="text-2xl font-bold text-gray-800">{report.report_number}</h1>
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${sc.bg} ${sc.text}`}>{sc.label}</span>
-            {(report.visit_date_from || report.visit_date) && (
-              <span className="text-xs text-gray-400 flex items-center gap-1">
-                <CalendarDays className="w-3 h-3" />
-                {(() => {
-                  const from = report.visit_date_from || report.visit_date;
-                  const to   = report.visit_date_to;
-                  const fmt  = d => new Date(d + "T00:00:00").toLocaleDateString("en-EN", { day: "2-digit", month: "long", year: "numeric" });
-                  return to && to !== from ? `${fmt(from)} — ${fmt(to)}` : fmt(from);
-                })()}
-              </span>
-            )}
-            {reportImages.length > 0 && (
-              <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
-                <Camera className="w-3 h-3" /> {reportImages.length} photo{reportImages.length > 1 ? "s" : ""}
-              </span>
-            )}
-          </div>
+      {/* ══════════════════════════════════════════════════════════
+          HEADER — FIXED FOR MOBILE RESPONSIVENESS
+          Tombol action dipindah ke baris terpisah di bawah judul,
+          sehingga tidak terpotong di layar sempit.
+      ══════════════════════════════════════════════════════════ */}
+      <div className="mb-5">
+        {/* Back button */}
+        <button
+          onClick={() => navigate("/onsite")}
+          className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-[#0B3D91] mb-2 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
+
+        {/* Title row */}
+        <h1 className="text-2xl font-bold text-gray-800">{report.report_number}</h1>
+
+        {/* Badges */}
+        <div className="flex items-center gap-2 mt-1 mb-3 flex-wrap">
+          <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${sc.bg} ${sc.text}`}>
+            {sc.label}
+          </span>
+          {(report.visit_date_from || report.visit_date) && (
+            <span className="text-xs text-gray-400 flex items-center gap-1">
+              <CalendarDays className="w-3 h-3" />
+              {(() => {
+                const from = report.visit_date_from || report.visit_date;
+                const to   = report.visit_date_to;
+                const fmt  = d => new Date(d + "T00:00:00").toLocaleDateString("en-EN", { day: "2-digit", month: "long", year: "numeric" });
+                return to && to !== from ? `${fmt(from)} — ${fmt(to)}` : fmt(from);
+              })()}
+            </span>
+          )}
+          {reportImages.length > 0 && (
+            <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+              <Camera className="w-3 h-3" /> {reportImages.length} photo{reportImages.length > 1 ? "s" : ""}
+            </span>
+          )}
         </div>
 
+        {/* ── Action Buttons — full width row on mobile, right-aligned on desktop ── */}
         {!editMode && (
-          <div className="flex flex-wrap gap-2 justify-end flex-shrink-0">
-            <button onClick={() => setDeleteDialog(true)}
-              className="flex items-center gap-1.5 px-3 py-2 text-red-500 border border-red-200 rounded-xl text-xs font-semibold hover:bg-red-50 transition-colors">
-              <Trash2 className="w-3.5 h-3.5" /> Delete
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Delete — icon only on smallest screens, icon+text on sm+ */}
+            <button
+              onClick={() => setDeleteDialog(true)}
+              className="flex items-center gap-1.5 px-3 py-2 text-red-500 border border-red-200 rounded-xl text-xs font-semibold hover:bg-red-50 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="hidden xs:inline sm:inline">Delete</span>
             </button>
-            <button onClick={previewPDF} disabled={previewLoading}
-              className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-xs font-semibold hover:bg-blue-100 transition-colors disabled:opacity-60">
+
+            {/* Preview */}
+            <button
+              onClick={previewPDF}
+              disabled={previewLoading}
+              className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-xs font-semibold hover:bg-blue-100 transition-colors disabled:opacity-60"
+            >
               {previewLoading
                 ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 : <Eye className="w-3.5 h-3.5" />}
-              {previewLoading ? "Loading…" : "Preview"}
+              <span>{previewLoading ? "Loading…" : "Preview"}</span>
             </button>
-            <button onClick={downloadPDF} disabled={pdfLoading}
-              className="flex items-center gap-1.5 px-3 py-2 bg-[#0B3D91] text-white rounded-xl text-xs font-semibold hover:bg-[#1E5CC6] transition-colors disabled:opacity-60">
+
+            {/* PDF Download */}
+            <button
+              onClick={downloadPDF}
+              disabled={pdfLoading}
+              className="flex items-center gap-1.5 px-3 py-2 bg-[#0B3D91] text-white rounded-xl text-xs font-semibold hover:bg-[#1E5CC6] transition-colors disabled:opacity-60"
+            >
               {pdfLoading
                 ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 : <Download className="w-3.5 h-3.5" />}
-              PDF
+              <span>{pdfLoading ? "Generating…" : "PDF"}</span>
             </button>
-            <button onClick={openEdit}
-              className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-xs font-semibold text-amber-700 hover:bg-amber-100 transition-colors">
-              <Pencil className="w-3.5 h-3.5" /> Edit
+
+            {/* Edit */}
+            <button
+              onClick={openEdit}
+              className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-xs font-semibold text-amber-700 hover:bg-amber-100 transition-colors"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              <span>Edit</span>
             </button>
           </div>
         )}
       </div>
+      {/* ══════════════════════════════════════════════════════════ */}
 
       {/* ── EDIT MODE ─────────────────────────────────────────── */}
       {editMode && (
@@ -1097,21 +1129,29 @@ export default function OnsiteReportDetail() {
         </>
       )}
 
-      {/* Bottom action bar */}
+      {/* ── Bottom action bar ──────────────────────────────────── */}
       {!editMode && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-wrap gap-3 justify-between items-center">
-          <button onClick={() => setDeleteDialog(true)}
-            className="flex items-center gap-2 px-4 py-2 text-red-500 border border-red-200 rounded-xl text-sm font-semibold hover:bg-red-50 transition-colors">
+          <button
+            onClick={() => setDeleteDialog(true)}
+            className="flex items-center gap-2 px-4 py-2 text-red-500 border border-red-200 rounded-xl text-sm font-semibold hover:bg-red-50 transition-colors"
+          >
             <Trash2 className="w-4 h-4" /> Delete Report
           </button>
           <div className="flex gap-2">
-            <button onClick={previewPDF} disabled={previewLoading}
-              className="flex items-center gap-2 px-5 py-2.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-sm font-semibold hover:bg-blue-100 transition-colors disabled:opacity-60">
+            <button
+              onClick={previewPDF}
+              disabled={previewLoading}
+              className="flex items-center gap-2 px-5 py-2.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-sm font-semibold hover:bg-blue-100 transition-colors disabled:opacity-60"
+            >
               {previewLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
               {previewLoading ? "Loading…" : "Preview PDF"}
             </button>
-            <button onClick={downloadPDF} disabled={pdfLoading}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] transition-colors disabled:opacity-60">
+            <button
+              onClick={downloadPDF}
+              disabled={pdfLoading}
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] transition-colors disabled:opacity-60"
+            >
               {pdfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               {pdfLoading ? "Generating…" : "Download PDF"}
             </button>
