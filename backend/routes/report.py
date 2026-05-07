@@ -37,6 +37,295 @@ FLOTECH_INFO = {
     "email": "e-Mail: salesjkt@flotech.co.id / Website: www.flotech.com.sg",
 }
 
+# ─── Bilingual section/field labels ─────────────────────────────────────────
+# Each report type maps to its sections with (section_title, [(field_key, field_label)])
+# for both "en" and "id"
+
+PDF_SECTIONS = {
+    "en": {
+        "commissioning": [
+            ("SITE & EQUIPMENT INFORMATION", [
+                ("site_location", "Site Location"),
+                ("equipment_name", "Equipment Name"),
+                ("equipment_model", "Equipment Model / Type"),
+                ("serial_number", "Serial Number"),
+                ("manufacturer", "Manufacturer"),
+                ("installation_date", "Installation Date"),
+            ]),
+            ("PRE-COMMISSIONING CHECKS", [
+                ("visual_inspection", "Visual Inspection Result"),
+                ("safety_checks", "Safety Checks Performed"),
+                ("electrical_checks", "Electrical Checks"),
+                ("mechanical_checks", "Mechanical Checks"),
+            ]),
+            ("COMMISSIONING TEST RESULTS", [
+                ("test_procedures", "Test Procedures Performed"),
+                ("performance_parameters", "Performance Parameters (setpoints, values)"),
+                ("test_results", "Test Results & Measurements"),
+            ]),
+            ("FINAL STATUS", [
+                ("commissioning_result", "Commissioning Result"),
+                ("issues_found", "Issues Found"),
+                ("recommendations", "Recommendations"),
+                ("client_acceptance", "Client Acceptance / Notes"),
+            ]),
+        ],
+        "investigation": [
+            ("INCIDENT INFORMATION", [
+                ("incident_date", "Incident Date & Time"),
+                ("incident_location", "Incident Location"),
+                ("equipment_involved", "Equipment / System Involved"),
+                ("reported_by", "Reported By"),
+            ]),
+            ("PROBLEM DESCRIPTION", [
+                ("incident_description", "Incident Description"),
+                ("symptoms_observed", "Symptoms Observed"),
+                ("impact_severity", "Impact & Severity Level"),
+            ]),
+            ("INVESTIGATION FINDINGS", [
+                ("investigation_method", "Investigation Method Used"),
+                ("root_cause", "Root Cause Analysis"),
+                ("contributing_factors", "Contributing Factors"),
+                ("evidence_data", "Evidence & Supporting Data"),
+            ]),
+            ("CORRECTIVE ACTIONS", [
+                ("immediate_actions", "Immediate Actions Taken"),
+                ("long_term_actions", "Long-term Corrective Actions"),
+                ("preventive_measures", "Preventive Measures"),
+                ("follow_up", "Follow-up Required"),
+                ("conclusion", "Conclusion"),
+            ]),
+        ],
+        "troubleshooting": [
+            ("PROBLEM IDENTIFICATION", [
+                ("equipment_system", "Equipment / System"),
+                ("location", "Location"),
+                ("problem_reported_by", "Problem Reported By"),
+                ("problem_date", "Date Problem Occurred"),
+                ("problem_description", "Problem Description"),
+            ]),
+            ("DIAGNOSTIC PROCESS", [
+                ("symptoms", "Symptoms Observed"),
+                ("initial_assessment", "Initial Assessment"),
+                ("diagnostic_steps", "Diagnostic Steps Taken"),
+                ("tests_measurements", "Tests & Measurements Performed"),
+                ("fault_found", "Fault / Root Cause Found"),
+            ]),
+            ("RESOLUTION", [
+                ("solution_applied", "Solution Applied"),
+                ("parts_replaced", "Parts / Components Replaced"),
+                ("verification_tests", "Verification Tests After Fix"),
+                ("result_after_fix", "Result After Fix"),
+                ("recommendations", "Recommendations for Future"),
+            ]),
+        ],
+        "service": [
+            ("SERVICE INFORMATION", [
+                ("equipment_asset", "Equipment / Asset Name"),
+                ("asset_id", "Asset ID / Tag Number"),
+                ("location", "Location"),
+                ("service_type", "Service Type"),
+                ("last_service_date", "Last Service Date"),
+            ]),
+            ("SERVICE PERFORMED", [
+                ("work_description", "Work Description"),
+                ("activities_performed", "Activities Performed (Detail)"),
+                ("parts_used", "Parts / Materials Used"),
+                ("calibration_data", "Calibration / Measurement Data"),
+                ("service_duration", "Service Duration"),
+            ]),
+            ("FINDINGS & OBSERVATIONS", [
+                ("condition_before", "Condition Before Service"),
+                ("issues_found", "Issues / Anomalies Found"),
+                ("condition_after", "Condition After Service"),
+            ]),
+            ("SERVICE OUTCOME", [
+                ("service_result", "Service Result"),
+                ("next_service_date", "Next Recommended Service Date"),
+                ("recommendations", "Recommendations"),
+                ("client_notes", "Client Notes / Sign-off"),
+                ("follow_up", "Follow-up Required"),
+            ]),
+        ],
+    },
+    "id": {
+        "commissioning": [
+            ("INFORMASI LOKASI & PERALATAN", [
+                ("site_location", "Lokasi Site"),
+                ("equipment_name", "Nama Peralatan"),
+                ("equipment_model", "Model / Tipe Peralatan"),
+                ("serial_number", "Nomor Seri"),
+                ("manufacturer", "Pabrikan / Manufaktur"),
+                ("installation_date", "Tanggal Instalasi"),
+            ]),
+            ("PEMERIKSAAN PRA-KOMISIONING", [
+                ("visual_inspection", "Hasil Inspeksi Visual"),
+                ("safety_checks", "Pemeriksaan Keselamatan yang Dilakukan"),
+                ("electrical_checks", "Pemeriksaan Kelistrikan"),
+                ("mechanical_checks", "Pemeriksaan Mekanikal"),
+            ]),
+            ("HASIL PENGUJIAN KOMISIONING", [
+                ("test_procedures", "Prosedur Pengujian yang Dilakukan"),
+                ("performance_parameters", "Parameter Kinerja (setpoint, nilai)"),
+                ("test_results", "Hasil Pengujian & Pengukuran"),
+            ]),
+            ("STATUS AKHIR", [
+                ("commissioning_result", "Hasil Komisioning (Lulus/Gagal/Bersyarat)"),
+                ("issues_found", "Temuan Masalah (jika ada)"),
+                ("recommendations", "Rekomendasi"),
+                ("client_acceptance", "Penerimaan / Catatan Klien"),
+            ]),
+        ],
+        "investigation": [
+            ("INFORMASI INSIDEN", [
+                ("incident_date", "Tanggal & Waktu Insiden"),
+                ("incident_location", "Lokasi Insiden"),
+                ("equipment_involved", "Peralatan / Sistem yang Terlibat"),
+                ("reported_by", "Dilaporkan Oleh"),
+            ]),
+            ("DESKRIPSI MASALAH", [
+                ("incident_description", "Deskripsi Insiden"),
+                ("symptoms_observed", "Gejala yang Teramati"),
+                ("impact_severity", "Dampak & Tingkat Keparahan"),
+            ]),
+            ("TEMUAN INVESTIGASI", [
+                ("investigation_method", "Metode Investigasi yang Digunakan"),
+                ("root_cause", "Analisis Akar Penyebab (Root Cause Analysis)"),
+                ("contributing_factors", "Faktor-faktor Penyebab"),
+                ("evidence_data", "Bukti & Data Pendukung"),
+            ]),
+            ("TINDAKAN KOREKTIF", [
+                ("immediate_actions", "Tindakan Segera yang Diambil"),
+                ("long_term_actions", "Tindakan Korektif Jangka Panjang"),
+                ("preventive_measures", "Langkah Pencegahan"),
+                ("follow_up", "Tindak Lanjut yang Diperlukan"),
+                ("conclusion", "Kesimpulan"),
+            ]),
+        ],
+        "troubleshooting": [
+            ("IDENTIFIKASI MASALAH", [
+                ("equipment_system", "Peralatan / Sistem"),
+                ("location", "Lokasi"),
+                ("problem_reported_by", "Masalah Dilaporkan Oleh"),
+                ("problem_date", "Tanggal Masalah Terjadi"),
+                ("problem_description", "Deskripsi Masalah"),
+            ]),
+            ("PROSES DIAGNOSA", [
+                ("symptoms", "Gejala yang Teramati"),
+                ("initial_assessment", "Penilaian Awal"),
+                ("diagnostic_steps", "Langkah-langkah Diagnosa"),
+                ("tests_measurements", "Pengujian & Pengukuran yang Dilakukan"),
+                ("fault_found", "Kerusakan / Akar Penyebab yang Ditemukan"),
+            ]),
+            ("PENYELESAIAN", [
+                ("solution_applied", "Solusi yang Diterapkan"),
+                ("parts_replaced", "Suku Cadang / Komponen yang Diganti"),
+                ("verification_tests", "Pengujian Verifikasi Setelah Perbaikan"),
+                ("result_after_fix", "Hasil Setelah Perbaikan"),
+                ("recommendations", "Rekomendasi untuk ke Depan"),
+            ]),
+        ],
+        "service": [
+            ("INFORMASI SERVIS", [
+                ("equipment_asset", "Nama Peralatan / Aset"),
+                ("asset_id", "ID Aset / Nomor Tag"),
+                ("location", "Lokasi"),
+                ("service_type", "Jenis Servis (Preventif / Korektif / Berkala)"),
+                ("last_service_date", "Tanggal Servis Terakhir"),
+            ]),
+            ("PEKERJAAN SERVIS", [
+                ("work_description", "Deskripsi Pekerjaan"),
+                ("activities_performed", "Kegiatan yang Dilakukan (Detail)"),
+                ("parts_used", "Suku Cadang / Material yang Digunakan"),
+                ("calibration_data", "Data Kalibrasi / Pengukuran"),
+                ("service_duration", "Durasi Servis (jam)"),
+            ]),
+            ("TEMUAN & OBSERVASI", [
+                ("condition_before", "Kondisi Sebelum Servis"),
+                ("issues_found", "Masalah / Anomali yang Ditemukan"),
+                ("condition_after", "Kondisi Setelah Servis"),
+            ]),
+            ("HASIL SERVIS", [
+                ("service_result", "Hasil Servis (Lulus / Gagal / Bersyarat)"),
+                ("next_service_date", "Tanggal Servis Berikutnya yang Direkomendasikan"),
+                ("recommendations", "Rekomendasi"),
+                ("client_notes", "Catatan Klien / Tanda Tangan"),
+                ("follow_up", "Tindak Lanjut yang Diperlukan"),
+            ]),
+        ],
+    },
+}
+
+# Bilingual report type labels for header
+REPORT_TYPE_HEADER_LABELS = {
+    "en": {
+        "commissioning":   "COMMISSIONING REPORT",
+        "investigation":   "INVESTIGATION REPORT",
+        "troubleshooting": "TROUBLESHOOTING REPORT",
+        "service":         "SERVICE REPORT",
+    },
+    "id": {
+        "commissioning":   "LAPORAN KOMISIONING",
+        "investigation":   "LAPORAN INVESTIGASI",
+        "troubleshooting": "LAPORAN TROUBLESHOOTING",
+        "service":         "LAPORAN SERVIS",
+    },
+}
+
+# Bilingual info row labels (Date, Client, Engineer, Type)
+INFO_ROW_LABELS = {
+    "en": {
+        "report_no": "Report No.",
+        "date":      "Date",
+        "client":    "Client",
+        "engineer":  "Engineer",
+        "project":   "Project",
+        "type":      "Type",
+    },
+    "id": {
+        "report_no": "No. Laporan",
+        "date":      "Tanggal",
+        "client":    "Klien",
+        "engineer":  "Engineer",
+        "project":   "Proyek",
+        "type":      "Tipe",
+    },
+}
+
+# Bilingual section/signature labels
+SIGNATURE_LABELS = {
+    "en": {
+        "engineer":    "ENGINEER",
+        "client":      "CLIENT / CUSTOMER",
+        "name_stamp":  "Name & Stamp",
+        "date_line":   "Date: ________________",
+        "photos":      "DOCUMENTATION & PHOTOS",
+        "signatures":  "SIGNATURES",
+        "photo_prefix": "Photo",
+        "digital_notice": "This document is digitally generated by the system of PT Flotech Controls Indonesia",
+        "issued":      "Issued",
+        "doc_number":  "Document number",
+        "valid_note":  "This digital document is valid without a wet signature.",
+        "generated":   "Generated",
+        "page_of":     "Page {page} of {total}",
+    },
+    "id": {
+        "engineer":    "ENGINEER / TEKNISI",
+        "client":      "PELANGGAN / KLIEN",
+        "name_stamp":  "Nama & Stempel",
+        "date_line":   "Tanggal: ________________",
+        "photos":      "DOKUMENTASI & FOTO",
+        "signatures":  "TANDA TANGAN",
+        "photo_prefix": "Foto",
+        "digital_notice": "Dokumen ini dibuat secara digital oleh sistem PT Flotech Controls Indonesia",
+        "issued":      "Diterbitkan",
+        "doc_number":  "Nomor dokumen",
+        "valid_note":  "Dokumen digital ini sah tanpa tanda tangan basah.",
+        "generated":   "Dibuat",
+        "page_of":     "Halaman {page} dari {total}",
+    },
+}
+
 
 @report_bp.route('/create', methods=['POST'])
 @jwt_required()
@@ -52,7 +341,6 @@ def create_report():
         try: report_date = datetime.strptime(data["report_date"], "%Y-%m-%d").date()
         except: pass
 
-    # ── Auto report number: PREFIX-YYYYMMDD-NNN, reset tiap tahun ────────────
     prefix = REPORT_TYPE_PREFIXES.get(report_type, "RPT")
     now = datetime.utcnow()
     year_str = now.strftime("%Y")
@@ -86,7 +374,6 @@ def create_report():
     db.session.add(report)
     db.session.commit()
 
-    # ── Broadcast to all other users ─────────────────────────────────────
     type_labels = {
         "commissioning": "Commissioning Report",
         "investigation": "Investigation Report",
@@ -151,64 +438,49 @@ def upload_images(report_id):
     report = Report.query.get(report_id)
     if not report:
         return jsonify({"error": "Report not found"}), 404
- 
+
     files = request.files.getlist("images")
     if not files:
         return jsonify({"error": "No files uploaded"}), 400
- 
+
     saved_files = []
-    MAX_DIMENSION = 1280   # px
-    JPEG_QUALITY  = 80     # 0-95 — good quality, significantly smaller than default
-    SIZE_THRESHOLD = 500 * 1024  # 500 KB — only recompress if still larger than this
- 
+    MAX_DIMENSION = 1280
+    JPEG_QUALITY  = 80
+    SIZE_THRESHOLD = 500 * 1024
+
     for file in files:
         if not file.filename:
             continue
- 
-        # ── Build a safe filename with .jpg extension ─────────────────────────
+
         base = secure_filename(file.filename)
         base_no_ext = base.rsplit(".", 1)[0] if "." in base else base
         filename = f"{base_no_ext}.jpg"
- 
-        # Avoid collisions
+
         dest_path = os.path.join(current_app.config["UPLOAD_FOLDER"], filename)
         if os.path.exists(dest_path):
             import uuid
             filename = f"{base_no_ext}_{uuid.uuid4().hex[:8]}.jpg"
             dest_path = os.path.join(current_app.config["UPLOAD_FOLDER"], filename)
- 
+
         try:
             img = PILImage.open(file.stream).convert("RGB")
- 
-            # ── Resize if too large ───────────────────────────────────────────
             w, h = img.size
             if w > MAX_DIMENSION or h > MAX_DIMENSION:
                 ratio = min(MAX_DIMENSION / w, MAX_DIMENSION / h)
-                img = img.resize(
-                    (int(w * ratio), int(h * ratio)),
-                    PILImage.LANCZOS,
-                )
- 
-            # ── Save to buffer first to check size ───────────────────────────
+                img = img.resize((int(w * ratio), int(h * ratio)), PILImage.LANCZOS)
             buf = BytesIO()
             img.save(buf, format="JPEG", quality=JPEG_QUALITY, optimize=True)
-            buf_size = buf.tell()
- 
-            # If the frontend already compressed it well (< threshold),
-            # still save as JPEG for consistency — just use the buffer.
             buf.seek(0)
             with open(dest_path, "wb") as f_out:
                 f_out.write(buf.read())
- 
         except Exception as e:
-            # Fall back: save the raw stream as-is
             file.stream.seek(0)
             with open(dest_path, "wb") as f_out:
                 f_out.write(file.stream.read())
- 
+
         db.session.add(ReportImage(report_id=report_id, file_path=filename))
         saved_files.append(filename)
- 
+
     db.session.commit()
     return jsonify({"message": "Images uploaded", "files": saved_files}), 201
 
@@ -309,12 +581,22 @@ def delete_report(report_id):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PDF BUILDER
+# PDF BUILDER — bilingual, client signature toggle
 # ─────────────────────────────────────────────────────────────────────────────
 def build_report_pdf(report_id):
     report = Report.query.get(report_id)
     if not report: return None
     engineer = Engineer.query.get(report.engineer_id) if report.engineer_id else None
+    data = report.data_json or {}
+
+    # ── Read settings stored in data_json ────────────────────────────────────
+    lang = data.get("_lang", "en")
+    if lang not in ("en", "id"):
+        lang = "en"
+    include_client_sig = bool(data.get("_include_client_signature", True))
+
+    lbl = SIGNATURE_LABELS[lang]
+    info_lbl = INFO_ROW_LABELS[lang]
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4,
@@ -338,15 +620,12 @@ def build_report_pdf(report_id):
     section_header_style = ps('SH', fontSize=10, fontName='Helvetica-Bold', textColor=primary_color, spaceBefore=12, spaceAfter=4)
     label_style          = ps('Label', fontSize=9, fontName='Helvetica-Bold', textColor=gray_color)
     value_style          = ps('Value', fontSize=10, textColor=dark_color)
-    # Multi-line body style with proper line spacing
     body_style           = ps('Body', fontSize=10, textColor=text_color, spaceAfter=4, leading=15, wordWrap='LTR')
     caption_style        = ps('Caption', fontSize=8, textColor=gray_color, alignment=1, leading=11, spaceBefore=3, spaceAfter=6)
 
     elements = []
 
-    report_type_label = (report.report_type or "FIELD").upper()
-
-    # ─── HEADER: logo + report type title block ──────────────────
+    # ─── HEADER ──────────────────────────────────────────────────
     logo_path = os.path.join(current_app.root_path, "assets", "logo.png")
     if os.path.exists(logo_path):
         try:
@@ -360,13 +639,7 @@ def build_report_pdf(report_id):
     else:
         logo_img = Paragraph("<b>FLOTECH</b>", ps('LF2', fontName='Helvetica-Bold', fontSize=16, textColor=primary_color))
 
-    type_labels = {
-        "commissioning": "COMMISSIONING REPORT",
-        "investigation": "INVESTIGATION REPORT",
-        "troubleshooting": "TROUBLESHOOTING REPORT",
-        "service": "SERVICE REPORT",
-    }
-    header_title = type_labels.get(report.report_type or "", "FIELD REPORT")
+    header_title = REPORT_TYPE_HEADER_LABELS.get(lang, {}).get(report.report_type or "", "FIELD REPORT")
     header_right_block = Table(
         [[Paragraph(header_title, title_style)],
          [Paragraph(FLOTECH_INFO["name"], subtitle_style)],
@@ -393,13 +666,21 @@ def build_report_pdf(report_id):
     # ─── INFO TABLE ──────────────────────────────────────────────
     rdate = report.report_date.strftime("%d %B %Y") if report.report_date else "-"
     eng_name = engineer.name if engineer else "-"
+    report_type_label = (report.report_type or "FIELD").upper()
+
     info_table_data = [
-        [Paragraph("<b>Report No.</b>", label_style), Paragraph(report.report_number or "-", ps('RN', fontSize=11, fontName='Helvetica-Bold', textColor=primary_color)),
-         Paragraph("<b>Date</b>", label_style), Paragraph(rdate, value_style)],
-        [Paragraph("<b>Client</b>", label_style), Paragraph(report.client_name or "-", value_style),
-         Paragraph("<b>Engineer</b>", label_style), Paragraph(eng_name, value_style)],
-        [Paragraph("<b>Project</b>", label_style), Paragraph(report.project_name or "-", value_style),
-         Paragraph("<b>Type</b>", label_style), Paragraph(report_type_label, ps('T', fontSize=10, fontName='Helvetica-Bold', textColor=secondary_color))],
+        [Paragraph(f"<b>{info_lbl['report_no']}</b>", label_style),
+         Paragraph(report.report_number or "-", ps('RN', fontSize=11, fontName='Helvetica-Bold', textColor=primary_color)),
+         Paragraph(f"<b>{info_lbl['date']}</b>", label_style),
+         Paragraph(rdate, value_style)],
+        [Paragraph(f"<b>{info_lbl['client']}</b>", label_style),
+         Paragraph(report.client_name or "-", value_style),
+         Paragraph(f"<b>{info_lbl['engineer']}</b>", label_style),
+         Paragraph(eng_name, value_style)],
+        [Paragraph(f"<b>{info_lbl['project']}</b>", label_style),
+         Paragraph(report.project_name or "-", value_style),
+         Paragraph(f"<b>{info_lbl['type']}</b>", label_style),
+         Paragraph(report_type_label, ps('T', fontSize=10, fontName='Helvetica-Bold', textColor=secondary_color))],
     ]
     info_table = Table(info_table_data, colWidths=[3*cm, 6*cm, 3*cm, 5*cm])
     info_table.setStyle(TableStyle([
@@ -412,13 +693,9 @@ def build_report_pdf(report_id):
     elements.append(info_table)
     elements.append(Spacer(1, 0.5*cm))
 
-    data = report.data_json or {}
-    rtype = (report.report_type or "").lower()
-
-    # ── Section visibility from _section_visibility stored in data_json ──────
+    # ─── Section visibility ───────────────────────────────────────
     _sv = data.get("_section_visibility", {})
     def _sv_key(idx):
-        """Check if section index idx should appear in PDF (default True)."""
         return bool(_sv.get(str(idx), _sv.get(idx, True)))
 
     def section_title(text):
@@ -428,7 +705,6 @@ def build_report_pdf(report_id):
 
     def info_row(label, value):
         if not value: return
-        # Escape XML special chars and preserve line breaks
         safe_value = str(value).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
         row = [[Paragraph(label, label_style), Paragraph(safe_value, value_style)]]
         t = Table(row, colWidths=[5*cm, 12*cm])
@@ -437,9 +713,7 @@ def build_report_pdf(report_id):
 
     def text_block(label, text):
         if not text: return
-        # Escape XML special chars and convert newlines to ReportLab line breaks
         safe_text = str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        # Convert \n to <br/> for multi-line support
         safe_text = safe_text.replace("\n", "<br/>")
         bd = [[Paragraph(f"<b>{label}</b>", label_style)], [Paragraph(safe_text, body_style)]]
         t = Table(bd, colWidths=[17*cm])
@@ -452,211 +726,48 @@ def build_report_pdf(report_id):
         elements.append(t)
         elements.append(Spacer(1, 0.2*cm))
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # COMMISSIONING REPORT
-    # Fields (synced with CreateReport.jsx COMMISSIONING_FIELDS):
-    #   Section 0: site_location, equipment_name, equipment_model, serial_number, manufacturer, installation_date
-    #   Section 1: visual_inspection, safety_checks, electrical_checks, mechanical_checks
-    #   Section 2: test_procedures, performance_parameters, test_results
-    #   Section 3: commissioning_result, issues_found, recommendations, client_acceptance
-    # ─────────────────────────────────────────────────────────────────────────
-    if rtype == "commissioning":
-        if _sv_key(0):
-            section_title("SITE & EQUIPMENT INFORMATION")
-            for k, l in [
-                ("site_location",     "Site Location"),
-                ("equipment_name",    "Equipment Name"),
-                ("equipment_model",   "Equipment Model / Type"),
-                ("serial_number",     "Serial Number"),
-                ("manufacturer",      "Manufacturer"),
-                ("installation_date", "Installation Date"),
-            ]:
-                info_row(l, data.get(k))
+    # ─── Determine field type for a key ──────────────────────────
+    # Keys that are typically "short" info rows (not full text blocks)
+    SHORT_KEYS = {
+        "site_location", "equipment_name", "equipment_model", "serial_number",
+        "manufacturer", "installation_date", "commissioning_result",
+        "incident_date", "incident_location", "equipment_involved", "reported_by",
+        "equipment_system", "location", "problem_reported_by", "problem_date",
+        "result_after_fix",
+        "equipment_asset", "asset_id", "service_type", "last_service_date",
+        "service_duration", "service_result", "next_service_date",
+    }
+
+    # ─── Build body using bilingual section map ───────────────────
+    rtype = (report.report_type or "").lower()
+    lang_sections = PDF_SECTIONS.get(lang, PDF_SECTIONS["en"]).get(rtype)
+
+    if lang_sections:
+        for si, (section_name, fields) in enumerate(lang_sections):
+            if not _sv_key(si):
+                continue
+            section_title(section_name)
+            for key, field_label in fields:
+                val = data.get(key)
+                if not val:
+                    continue
+                if key in SHORT_KEYS:
+                    info_row(field_label, val)
+                else:
+                    text_block(field_label, val)
             elements.append(Spacer(1, 0.3*cm))
-
-        if _sv_key(1):
-            section_title("PRE-COMMISSIONING CHECKS")
-            for k, l in [
-                ("visual_inspection", "Visual Inspection Result"),
-                ("safety_checks",     "Safety Checks Performed"),
-                ("electrical_checks", "Electrical Checks"),
-                ("mechanical_checks", "Mechanical Checks"),
-            ]:
-                text_block(l, data.get(k))
-
-        if _sv_key(2):
-            section_title("COMMISSIONING TEST RESULTS")
-            for k, l in [
-                ("test_procedures",        "Test Procedures Performed"),
-                ("performance_parameters", "Performance Parameters (setpoints, values)"),
-                ("test_results",           "Test Results & Measurements"),
-            ]:
-                text_block(l, data.get(k))
-
-        if _sv_key(3):
-            section_title("FINAL STATUS")
-            info_row("Commissioning Result", data.get("commissioning_result"))
-            for k, l in [
-                ("issues_found",      "Issues Found"),
-                ("recommendations",   "Recommendations"),
-                ("client_acceptance", "Client Acceptance / Notes"),
-            ]:
-                text_block(l, data.get(k))
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # INVESTIGATION REPORT
-    # Fields (synced with CreateReport.jsx INVESTIGATION_FIELDS):
-    #   Section 0: incident_date, incident_location, equipment_involved, reported_by
-    #   Section 1: incident_description, symptoms_observed, impact_severity
-    #   Section 2: investigation_method, root_cause, contributing_factors, evidence_data
-    #   Section 3: immediate_actions, long_term_actions, preventive_measures, follow_up, conclusion
-    # ─────────────────────────────────────────────────────────────────────────
-    elif rtype == "investigation":
-        if _sv_key(0):
-            section_title("INCIDENT INFORMATION")
-            for k, l in [
-                ("incident_date",      "Incident Date & Time"),
-                ("incident_location",  "Incident Location"),
-                ("equipment_involved", "Equipment / System Involved"),
-                ("reported_by",        "Reported By"),
-            ]:
-                info_row(l, data.get(k))
-            elements.append(Spacer(1, 0.3*cm))
-
-        if _sv_key(1):
-            section_title("PROBLEM DESCRIPTION")
-            for k, l in [
-                ("incident_description", "Incident Description"),
-                ("symptoms_observed",    "Symptoms Observed"),
-                ("impact_severity",      "Impact & Severity Level"),
-            ]:
-                text_block(l, data.get(k))
-
-        if _sv_key(2):
-            section_title("INVESTIGATION FINDINGS")
-            for k, l in [
-                ("investigation_method",  "Investigation Method Used"),
-                ("root_cause",            "Root Cause Analysis"),
-                ("contributing_factors",  "Contributing Factors"),
-                ("evidence_data",         "Evidence & Supporting Data"),
-            ]:
-                text_block(l, data.get(k))
-
-        if _sv_key(3):
-            section_title("CORRECTIVE ACTIONS")
-            for k, l in [
-                ("immediate_actions",   "Immediate Actions Taken"),
-                ("long_term_actions",   "Long-term Corrective Actions"),
-                ("preventive_measures", "Preventive Measures"),
-                ("follow_up",           "Follow-up Required"),
-                ("conclusion",          "Conclusion"),
-            ]:
-                text_block(l, data.get(k))
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # TROUBLESHOOTING REPORT
-    # Fields (synced with CreateReport.jsx TROUBLESHOOTING_FIELDS):
-    #   Section 0: equipment_system, location, problem_reported_by, problem_date, problem_description
-    #   Section 1: symptoms, initial_assessment, diagnostic_steps, tests_measurements, fault_found
-    #   Section 2: solution_applied, parts_replaced, verification_tests, result_after_fix, recommendations
-    # ─────────────────────────────────────────────────────────────────────────
-    elif rtype == "troubleshooting":
-        if _sv_key(0):
-            section_title("PROBLEM IDENTIFICATION")
-            for k, l in [
-                ("equipment_system",      "Equipment / System"),
-                ("location",              "Location"),
-                ("problem_reported_by",   "Problem Reported By"),
-                ("problem_date",          "Date Problem Occurred"),
-            ]:
-                info_row(l, data.get(k))
-            text_block("Problem Description", data.get("problem_description"))
-            elements.append(Spacer(1, 0.3*cm))
-
-        if _sv_key(1):
-            section_title("DIAGNOSTIC PROCESS")
-            for k, l in [
-                ("symptoms",           "Symptoms Observed"),
-                ("initial_assessment", "Initial Assessment"),
-                ("diagnostic_steps",   "Diagnostic Steps Taken"),
-                ("tests_measurements", "Tests & Measurements Performed"),
-                ("fault_found",        "Fault / Root Cause Found"),
-            ]:
-                text_block(l, data.get(k))
-
-        if _sv_key(2):
-            section_title("RESOLUTION")
-            for k, l in [
-                ("solution_applied",    "Solution Applied"),
-                ("parts_replaced",      "Parts / Components Replaced"),
-                ("verification_tests",  "Verification Tests After Fix"),
-                ("recommendations",     "Recommendations for Future"),
-            ]:
-                text_block(l, data.get(k))
-            info_row("Result After Fix", data.get("result_after_fix"))
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # SERVICE REPORT
-    # Fields (synced with CreateReport.jsx SERVICE_FIELDS):
-    #   Section 0: equipment_asset, asset_id, location, service_type, last_service_date
-    #   Section 1: work_description, activities_performed, parts_used, calibration_data, service_duration
-    #   Section 2: condition_before, issues_found, condition_after
-    #   Section 3: next_service_date, recommendations, client_notes
-    # ─────────────────────────────────────────────────────────────────────────
-    elif rtype == "service":
-        if _sv_key(0):
-            section_title("SERVICE INFORMATION")
-            for k, l in [
-                ("equipment_asset",   "Equipment / Asset Name"),
-                ("asset_id",          "Asset ID / Tag Number"),
-                ("location",          "Location"),
-                ("service_type",      "Service Type"),
-                ("last_service_date", "Last Service Date"),
-            ]:
-                info_row(l, data.get(k))
-            elements.append(Spacer(1, 0.3*cm))
-
-        if _sv_key(1):
-            section_title("SERVICE PERFORMED")
-            for k, l in [
-                ("work_description",     "Work Description"),
-                ("activities_performed", "Activities Performed (Detail)"),
-                ("parts_used",           "Parts / Materials Used"),
-                ("calibration_data",     "Calibration / Measurement Data"),
-                ("service_duration",     "Service Duration"),
-            ]:
-                text_block(l, data.get(k))
-
-        if _sv_key(2):
-            section_title("FINDINGS & OBSERVATIONS")
-            for k, l in [
-                ("condition_before", "Condition Before Service"),
-                ("issues_found",     "Issues / Anomalies Found"),
-                ("condition_after",  "Condition After Service"),
-            ]:
-                text_block(l, data.get(k))
-
-        if _sv_key(3):
-            section_title("SERVICE OUTCOME")
-            info_row("Next Recommended Service Date", data.get("next_service_date"))
-            for k, l in [
-                ("recommendations", "Recommendations"),
-                ("client_notes",    "Client Notes / Sign-off"),
-            ]:
-                text_block(l, data.get(k))
-
     else:
-        # Generic fallback for unknown report types
+        # Generic fallback
         if data:
-            section_title("REPORT DATA")
+            section_title("REPORT DATA" if lang == "en" else "DATA LAPORAN")
             for k, v in data.items():
-                if k == "_section_visibility": continue
+                if k.startswith("_"): continue
                 if v: text_block(k.replace("_", " ").title(), v)
 
-    # ─── IMAGES (before signatures) ────────────────────────────
+    # ─── IMAGES ──────────────────────────────────────────────────
     if report.images:
         elements.append(Spacer(1, 0.3*cm))
-        section_title("DOCUMENTATION & PHOTOS")
+        section_title(lbl["photos"])
         img_table_data = []
         row_imgs = []
         row_caps = []
@@ -680,7 +791,10 @@ def build_report_pdf(report_id):
 
             caption_text = getattr(img_obj, 'caption', '') or ""
             safe_caption = caption_text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-            row_caps.append(Paragraph(f"Foto {i+1}" + (f": {safe_caption}" if safe_caption else ""), caption_style))
+            row_caps.append(Paragraph(
+                f"{lbl['photo_prefix']} {i+1}" + (f": {safe_caption}" if safe_caption else ""),
+                caption_style
+            ))
 
             if len(row_imgs) == 2 or i == len(report.images) - 1:
                 while len(row_imgs) < 2: row_imgs.append(""); row_caps.append("")
@@ -700,7 +814,7 @@ def build_report_pdf(report_id):
             ]))
             elements.append(img_t)
 
-    # ─── SIGNATURE ─────────────────────────────────────────────
+    # ─── SIGNATURE ───────────────────────────────────────────────
     sig_col_w = 8.5*cm
     sig_label_style = ps('SigLabel', fontSize=9, fontName='Helvetica-Bold', textColor=primary_color, alignment=1)
     sig_sub_style   = ps('SigSub', fontSize=8, textColor=gray_color, alignment=1)
@@ -719,38 +833,61 @@ def build_report_pdf(report_id):
             eng_sig_cell.hAlign = 'CENTER'
         except: pass
 
-    sig_rows = [
-        [Paragraph("ENGINEER", sig_label_style), Paragraph("CLIENT / CUSTOMER", sig_label_style)],
-        [eng_sig_cell, Spacer(1, 1.5*cm)],
-        [HRFlowable(width=6*cm, thickness=0.5, color=border_gray), HRFlowable(width=6*cm, thickness=0.5, color=border_gray)],
-        [Paragraph(engineer.name if engineer else "Engineer", sig_sub_style), Paragraph("Name & Stamp", sig_sub_style)],
-    ]
-    if engineer:
-        sig_rows.append([
-            Paragraph(f"{engineer.position or ''}{' | ' + engineer.employee_id if engineer.employee_id else ''}", sig_sub_style),
-            Paragraph("Date: ________________", sig_sub_style)
-        ])
+    if include_client_sig:
+        # Two-column signature: Engineer | Client
+        sig_rows = [
+            [Paragraph(lbl["engineer"], sig_label_style), Paragraph(lbl["client"], sig_label_style)],
+            [eng_sig_cell, Spacer(1, 1.5*cm)],
+            [HRFlowable(width=6*cm, thickness=0.5, color=border_gray), HRFlowable(width=6*cm, thickness=0.5, color=border_gray)],
+            [Paragraph(engineer.name if engineer else "Engineer", sig_sub_style), Paragraph(lbl["name_stamp"], sig_sub_style)],
+        ]
+        if engineer:
+            sig_rows.append([
+                Paragraph(f"{engineer.position or ''}{' | ' + engineer.employee_id if engineer.employee_id else ''}", sig_sub_style),
+                Paragraph(lbl["date_line"], sig_sub_style)
+            ])
+        sig_col_widths = [sig_col_w, sig_col_w]
+        sig_t = Table(sig_rows, colWidths=sig_col_widths)
+        sig_t.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('PADDING', (0, 0), (-1, -1), 8),
+            ('BOX', (0, 0), (0, -1), 0.5, border_gray),
+            ('BOX', (1, 0), (1, -1), 0.5, border_gray),
+            ('BACKGROUND', (0, 0), (0, 0), accent_color),
+            ('BACKGROUND', (1, 0), (1, 0), accent_color),
+        ]))
+    else:
+        # Single-column: Engineer only, centred
+        full_w = 17*cm
+        sig_rows = [
+            [Paragraph(lbl["engineer"], sig_label_style)],
+            [eng_sig_cell],
+            [HRFlowable(width=8*cm, thickness=0.5, color=border_gray)],
+            [Paragraph(engineer.name if engineer else "Engineer", sig_sub_style)],
+        ]
+        if engineer:
+            sig_rows.append([
+                Paragraph(f"{engineer.position or ''}{' | ' + engineer.employee_id if engineer.employee_id else ''}", sig_sub_style)
+            ])
+        sig_t = Table(sig_rows, colWidths=[full_w])
+        sig_t.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('PADDING', (0, 0), (-1, -1), 8),
+            ('BOX', (0, 0), (-1, -1), 0.5, border_gray),
+            ('BACKGROUND', (0, 0), (-1, 0), accent_color),
+        ]))
 
-    sig_t = Table(sig_rows, colWidths=[sig_col_w, sig_col_w])
-    sig_t.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('PADDING', (0, 0), (-1, -1), 8),
-        ('BOX', (0, 0), (0, -1), 0.5, border_gray),
-        ('BOX', (1, 0), (1, -1), 0.5, border_gray),
-        ('BACKGROUND', (0, 0), (0, 0), accent_color),
-        ('BACKGROUND', (1, 0), (1, 0), accent_color),
-    ]))
-
-    # ─── DIGITAL DOCUMENT NOTICE ────────────────────────────────
+    # ─── DIGITAL DOCUMENT NOTICE ──────────────────────────────────
     gen_ts = datetime.now().strftime("%d %B %Y, %H:%M WIB")
     digital_notice = Table([[
         Paragraph(
             f'<font color="#6B7280" size="7.5">'
-            f'&#128274;  This document is digitally generated by the system of PT Flotech Controls Indonesia'
-            f'  \xb7  Issued: {gen_ts}'
-            f'  \xb7  Document number: {report.report_number or "-"}'
-            f'  \xb7  This digital document is valid without a wet signature.</font>',
+            f'&#128274;  {lbl["digital_notice"]}'
+            f'  \xb7  {lbl["issued"]}: {gen_ts}'
+            f'  \xb7  {lbl["doc_number"]}: {report.report_number or "-"}'
+            f'  \xb7  {lbl["valid_note"]}</font>',
             ps('DN', fontSize=7.5, textColor=colors.HexColor("#6B7280"), alignment=1, leading=11)
         )
     ]], colWidths=[17*cm])
@@ -763,10 +900,9 @@ def build_report_pdf(report_id):
         ('RIGHTPADDING',  (0, 0), (-1, -1), 10),
     ]))
 
-    # Wrap signature block + digital notice in KeepTogether
     sig_block = KeepTogether([
         Spacer(1, 0.6*cm),
-        Paragraph("▌ SIGNATURES", section_header_style),
+        Paragraph(f"▌ {lbl['signatures']}", section_header_style),
         HRFlowable(width="100%", thickness=0.5, color=border_gray),
         Spacer(1, 0.15*cm),
         sig_t,
@@ -775,7 +911,7 @@ def build_report_pdf(report_id):
     ])
     elements.append(sig_block)
 
-    # ─── FOOTER — Page X of Y via NumberedCanvas ────────────────
+    # ─── FOOTER ──────────────────────────────────────────────────
     class NumberedCanvas(rl_canvas.Canvas):
         def __init__(self, *args, **kwargs):
             rl_canvas.Canvas.__init__(self, *args, **kwargs)
@@ -808,8 +944,10 @@ def build_report_pdf(report_id):
             self.drawCentredString(pw/2, 1.7*cm, FLOTECH_INFO["telp"])
             self.drawCentredString(pw/2, 1.4*cm, FLOTECH_INFO["email"])
             self.setFillColor(colors.HexColor("#9CA3AF"))
+            page_label = lbl["page_of"].format(page=page_num, total=total)
+            gen_label = lbl["generated"]
             self.drawCentredString(pw/2, 1.0*cm,
-                f"Generated: {datetime.now().strftime('%d %B %Y %H:%M')}  \xb7  Page {page_num} of {total}")
+                f"{gen_label}: {datetime.now().strftime('%d %B %Y %H:%M')}  \xb7  {page_label}")
             self.restoreState()
 
     doc.build(elements, canvasmaker=NumberedCanvas)

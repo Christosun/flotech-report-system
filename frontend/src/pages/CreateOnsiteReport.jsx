@@ -28,6 +28,10 @@ import {
   Info,
   Trash2,
   CheckCircle2,
+  Globe,
+  UserCheck,
+  UserX,
+  Settings2,
 } from "lucide-react";
 
 /* ─── Signature Pad ────────────────────────────────────────── */
@@ -219,9 +223,7 @@ function RichTextEditor({ value, onChange }) {
 
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden">
-      {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 bg-gray-50 border-b border-gray-200">
-        {/* Font size */}
         <select
           value={fontSize}
           onChange={(e) => handleFontSize(e.target.value)}
@@ -244,7 +246,6 @@ function RichTextEditor({ value, onChange }) {
         <ToolBtn cmd="justifyRight" title="Align Right"><AlignRight size={14} /></ToolBtn>
         <ToolBtn cmd="justifyFull" title="Justify"><AlignJustify size={14} /></ToolBtn>
         <div className="w-px h-5 bg-gray-200 mx-1" />
-        {/* Font color */}
         <label
           title="Font Color"
           className="flex items-center gap-1 px-1.5 py-1.5 hover:bg-gray-100 rounded cursor-pointer"
@@ -258,7 +259,6 @@ function RichTextEditor({ value, onChange }) {
           />
         </label>
         <div className="w-px h-5 bg-gray-200 mx-1" />
-        {/* Image upload */}
         <button
           type="button"
           title="Insert Image"
@@ -269,7 +269,6 @@ function RichTextEditor({ value, onChange }) {
         </button>
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
       </div>
-      {/* Editor area */}
       <div
         ref={editorRef}
         contentEditable
@@ -356,6 +355,64 @@ function SectionHeader({ number, icon: Icon, title }) {
   );
 }
 
+/* ─── Language Option Card ───────────────────────────────────── */
+function LangCard({ value, selected, onClick, flag, label, sublabel }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(value)}
+      className={`flex-1 relative flex flex-col items-center gap-2 px-4 py-4 rounded-xl border-2 transition-all duration-200 cursor-pointer
+        ${selected
+          ? "border-[#0B3D91] bg-[#EEF3FB] shadow-md"
+          : "border-gray-200 bg-white hover:border-[#0B3D91]/40 hover:bg-gray-50"
+        }`}
+    >
+      {selected && (
+        <span className="absolute top-2 right-2 w-4 h-4 bg-[#0B3D91] rounded-full flex items-center justify-center">
+          <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </span>
+      )}
+      <span className="text-2xl leading-none">{flag}</span>
+      <div className="text-center">
+        <p className={`text-sm font-bold ${selected ? "text-[#0B3D91]" : "text-gray-700"}`}>{label}</p>
+        <p className="text-[10px] text-gray-400 mt-0.5">{sublabel}</p>
+      </div>
+    </button>
+  );
+}
+
+/* ─── Signature Option Card ──────────────────────────────────── */
+function SigOptionCard({ value, selected, onClick, icon: Icon, label, sublabel, colorClass }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(value)}
+      className={`flex-1 relative flex flex-col items-center gap-2 px-4 py-4 rounded-xl border-2 transition-all duration-200 cursor-pointer
+        ${selected
+          ? `border-[#0B3D91] bg-[#EEF3FB] shadow-md`
+          : "border-gray-200 bg-white hover:border-[#0B3D91]/40 hover:bg-gray-50"
+        }`}
+    >
+      {selected && (
+        <span className="absolute top-2 right-2 w-4 h-4 bg-[#0B3D91] rounded-full flex items-center justify-center">
+          <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </span>
+      )}
+      <span className={`w-10 h-10 rounded-xl flex items-center justify-center ${selected ? "bg-[#0B3D91]" : "bg-gray-100"}`}>
+        <Icon size={20} className={selected ? "text-white" : "text-gray-500"} />
+      </span>
+      <div className="text-center">
+        <p className={`text-sm font-bold ${selected ? "text-[#0B3D91]" : "text-gray-700"}`}>{label}</p>
+        <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">{sublabel}</p>
+      </div>
+    </button>
+  );
+}
+
 /* ─── EMPTY FORM ─────────────────────────────────────────────── */
 const EMPTY_FORM = {
   report_number: "",
@@ -370,6 +427,8 @@ const EMPTY_FORM = {
   job_description: "",
   equipment_items: [{ description: "", model: "", serial_number: "" }],
   customer_signature: "",
+  pdf_language: "en",
+  include_customer_signature: true,
 };
 
 /* ─── MAIN COMPONENT ─────────────────────────────────────────── */
@@ -474,6 +533,89 @@ export default function CreateOnsiteReport() {
       </div>
 
       <div className="space-y-4">
+
+        {/* ── PDF Settings (Language + Signature) ─────────────── */}
+        <div className="bg-gradient-to-br from-[#0B3D91]/5 to-[#1E5CC6]/5 rounded-2xl border border-[#0B3D91]/15 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-5">
+            <div className="w-7 h-7 bg-[#0B3D91] rounded-lg flex items-center justify-center flex-shrink-0">
+              <Settings2 size={14} className="text-white" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-[#0B3D91]">PDF Report Settings</h3>
+              <p className="text-[10px] text-gray-400 mt-0.5">Configure language and signature preferences for the generated PDF</p>
+            </div>
+          </div>
+
+          {/* Language */}
+          <div className="mb-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Globe size={13} className="text-[#0B3D91]" />
+              <p className="text-xs font-bold text-gray-600 uppercase tracking-wide">Report Language</p>
+            </div>
+            <div className="flex gap-3">
+              <LangCard
+                value="en"
+                selected={form.pdf_language === "en"}
+                onClick={(v) => set("pdf_language", v)}
+                flag="🇬🇧"
+                label="English"
+                sublabel="All labels in English"
+              />
+              <LangCard
+                value="id"
+                selected={form.pdf_language === "id"}
+                onClick={(v) => set("pdf_language", v)}
+                flag="🇮🇩"
+                label="Bahasa Indonesia"
+                sublabel="Semua label dalam Bahasa"
+              />
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-[#0B3D91]/10 mb-5" />
+
+          {/* Customer Signature */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <PenLine size={13} className="text-[#0B3D91]" />
+              <p className="text-xs font-bold text-gray-600 uppercase tracking-wide">Customer Signature on PDF</p>
+            </div>
+            <div className="flex gap-3">
+              <SigOptionCard
+                value={true}
+                selected={form.include_customer_signature === true}
+                onClick={(v) => set("include_customer_signature", v)}
+                icon={UserCheck}
+                label="Include Signature"
+                sublabel="Two signature boxes: Engineer + Customer"
+              />
+              <SigOptionCard
+                value={false}
+                selected={form.include_customer_signature === false}
+                onClick={(v) => set("include_customer_signature", v)}
+                icon={UserX}
+                label="Reported By Only"
+                sublabel="Elegant 'Reported by' section, engineer only"
+              />
+            </div>
+
+            {/* Preview hint */}
+            <div className={`mt-3 rounded-xl px-4 py-3 flex items-start gap-2.5 transition-all
+              ${form.include_customer_signature
+                ? "bg-blue-50 border border-blue-100"
+                : "bg-amber-50 border border-amber-100"}`}>
+              <Info size={14} className={`flex-shrink-0 mt-0.5 ${form.include_customer_signature ? "text-blue-500" : "text-amber-500"}`} />
+              <p className={`text-xs leading-relaxed ${form.include_customer_signature ? "text-blue-700" : "text-amber-700"}`}>
+                {form.include_customer_signature
+                  ? <><strong>With customer signature:</strong> The PDF will show two signature boxes — Engineer on the left, Customer/Client on the right. Signature captured below will appear in the PDF.</>
+                  : <><strong>Reported by only:</strong> The PDF will display an elegant <em>"Reported by"</em> section with the engineer's name, position, and signature — no customer signature box.</>
+                }
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* 1 — Report Info */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <SectionHeader number="1" icon={FileText} title="Report Information" />
@@ -513,7 +655,6 @@ export default function CreateOnsiteReport() {
               <p className="text-xs text-gray-400 mt-1">Leave blank if only 1 day</p>
             </div>
           </div>
-          {/* Date range preview */}
           {form.visit_date_from &&
             form.visit_date_to &&
             form.visit_date_to !== form.visit_date_from && (
@@ -658,22 +799,58 @@ export default function CreateOnsiteReport() {
           </div>
         </div>
 
-        {/* 6 — Signature */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <SectionHeader number="6" icon={PenLine} title="Customer Signature" />
-          <SignaturePad
-            label="Customer/client representative signature (optional)"
-            value={form.customer_signature}
-            onChange={(v) => set("customer_signature", v)}
-          />
-          <div className="mt-3 bg-blue-50 rounded-xl px-4 py-3 flex items-start gap-2">
-            <Info size={14} className="text-blue-600 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-blue-700">
-              <strong>Engineer signature</strong> is taken automatically from the data registered in
-              the Engineers menu.
-            </p>
+        {/* 6 — Signature (only shown if include_customer_signature = true) */}
+        {form.include_customer_signature && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <SectionHeader number="6" icon={PenLine} title="Customer Signature" />
+            <SignaturePad
+              label="Customer/client representative signature (optional)"
+              value={form.customer_signature}
+              onChange={(v) => set("customer_signature", v)}
+            />
+            <div className="mt-3 bg-blue-50 rounded-xl px-4 py-3 flex items-start gap-2">
+              <Info size={14} className="text-blue-600 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-blue-700">
+                <strong>Engineer signature</strong> is taken automatically from the data registered in
+                the Engineers menu.
+              </p>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* 6/7 — Reported By preview (only if include_customer_signature = false) */}
+        {!form.include_customer_signature && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <SectionHeader number="6" icon={PenLine} title="Reported By" />
+            <div className="bg-gradient-to-br from-[#0B3D91]/5 to-[#1E5CC6]/5 border border-[#0B3D91]/15 rounded-xl p-5 flex items-center gap-4">
+              <div className="w-12 h-12 bg-[#0B3D91] rounded-xl flex items-center justify-center flex-shrink-0">
+                <User size={22} className="text-white" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 uppercase tracking-wide font-bold mb-1">Reported by</p>
+                {form.engineer_id ? (
+                  <>
+                    <p className="text-sm font-bold text-gray-800">
+                      {engineers.find(e => String(e.id) === String(form.engineer_id))?.name || "—"}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {engineers.find(e => String(e.id) === String(form.engineer_id))?.position || ""}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-gray-400 italic">Select an engineer above to preview</p>
+                )}
+              </div>
+            </div>
+            <div className="mt-3 bg-amber-50 rounded-xl px-4 py-3 flex items-start gap-2">
+              <Info size={14} className="text-amber-600 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-amber-700">
+                The PDF will show an elegant <strong>"Reported by"</strong> section with the engineer's name,
+                position, and signature — no customer signature box will appear.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Submit */}

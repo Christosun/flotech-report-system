@@ -12,7 +12,6 @@ import {
   X,
   Check,
   Camera,
-  ChevronRight,
   Building2,
   Wrench,
   ClipboardList,
@@ -20,7 +19,6 @@ import {
   PenLine,
   FileText,
   Plus,
-  AlertTriangle,
   Loader2,
   Bold,
   Italic,
@@ -37,11 +35,11 @@ import {
   ZapIcon,
   Info,
   User,
-  Phone,
-  MapPin,
-  Hash,
   CalendarDays,
-  Signature,
+  Globe,
+  UserCheck,
+  UserX,
+  Settings2,
 } from "lucide-react";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
@@ -288,7 +286,7 @@ function RichTextEditor({ value, onChange }) {
   );
 }
 
-/* ─── Equipment Item (view) ─────────────────────────────────── */
+/* ─── Equipment Card (view) ─────────────────────────────────── */
 function EquipmentCard({ item, index }) {
   return (
     <div className="border border-gray-100 rounded-xl p-3 bg-gray-50 mb-2 last:mb-0">
@@ -343,6 +341,64 @@ function EquipmentEditItem({ item, index, onChange, onRemove, canRemove }) {
   );
 }
 
+/* ─── Language Option Card ───────────────────────────────────── */
+function LangCard({ value, selected, onClick, flag, label, sublabel }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(value)}
+      className={`flex-1 relative flex flex-col items-center gap-2 px-4 py-4 rounded-xl border-2 transition-all duration-200 cursor-pointer
+        ${selected
+          ? "border-[#0B3D91] bg-[#EEF3FB] shadow-md"
+          : "border-gray-200 bg-white hover:border-[#0B3D91]/40 hover:bg-gray-50"
+        }`}
+    >
+      {selected && (
+        <span className="absolute top-2 right-2 w-4 h-4 bg-[#0B3D91] rounded-full flex items-center justify-center">
+          <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </span>
+      )}
+      <span className="text-2xl leading-none">{flag}</span>
+      <div className="text-center">
+        <p className={`text-sm font-bold ${selected ? "text-[#0B3D91]" : "text-gray-700"}`}>{label}</p>
+        <p className="text-[10px] text-gray-400 mt-0.5">{sublabel}</p>
+      </div>
+    </button>
+  );
+}
+
+/* ─── Signature Option Card ──────────────────────────────────── */
+function SigOptionCard({ value, selected, onClick, icon: Icon, label, sublabel }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(value)}
+      className={`flex-1 relative flex flex-col items-center gap-2 px-4 py-4 rounded-xl border-2 transition-all duration-200 cursor-pointer
+        ${selected
+          ? "border-[#0B3D91] bg-[#EEF3FB] shadow-md"
+          : "border-gray-200 bg-white hover:border-[#0B3D91]/40 hover:bg-gray-50"
+        }`}
+    >
+      {selected && (
+        <span className="absolute top-2 right-2 w-4 h-4 bg-[#0B3D91] rounded-full flex items-center justify-center">
+          <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </span>
+      )}
+      <span className={`w-10 h-10 rounded-xl flex items-center justify-center ${selected ? "bg-[#0B3D91]" : "bg-gray-100"}`}>
+        <Icon size={20} className={selected ? "text-white" : "text-gray-500"} />
+      </span>
+      <div className="text-center">
+        <p className={`text-sm font-bold ${selected ? "text-[#0B3D91]" : "text-gray-700"}`}>{label}</p>
+        <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">{sublabel}</p>
+      </div>
+    </button>
+  );
+}
+
 /* ─── Compression Status ─────────────────────────────────────── */
 function CompressionStatus({ items }) {
   if (!items.length) return null;
@@ -350,7 +406,6 @@ function CompressionStatus({ items }) {
   const total   = items.length;
   const pct     = Math.round((done / total) * 100);
   const savings = items.reduce((acc, i) => acc + (i.savedBytes || 0), 0);
-
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between text-xs mb-0.5">
@@ -435,7 +490,6 @@ function ImageCard({ img, onDelete, onCaptionSave }) {
               e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect width='80' height='80' fill='%23f3f4f6'/%3E%3Ctext x='40' y='44' text-anchor='middle' font-size='11' fill='%239ca3af'%3ENo image%3C/text%3E%3C/svg%3E";
             }}
           />
-          {/* Hover overlay with actions */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-end justify-between p-2">
             <button onClick={() => setEditingCaption(true)} title="Edit caption"
               className="w-7 h-7 bg-white/90 text-[#0B3D91] rounded-lg flex items-center justify-center hover:bg-white transition-colors shadow">
@@ -447,7 +501,6 @@ function ImageCard({ img, onDelete, onCaptionSave }) {
             </button>
           </div>
         </div>
-        {/* Caption area */}
         <div className="p-2">
           {editingCaption ? (
             <div className="flex flex-col gap-1.5">
@@ -532,20 +585,22 @@ export default function OnsiteReportDetail() {
 
   const openEdit = () => {
     setForm({
-      report_number:      report.report_number || "",
-      visit_date_from:    report.visit_date_from || report.visit_date || "",
-      visit_date_to:      report.visit_date_to || "",
-      client_name:        report.client_name || "",
-      client_company:     report.client_company || "",
-      client_address:     report.client_address || "",
-      site_location:      report.site_location || "",
-      contact_person:     report.contact_person || "",
-      contact_phone:      report.contact_phone || "",
-      engineer_id:        report.engineer_id || "",
-      job_description:    report.job_description || "",
-      equipment_items:    getEquipmentItems(report),
-      customer_signature: report.customer_signature || "",
-      status:             report.status || "draft",
+      report_number:               report.report_number || "",
+      visit_date_from:             report.visit_date_from || report.visit_date || "",
+      visit_date_to:               report.visit_date_to || "",
+      client_name:                 report.client_name || "",
+      client_company:              report.client_company || "",
+      client_address:              report.client_address || "",
+      site_location:               report.site_location || "",
+      contact_person:              report.contact_person || "",
+      contact_phone:               report.contact_phone || "",
+      engineer_id:                 report.engineer_id || "",
+      job_description:             report.job_description || "",
+      equipment_items:             getEquipmentItems(report),
+      customer_signature:          report.customer_signature || "",
+      status:                      report.status || "draft",
+      pdf_language:                report.pdf_language || "en",
+      include_customer_signature:  report.include_customer_signature !== false,
     });
     setEditMode(true);
   };
@@ -700,6 +755,10 @@ export default function OnsiteReportDetail() {
   const equipmentItems = getEquipmentItems(report);
   const reportImages   = report.images || [];
 
+  // PDF settings from saved report
+  const pdfLang    = report.pdf_language || "en";
+  const inclSig    = report.include_customer_signature !== false;
+
   const InfoRow = ({ label, value }) => value ? (
     <div className="flex gap-3 py-2 border-b border-gray-50 last:border-0">
       <span className="text-xs text-gray-400 w-36 flex-shrink-0 pt-0.5">{label}</span>
@@ -727,13 +786,8 @@ export default function OnsiteReportDetail() {
         />
       )}
 
-      {/* ══════════════════════════════════════════════════════════
-          HEADER — FIXED FOR MOBILE RESPONSIVENESS
-          Tombol action dipindah ke baris terpisah di bawah judul,
-          sehingga tidak terpotong di layar sempit.
-      ══════════════════════════════════════════════════════════ */}
+      {/* ── HEADER ─────────────────────────────────────────────── */}
       <div className="mb-5">
-        {/* Back button */}
         <button
           onClick={() => navigate("/onsite")}
           className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-[#0B3D91] mb-2 transition-colors"
@@ -741,10 +795,9 @@ export default function OnsiteReportDetail() {
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
 
-        {/* Title row */}
         <h1 className="text-2xl font-bold text-gray-800">{report.report_number}</h1>
 
-        {/* Badges */}
+        {/* Badges row */}
         <div className="flex items-center gap-2 mt-1 mb-3 flex-wrap">
           <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${sc.bg} ${sc.text}`}>
             {sc.label}
@@ -765,45 +818,43 @@ export default function OnsiteReportDetail() {
               <Camera className="w-3 h-3" /> {reportImages.length} photo{reportImages.length > 1 ? "s" : ""}
             </span>
           )}
+          {/* PDF Settings badges */}
+          <span className="text-xs bg-[#EEF3FB] text-[#0B3D91] px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+            <Globe className="w-3 h-3" />
+            {pdfLang === "en" ? "🇬🇧 EN" : "🇮🇩 ID"}
+          </span>
+          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold flex items-center gap-1
+            ${inclSig ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+            {inclSig ? <UserCheck className="w-3 h-3" /> : <UserX className="w-3 h-3" />}
+            {inclSig ? "Dual Sign" : "Reported By"}
+          </span>
         </div>
 
-        {/* ── Action Buttons — full width row on mobile, right-aligned on desktop ── */}
         {!editMode && (
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Delete — icon only on smallest screens, icon+text on sm+ */}
             <button
               onClick={() => setDeleteDialog(true)}
               className="flex items-center gap-1.5 px-3 py-2 text-red-500 border border-red-200 rounded-xl text-xs font-semibold hover:bg-red-50 transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span className="hidden xs:inline sm:inline">Delete</span>
+              <span className="hidden sm:inline">Delete</span>
             </button>
-
-            {/* Preview */}
             <button
               onClick={previewPDF}
               disabled={previewLoading}
               className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-xs font-semibold hover:bg-blue-100 transition-colors disabled:opacity-60"
             >
-              {previewLoading
-                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                : <Eye className="w-3.5 h-3.5" />}
+              {previewLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
               <span>{previewLoading ? "Loading…" : "Preview"}</span>
             </button>
-
-            {/* PDF Download */}
             <button
               onClick={downloadPDF}
               disabled={pdfLoading}
               className="flex items-center gap-1.5 px-3 py-2 bg-[#0B3D91] text-white rounded-xl text-xs font-semibold hover:bg-[#1E5CC6] transition-colors disabled:opacity-60"
             >
-              {pdfLoading
-                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                : <Download className="w-3.5 h-3.5" />}
+              {pdfLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
               <span>{pdfLoading ? "Generating…" : "PDF"}</span>
             </button>
-
-            {/* Edit */}
             <button
               onClick={openEdit}
               className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-xs font-semibold text-amber-700 hover:bg-amber-100 transition-colors"
@@ -814,11 +865,75 @@ export default function OnsiteReportDetail() {
           </div>
         )}
       </div>
-      {/* ══════════════════════════════════════════════════════════ */}
 
       {/* ── EDIT MODE ─────────────────────────────────────────── */}
       {editMode && (
         <div className="space-y-4 mb-4">
+
+          {/* PDF Settings */}
+          <div className="bg-gradient-to-br from-[#0B3D91]/5 to-[#1E5CC6]/5 rounded-2xl border border-[#0B3D91]/15 shadow-sm p-5">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 bg-[#0B3D91] rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Settings2 className="w-3.5 h-3.5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-[#0B3D91]">PDF Report Settings</h3>
+                  <p className="text-[10px] text-gray-400 mt-0.5">Language and signature preferences for the generated PDF</p>
+                </div>
+              </div>
+              <button onClick={() => setEditMode(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Language */}
+            <div className="mb-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Globe className="w-3.5 h-3.5 text-[#0B3D91]" />
+                <p className="text-xs font-bold text-gray-600 uppercase tracking-wide">Report Language</p>
+              </div>
+              <div className="flex gap-3">
+                <LangCard value="en" selected={form.pdf_language === "en"}
+                  onClick={v => setForm(f => ({ ...f, pdf_language: v }))}
+                  flag="🇬🇧" label="English" sublabel="All labels in English" />
+                <LangCard value="id" selected={form.pdf_language === "id"}
+                  onClick={v => setForm(f => ({ ...f, pdf_language: v }))}
+                  flag="🇮🇩" label="Bahasa Indonesia" sublabel="Semua label dalam Bahasa" />
+              </div>
+            </div>
+
+            <div className="border-t border-[#0B3D91]/10 mb-5" />
+
+            {/* Signature option */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <PenLine className="w-3.5 h-3.5 text-[#0B3D91]" />
+                <p className="text-xs font-bold text-gray-600 uppercase tracking-wide">Customer Signature on PDF</p>
+              </div>
+              <div className="flex gap-3">
+                <SigOptionCard value={true} selected={form.include_customer_signature === true}
+                  onClick={v => setForm(f => ({ ...f, include_customer_signature: v }))}
+                  icon={UserCheck} label="Include Signature" sublabel="Two signature boxes: Engineer + Customer" />
+                <SigOptionCard value={false} selected={form.include_customer_signature === false}
+                  onClick={v => setForm(f => ({ ...f, include_customer_signature: v }))}
+                  icon={UserX} label="Reported By Only" sublabel="Elegant 'Reported by' section, engineer only" />
+              </div>
+              <div className={`mt-3 rounded-xl px-4 py-3 flex items-start gap-2.5 transition-all
+                ${form.include_customer_signature
+                  ? "bg-blue-50 border border-blue-100"
+                  : "bg-amber-50 border border-amber-100"}`}>
+                <Info className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 ${form.include_customer_signature ? "text-blue-500" : "text-amber-500"}`} />
+                <p className={`text-xs leading-relaxed ${form.include_customer_signature ? "text-blue-700" : "text-amber-700"}`}>
+                  {form.include_customer_signature
+                    ? <><strong>With customer signature:</strong> The PDF will show two signature boxes — Engineer on the left, Customer/Client on the right.</>
+                    : <><strong>Reported by only:</strong> The PDF will display an elegant <em>"Reported by"</em> section with the engineer's name, position, and signature — no customer signature box.</>
+                  }
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Report Info */}
           <div className="bg-white rounded-2xl border border-amber-200 shadow-sm p-5">
             <div className="flex items-center justify-between mb-4">
@@ -826,9 +941,6 @@ export default function OnsiteReportDetail() {
                 <span className="w-1.5 h-4 bg-amber-400 rounded-full" />
                 <Pencil className="w-3.5 h-3.5" /> Edit Mode — Report Information
               </h4>
-              <button onClick={() => setEditMode(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
@@ -930,14 +1042,45 @@ export default function OnsiteReportDetail() {
             <RichTextEditor value={form.job_description} onChange={v => setForm(f => ({ ...f, job_description: v }))} />
           </div>
 
-          {/* Signature */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3 flex items-center gap-2">
-              <PenLine className="w-3.5 h-3.5" /> Customer Signature
-            </h4>
-            <SignaturePad label="Customer Signature" value={form.customer_signature}
-              onChange={v => setForm({ ...form, customer_signature: v })} />
-          </div>
+          {/* Customer Signature (only if include_customer_signature) */}
+          {form.include_customer_signature && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3 flex items-center gap-2">
+                <PenLine className="w-3.5 h-3.5" /> Customer Signature
+              </h4>
+              <SignaturePad label="Customer Signature" value={form.customer_signature}
+                onChange={v => setForm({ ...form, customer_signature: v })} />
+            </div>
+          )}
+
+          {/* Reported By preview (when no customer sig) */}
+          {!form.include_customer_signature && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <h4 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-3 flex items-center gap-2">
+                <User className="w-3.5 h-3.5" /> Reported By Preview
+              </h4>
+              <div className="bg-gradient-to-br from-[#0B3D91]/5 to-[#1E5CC6]/5 border border-[#0B3D91]/15 rounded-xl p-5 flex items-center gap-4">
+                <div className="w-12 h-12 bg-[#0B3D91] rounded-xl flex items-center justify-center flex-shrink-0">
+                  <User className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 uppercase tracking-wide font-bold mb-1">Reported by</p>
+                  {form.engineer_id ? (
+                    <>
+                      <p className="text-sm font-bold text-gray-800">
+                        {engineers.find(e => String(e.id) === String(form.engineer_id))?.name || "—"}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {engineers.find(e => String(e.id) === String(form.engineer_id))?.position || ""}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-400 italic">No engineer selected</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-3 pt-2">
             <button onClick={() => setEditMode(false)}
@@ -957,6 +1100,33 @@ export default function OnsiteReportDetail() {
       {/* ── VIEW MODE ──────────────────────────────────────────── */}
       {!editMode && (
         <>
+          {/* PDF Settings summary card */}
+          <div className="bg-gradient-to-br from-[#0B3D91]/4 to-[#1E5CC6]/4 rounded-2xl border border-[#0B3D91]/12 p-4 mb-4 flex items-center gap-4 flex-wrap">
+            <div className="w-8 h-8 bg-[#0B3D91] rounded-lg flex items-center justify-center flex-shrink-0">
+              <Settings2 className="w-4 h-4 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-[#0B3D91] uppercase tracking-wide">PDF Settings</p>
+              <div className="flex items-center gap-3 mt-1 flex-wrap">
+                <span className="text-xs text-gray-600 flex items-center gap-1">
+                  <Globe className="w-3 h-3 text-[#0B3D91]" />
+                  Language: <strong className="ml-1">{pdfLang === "en" ? "🇬🇧 English" : "🇮🇩 Bahasa Indonesia"}</strong>
+                </span>
+                <span className="text-xs text-gray-300">·</span>
+                <span className="text-xs text-gray-600 flex items-center gap-1">
+                  {inclSig
+                    ? <><UserCheck className="w-3 h-3 text-emerald-600" /> Signature: <strong className="ml-1 text-emerald-700">Engineer + Customer</strong></>
+                    : <><UserX className="w-3 h-3 text-amber-600" /> Signature: <strong className="ml-1 text-amber-700">Reported By (Engineer Only)</strong></>
+                  }
+                </span>
+              </div>
+            </div>
+            <button onClick={openEdit}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#0B3D91]/20 rounded-lg text-xs font-semibold text-[#0B3D91] hover:bg-[#EEF3FB] transition-colors">
+              <Pencil className="w-3 h-3" /> Change
+            </button>
+          </div>
+
           {/* Info cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
@@ -991,14 +1161,14 @@ export default function OnsiteReportDetail() {
                 <ClipboardList className="w-3.5 h-3.5" /> Job Details
               </h3>
               <div
-                className="text-sm text-gray-700 leading-relaxed rich-render"
+                className="text-sm text-gray-700 leading-relaxed"
                 style={{ lineHeight: "1.7" }}
                 dangerouslySetInnerHTML={{ __html: report.job_description }}
               />
             </div>
           )}
 
-          {/* ── DOCUMENTATION & PHOTOS ─────────────────────────── */}
+          {/* Photos */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider flex items-center gap-2">
@@ -1017,7 +1187,6 @@ export default function OnsiteReportDetail() {
               </div>
             </div>
 
-            {/* Tips */}
             {reportImages.length > 0 && (
               <div className="mb-4 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 flex items-start gap-2">
                 <Info className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
@@ -1027,7 +1196,6 @@ export default function OnsiteReportDetail() {
               </div>
             )}
 
-            {/* Drop zone */}
             <div
               onDragOver={e => { e.preventDefault(); setDragActive(true); }}
               onDragLeave={() => setDragActive(false)}
@@ -1057,25 +1225,13 @@ export default function OnsiteReportDetail() {
               )}
             </div>
 
-            <input
-              id="onsiteFileInput"
-              type="file"
-              multiple
-              accept="image/*"
-              className="hidden"
-              onChange={e => handleFiles(e.target.files)}
-            />
+            <input id="onsiteFileInput" type="file" multiple accept="image/*" className="hidden"
+              onChange={e => handleFiles(e.target.files)} />
 
-            {/* Photo grid */}
             {reportImages.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {reportImages.map(img => (
-                  <ImageCard
-                    key={img.id}
-                    img={img}
-                    onDelete={deleteImage}
-                    onCaptionSave={saveCaption}
-                  />
+                  <ImageCard key={img.id} img={img} onDelete={deleteImage} onCaptionSave={saveCaption} />
                 ))}
               </div>
             ) : (
@@ -1085,73 +1241,90 @@ export default function OnsiteReportDetail() {
             )}
           </div>
 
-          {/* Signatures */}
+          {/* Signatures section */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
             <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4 flex items-center gap-2">
-              <PenLine className="w-3.5 h-3.5" /> Signatures
+              <PenLine className="w-3.5 h-3.5" />
+              {inclSig ? "Signatures" : "Reported By"}
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="text-center">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Engineer</p>
-                {report.engineer_signature ? (
-                  <div className="border border-gray-200 rounded-xl bg-gray-50 p-3">
-                    <img src={report.engineer_signature} alt="Engineer Signature" className="h-16 mx-auto object-contain" />
-                  </div>
-                ) : (
-                  <div className="border-2 border-dashed border-gray-200 rounded-xl py-6 text-gray-300 text-sm flex flex-col items-center gap-1">
-                    <PenLine className="w-5 h-5" />
-                    <span className="text-xs">No signature yet</span>
-                  </div>
-                )}
-                <p className="text-xs text-gray-500 mt-2 font-semibold">{report.engineer_name || "—"}</p>
-                {report.engineer_position && <p className="text-xs text-gray-400">{report.engineer_position}</p>}
+
+            {inclSig ? (
+              /* Dual signature view */
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="text-center">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Engineer</p>
+                  {report.engineer_signature ? (
+                    <div className="border border-gray-200 rounded-xl bg-gray-50 p-3">
+                      <img src={report.engineer_signature} alt="Engineer Signature" className="h-16 mx-auto object-contain" />
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-gray-200 rounded-xl py-6 text-gray-300 flex flex-col items-center gap-1">
+                      <PenLine className="w-5 h-5" />
+                      <span className="text-xs">No signature yet</span>
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-500 mt-2 font-semibold">{report.engineer_name || "—"}</p>
+                  {report.engineer_position && <p className="text-xs text-gray-400">{report.engineer_position}</p>}
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Customer</p>
+                  {report.customer_signature ? (
+                    <div className="border border-gray-200 rounded-xl bg-gray-50 p-3">
+                      <img src={report.customer_signature} alt="Customer Signature" className="h-16 mx-auto object-contain" />
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-gray-200 rounded-xl py-6 text-center flex flex-col items-center gap-1">
+                      <PenLine className="w-5 h-5 text-gray-300" />
+                      <p className="text-gray-300 text-xs">No signature yet</p>
+                      <button onClick={openEdit} className="mt-1 text-xs text-[#0B3D91] hover:underline flex items-center gap-1">
+                        <Plus className="w-3 h-3" /> Add Signature
+                      </button>
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-500 mt-2 font-semibold">{report.client_name || "Customer"}</p>
+                  {report.client_company && <p className="text-xs text-gray-400">{report.client_company}</p>}
+                </div>
               </div>
-              <div className="text-center">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Customer</p>
-                {report.customer_signature ? (
-                  <div className="border border-gray-200 rounded-xl bg-gray-50 p-3">
-                    <img src={report.customer_signature} alt="Customer Signature" className="h-16 mx-auto object-contain" />
-                  </div>
-                ) : (
-                  <div className="border-2 border-dashed border-gray-200 rounded-xl py-6 text-center flex flex-col items-center gap-1">
-                    <PenLine className="w-5 h-5 text-gray-300" />
-                    <p className="text-gray-300 text-xs">No signature yet</p>
-                    <button onClick={openEdit} className="mt-1 text-xs text-[#0B3D91] hover:underline flex items-center gap-1">
-                      <Plus className="w-3 h-3" /> Add Signature
-                    </button>
-                  </div>
-                )}
-                <p className="text-xs text-gray-500 mt-2 font-semibold">{report.client_name || "Customer"}</p>
-                {report.client_company && <p className="text-xs text-gray-400">{report.client_company}</p>}
+            ) : (
+              /* Reported By view */
+              <div className="flex items-center gap-5 p-2">
+                <div className="w-16 h-16 bg-gradient-to-br from-[#0B3D91] to-[#1E5CC6] rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-200">
+                  <User className="w-8 h-8 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Reported by</p>
+                  <p className="text-lg font-black text-gray-900 leading-tight">{report.engineer_name || "—"}</p>
+                  {report.engineer_position && (
+                    <p className="text-sm text-[#0B3D91] font-semibold mt-0.5">{report.engineer_position}</p>
+                  )}
+                  {report.engineer_signature && (
+                    <div className="mt-3">
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Signature</p>
+                      <img src={report.engineer_signature} alt="Engineer Signature" className="h-12 object-contain" />
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </>
       )}
 
-      {/* ── Bottom action bar ──────────────────────────────────── */}
+      {/* Bottom action bar */}
       {!editMode && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-wrap gap-3 justify-between items-center">
-          <button
-            onClick={() => setDeleteDialog(true)}
-            className="flex items-center gap-2 px-4 py-2 text-red-500 border border-red-200 rounded-xl text-sm font-semibold hover:bg-red-50 transition-colors"
-          >
+          <button onClick={() => setDeleteDialog(true)}
+            className="flex items-center gap-2 px-4 py-2 text-red-500 border border-red-200 rounded-xl text-sm font-semibold hover:bg-red-50 transition-colors">
             <Trash2 className="w-4 h-4" /> Delete Report
           </button>
           <div className="flex gap-2">
-            <button
-              onClick={previewPDF}
-              disabled={previewLoading}
-              className="flex items-center gap-2 px-5 py-2.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-sm font-semibold hover:bg-blue-100 transition-colors disabled:opacity-60"
-            >
+            <button onClick={previewPDF} disabled={previewLoading}
+              className="flex items-center gap-2 px-5 py-2.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-sm font-semibold hover:bg-blue-100 transition-colors disabled:opacity-60">
               {previewLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
               {previewLoading ? "Loading…" : "Preview PDF"}
             </button>
-            <button
-              onClick={downloadPDF}
-              disabled={pdfLoading}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] transition-colors disabled:opacity-60"
-            >
+            <button onClick={downloadPDF} disabled={pdfLoading}
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#0B3D91] text-white rounded-xl text-sm font-semibold hover:bg-[#1E5CC6] transition-colors disabled:opacity-60">
               {pdfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               {pdfLoading ? "Generating…" : "Download PDF"}
             </button>

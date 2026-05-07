@@ -15,7 +15,15 @@ import {
   ChevronLeft,
   Loader2,
   ClipboardCheck,
+  Globe,
+  PenLine,
 } from "lucide-react";
+
+// ─── Language Templates ──────────────────────────────────────────────────────
+const LANG_OPTIONS = [
+  { id: "en", label: "English", flag: "🇬🇧" },
+  { id: "id", label: "Bahasa Indonesia", flag: "🇮🇩" },
+];
 
 const REPORT_TYPES = [
   {
@@ -57,10 +65,11 @@ const REPORT_TYPES = [
     activeColor: "bg-green-600 border-green-600 text-white",
     description: "For preventive maintenance and service activities",
     prefix: "SR",
-  }
+  },
 ];
 
-const COMMISSIONING_FIELDS = [
+// ─── Field Definitions — English ─────────────────────────────────────────────
+const COMMISSIONING_FIELDS_EN = [
   { section: "Site & Equipment Information", fields: [
     { name: "site_location", label: "Site Location", type: "text", required: true },
     { name: "equipment_name", label: "Equipment Name", type: "text", required: true },
@@ -88,7 +97,7 @@ const COMMISSIONING_FIELDS = [
   ]},
 ];
 
-const INVESTIGATION_FIELDS = [
+const INVESTIGATION_FIELDS_EN = [
   { section: "Incident Information", fields: [
     { name: "incident_date", label: "Incident Date & Time", type: "datetime-local", required: true },
     { name: "incident_location", label: "Incident Location", type: "text", required: true },
@@ -115,7 +124,7 @@ const INVESTIGATION_FIELDS = [
   ]},
 ];
 
-const TROUBLESHOOTING_FIELDS = [
+const TROUBLESHOOTING_FIELDS_EN = [
   { section: "Problem Identification", fields: [
     { name: "equipment_system", label: "Equipment / System", type: "text", required: true },
     { name: "location", label: "Location", type: "text" },
@@ -139,12 +148,7 @@ const TROUBLESHOOTING_FIELDS = [
   ]},
 ];
 
-// ─── SERVICE FIELDS (synced with ReportDetail.jsx & report.py) ──────────────
-// Section 0: Service Information  (text/date fields — short inputs)
-// Section 1: Service Performed    (textarea — multi-line)
-// Section 2: Findings & Observations (textarea — multi-line)
-// Section 3: Service Outcome      (textarea + date — multi-line for text areas)
-const SERVICE_FIELDS = [
+const SERVICE_FIELDS_EN = [
   { section: "Service Information", fields: [
     { name: "equipment_asset", label: "Equipment / Asset Name", type: "text", required: true },
     { name: "asset_id", label: "Asset ID / Tag Number", type: "text" },
@@ -173,18 +177,131 @@ const SERVICE_FIELDS = [
   ]},
 ];
 
+// ─── Field Definitions — Bahasa Indonesia ────────────────────────────────────
+const COMMISSIONING_FIELDS_ID = [
+  { section: "Informasi Lokasi & Peralatan", fields: [
+    { name: "site_location", label: "Lokasi Site", type: "text", required: true },
+    { name: "equipment_name", label: "Nama Peralatan", type: "text", required: true },
+    { name: "equipment_model", label: "Model / Tipe Peralatan", type: "text" },
+    { name: "serial_number", label: "Nomor Seri", type: "text" },
+    { name: "manufacturer", label: "Pabrikan / Manufaktur", type: "text" },
+    { name: "installation_date", label: "Tanggal Instalasi", type: "date" },
+  ]},
+  { section: "Pemeriksaan Pra-Komisioning", fields: [
+    { name: "visual_inspection", label: "Hasil Inspeksi Visual", type: "textarea" },
+    { name: "safety_checks", label: "Pemeriksaan Keselamatan yang Dilakukan", type: "textarea" },
+    { name: "electrical_checks", label: "Pemeriksaan Kelistrikan", type: "textarea" },
+    { name: "mechanical_checks", label: "Pemeriksaan Mekanikal", type: "textarea" },
+  ]},
+  { section: "Hasil Pengujian Komisioning", fields: [
+    { name: "test_procedures", label: "Prosedur Pengujian yang Dilakukan", type: "textarea", required: true },
+    { name: "performance_parameters", label: "Parameter Kinerja (setpoint, nilai)", type: "textarea" },
+    { name: "test_results", label: "Hasil Pengujian & Pengukuran", type: "textarea", required: true },
+  ]},
+  { section: "Status Akhir", fields: [
+    { name: "commissioning_result", label: "Hasil Komisioning (Lulus/Gagal/Bersyarat)", type: "text", required: true },
+    { name: "issues_found", label: "Temuan Masalah (jika ada)", type: "textarea" },
+    { name: "recommendations", label: "Rekomendasi", type: "textarea" },
+    { name: "client_acceptance", label: "Penerimaan / Catatan Klien", type: "textarea" },
+  ]},
+];
+
+const INVESTIGATION_FIELDS_ID = [
+  { section: "Informasi Insiden", fields: [
+    { name: "incident_date", label: "Tanggal & Waktu Insiden", type: "datetime-local", required: true },
+    { name: "incident_location", label: "Lokasi Insiden", type: "text", required: true },
+    { name: "equipment_involved", label: "Peralatan / Sistem yang Terlibat", type: "text" },
+    { name: "reported_by", label: "Dilaporkan Oleh", type: "text" },
+  ]},
+  { section: "Deskripsi Masalah", fields: [
+    { name: "incident_description", label: "Deskripsi Insiden", type: "textarea", required: true },
+    { name: "symptoms_observed", label: "Gejala yang Teramati", type: "textarea" },
+    { name: "impact_severity", label: "Dampak & Tingkat Keparahan", type: "textarea" },
+  ]},
+  { section: "Temuan Investigasi", fields: [
+    { name: "investigation_method", label: "Metode Investigasi yang Digunakan", type: "textarea" },
+    { name: "root_cause", label: "Analisis Akar Penyebab (Root Cause Analysis)", type: "textarea", required: true },
+    { name: "contributing_factors", label: "Faktor-faktor Penyebab", type: "textarea" },
+    { name: "evidence_data", label: "Bukti & Data Pendukung", type: "textarea" },
+  ]},
+  { section: "Tindakan Korektif", fields: [
+    { name: "immediate_actions", label: "Tindakan Segera yang Diambil", type: "textarea", required: true },
+    { name: "long_term_actions", label: "Tindakan Korektif Jangka Panjang", type: "textarea" },
+    { name: "preventive_measures", label: "Langkah Pencegahan", type: "textarea" },
+    { name: "follow_up", label: "Tindak Lanjut yang Diperlukan", type: "textarea" },
+    { name: "conclusion", label: "Kesimpulan", type: "textarea" },
+  ]},
+];
+
+const TROUBLESHOOTING_FIELDS_ID = [
+  { section: "Identifikasi Masalah", fields: [
+    { name: "equipment_system", label: "Peralatan / Sistem", type: "text", required: true },
+    { name: "location", label: "Lokasi", type: "text" },
+    { name: "problem_reported_by", label: "Masalah Dilaporkan Oleh", type: "text" },
+    { name: "problem_date", label: "Tanggal Masalah Terjadi", type: "date" },
+    { name: "problem_description", label: "Deskripsi Masalah", type: "textarea", required: true },
+  ]},
+  { section: "Proses Diagnosa", fields: [
+    { name: "symptoms", label: "Gejala yang Teramati", type: "textarea", required: true },
+    { name: "initial_assessment", label: "Penilaian Awal", type: "textarea" },
+    { name: "diagnostic_steps", label: "Langkah-langkah Diagnosa", type: "textarea" },
+    { name: "tests_measurements", label: "Pengujian & Pengukuran yang Dilakukan", type: "textarea" },
+    { name: "fault_found", label: "Kerusakan / Akar Penyebab yang Ditemukan", type: "textarea", required: true },
+  ]},
+  { section: "Penyelesaian", fields: [
+    { name: "solution_applied", label: "Solusi yang Diterapkan", type: "textarea", required: true },
+    { name: "parts_replaced", label: "Suku Cadang / Komponen yang Diganti", type: "textarea" },
+    { name: "verification_tests", label: "Pengujian Verifikasi Setelah Perbaikan", type: "textarea" },
+    { name: "result_after_fix", label: "Hasil Setelah Perbaikan", type: "text", required: true },
+    { name: "recommendations", label: "Rekomendasi untuk ke Depan", type: "textarea" },
+  ]},
+];
+
+const SERVICE_FIELDS_ID = [
+  { section: "Informasi Servis", fields: [
+    { name: "equipment_asset", label: "Nama Peralatan / Aset", type: "text", required: true },
+    { name: "asset_id", label: "ID Aset / Nomor Tag", type: "text" },
+    { name: "location", label: "Lokasi", type: "text", required: true },
+    { name: "service_type", label: "Jenis Servis (Preventif / Korektif / Berkala)", type: "text" },
+    { name: "last_service_date", label: "Tanggal Servis Terakhir", type: "date" },
+  ]},
+  { section: "Pekerjaan Servis", fields: [
+    { name: "work_description", label: "Deskripsi Pekerjaan", type: "textarea", required: true },
+    { name: "activities_performed", label: "Kegiatan yang Dilakukan (Detail)", type: "textarea", required: true },
+    { name: "parts_used", label: "Suku Cadang / Material yang Digunakan", type: "textarea" },
+    { name: "calibration_data", label: "Data Kalibrasi / Pengukuran", type: "textarea" },
+    { name: "service_duration", label: "Durasi Servis (jam)", type: "text" },
+  ]},
+  { section: "Temuan & Observasi", fields: [
+    { name: "condition_before", label: "Kondisi Sebelum Servis", type: "textarea" },
+    { name: "issues_found", label: "Masalah / Anomali yang Ditemukan", type: "textarea" },
+    { name: "condition_after", label: "Kondisi Setelah Servis", type: "textarea" },
+  ]},
+  { section: "Hasil Servis", fields: [
+    { name: "service_result", label: "Hasil Servis (Lulus / Gagal / Bersyarat)", type: "text", required: true },
+    { name: "next_service_date", label: "Tanggal Servis Berikutnya yang Direkomendasikan", type: "date" },
+    { name: "recommendations", label: "Rekomendasi", type: "textarea" },
+    { name: "client_notes", label: "Catatan Klien / Tanda Tangan", type: "textarea" },
+    { name: "follow_up", label: "Tindak Lanjut yang Diperlukan", type: "textarea" },
+  ]},
+];
+
 const FIELD_MAP = {
-  commissioning: COMMISSIONING_FIELDS,
-  investigation: INVESTIGATION_FIELDS,
-  troubleshooting: TROUBLESHOOTING_FIELDS,
-  service: SERVICE_FIELDS,
+  en: {
+    commissioning: COMMISSIONING_FIELDS_EN,
+    investigation: INVESTIGATION_FIELDS_EN,
+    troubleshooting: TROUBLESHOOTING_FIELDS_EN,
+    service: SERVICE_FIELDS_EN,
+  },
+  id: {
+    commissioning: COMMISSIONING_FIELDS_ID,
+    investigation: INVESTIGATION_FIELDS_ID,
+    troubleshooting: TROUBLESHOOTING_FIELDS_ID,
+    service: SERVICE_FIELDS_ID,
+  },
 };
 
-// ─── Which section indices use multi-line textareas with taller rows ─────────
-// Section 0 is always "header/info" — short inputs OK.
-// Sections 1, 2, 3 (index >= 1) get tall textareas (6 rows) + Enter = newline.
-const MULTILINE_SECTION_THRESHOLD = 1; // sections with index >= this value get tall textareas
-
+const MULTILINE_SECTION_THRESHOLD = 1;
 function getTextareaRows(sectionIndex) {
   return sectionIndex >= MULTILINE_SECTION_THRESHOLD ? 6 : 3;
 }
@@ -196,6 +313,8 @@ export default function CreateReport() {
   const [engineers, setEngineers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sectionIncluded, setSectionIncluded] = useState({});
+  const [lang, setLang] = useState("en"); // "en" | "id"
+  const [includeClientSignature, setIncludeClientSignature] = useState(true);
 
   const [baseForm, setBaseForm] = useState({
     report_number: "",
@@ -254,31 +373,30 @@ export default function CreateReport() {
   const handleBaseChange = (e) => setBaseForm({ ...baseForm, [e.target.name]: e.target.value });
   const handleDataChange = (e) => setDataForm({ ...dataForm, [e.target.name]: e.target.value });
 
-  // Allow Enter key in textareas to produce a real newline (default browser behaviour).
-  // For sections >= MULTILINE_SECTION_THRESHOLD, we also support Shift+Enter for a blank line.
-  // Nothing special needed — <textarea> already handles Enter natively.
-  // We only intercept to prevent accidental form submit (no <form> element here, so N/A).
-
   const toggleSection = (si) => {
     setSectionIncluded(prev => ({ ...prev, [si]: !(prev[si] ?? true) }));
   };
-
   const isSectionIncluded = (si) => sectionIncluded[si] ?? true;
 
   const handleSubmit = async () => {
     if (!selectedType) return;
     try {
       setLoading(true);
-      const sections = FIELD_MAP[selectedType] || [];
+      const sections = FIELD_MAP[lang][selectedType] || [];
       const sectionVisibility = {};
-      sections.forEach((sec, si) => {
+      sections.forEach((_, si) => {
         sectionVisibility[si] = isSectionIncluded(si);
       });
       const res = await API.post("/report/create", {
         ...baseForm,
         report_type: selectedType,
         engineer_id: baseForm.engineer_id ? parseInt(baseForm.engineer_id) : null,
-        data_json: { ...dataForm, _section_visibility: sectionVisibility },
+        data_json: {
+          ...dataForm,
+          _section_visibility: sectionVisibility,
+          _lang: lang,
+          _include_client_signature: includeClientSignature,
+        },
       });
       toast.success("Report created successfully!");
       navigate(`/reports/${res.data.report_id}`);
@@ -289,10 +407,10 @@ export default function CreateReport() {
     }
   };
 
-  const inputClass = "w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white transition-all";
+  const inputClass = "w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91] focus:border-transparent bg-white transition-all";
   const labelClass = "block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5";
 
-  const sections = selectedType ? FIELD_MAP[selectedType] : [];
+  const sections = selectedType ? (FIELD_MAP[lang][selectedType] || []) : [];
   const selectedTypeObj = REPORT_TYPES.find(t => t.id === selectedType);
 
   return (
@@ -307,13 +425,13 @@ export default function CreateReport() {
         {[1, 2, 3].map((s) => (
           <div key={s} className="flex items-center gap-2">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all
-              ${step >= s ? "bg-primary text-white" : "bg-gray-200 text-gray-400"}`}>
+              ${step >= s ? "bg-[#0B3D91] text-white" : "bg-gray-200 text-gray-400"}`}>
               {s}
             </div>
-            <span className={`text-sm font-medium hidden sm:block ${step >= s ? "text-primary" : "text-gray-400"}`}>
+            <span className={`text-sm font-medium hidden sm:block ${step >= s ? "text-[#0B3D91]" : "text-gray-400"}`}>
               {s === 1 ? "Report Type" : s === 2 ? "Basic Info" : "Report Details"}
             </span>
-            {s < 3 && <div className={`w-8 h-0.5 mx-1 ${step > s ? "bg-primary" : "bg-gray-200"}`} />}
+            {s < 3 && <div className={`w-8 h-0.5 mx-1 ${step > s ? "bg-[#0B3D91]" : "bg-gray-200"}`} />}
           </div>
         ))}
       </div>
@@ -321,6 +439,26 @@ export default function CreateReport() {
       {/* ── Step 1: Select Report Type ──────────────────────────── */}
       {step === 1 && (
         <div>
+          {/* Language selector */}
+          <div className="flex items-center gap-3 mb-6 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
+            <Globe size={16} className="text-[#0B3D91] flex-shrink-0" />
+            <span className="text-sm font-semibold text-gray-700">Template Language:</span>
+            <div className="flex gap-2">
+              {LANG_OPTIONS.map(l => (
+                <button
+                  key={l.id}
+                  onClick={() => setLang(l.id)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all
+                    ${lang === l.id
+                      ? "bg-[#0B3D91] text-white border-[#0B3D91] shadow-sm"
+                      : "bg-white text-gray-500 border-gray-200 hover:border-[#0B3D91]/40 hover:text-[#0B3D91]"}`}>
+                  <span>{l.flag}</span>
+                  {l.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <h2 className="text-lg font-semibold text-gray-700 mb-4">Select Report Type</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             {REPORT_TYPES.map((type) => {
@@ -331,15 +469,15 @@ export default function CreateReport() {
                   onClick={() => setSelectedType(type.id)}
                   className={`p-5 rounded-xl border-2 text-left transition-all duration-200 hover:shadow-md
                     ${selectedType === type.id
-                      ? "border-primary bg-blue-50 shadow-md scale-[1.01]"
+                      ? "border-[#0B3D91] bg-blue-50 shadow-md scale-[1.01]"
                       : "border-gray-200 bg-white hover:border-gray-300"
                     }`}
                 >
                   <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-lg ${selectedType === type.id ? "bg-primary/10" : "bg-gray-100"}`}>
+                    <div className={`p-2 rounded-lg ${selectedType === type.id ? "bg-[#0B3D91]/10" : "bg-gray-100"}`}>
                       <IconComponent
                         size={22}
-                        className={selectedType === type.id ? "text-primary" : type.iconColor}
+                        className={selectedType === type.id ? "text-[#0B3D91]" : type.iconColor}
                         strokeWidth={1.75}
                       />
                     </div>
@@ -349,7 +487,7 @@ export default function CreateReport() {
                     </div>
                   </div>
                   {selectedType === type.id && (
-                    <div className="mt-3 flex items-center gap-1 text-primary text-xs font-semibold">
+                    <div className="mt-3 flex items-center gap-1 text-[#0B3D91] text-xs font-semibold">
                       <CheckCircle2 size={13} strokeWidth={2.5} />
                       Selected
                     </div>
@@ -360,7 +498,7 @@ export default function CreateReport() {
           </div>
           <button
             onClick={() => { if (selectedType) setStep(2); else toast.error("Please select a report type"); }}
-            className="bg-primary text-white px-8 py-3 rounded-xl font-semibold hover:bg-secondary transition-colors flex items-center gap-2"
+            className="bg-[#0B3D91] text-white px-8 py-3 rounded-xl font-semibold hover:bg-[#1E5CC6] transition-colors flex items-center gap-2"
           >
             Continue
             <ChevronRight size={16} strokeWidth={2.5} />
@@ -370,57 +508,132 @@ export default function CreateReport() {
 
       {/* ── Step 2: Basic Info ──────────────────────────────────── */}
       {step === 2 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center gap-3 mb-6">
-            {selectedTypeObj && (
-              <div className="p-2.5 rounded-xl bg-primary/10">
-                <selectedTypeObj.icon size={22} className="text-primary" strokeWidth={1.75} />
+        <div className="space-y-4">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="flex items-center gap-3 mb-6">
+              {selectedTypeObj && (
+                <div className="p-2.5 rounded-xl bg-[#0B3D91]/10">
+                  <selectedTypeObj.icon size={22} className="text-[#0B3D91]" strokeWidth={1.75} />
+                </div>
+              )}
+              <div>
+                <h2 className="text-lg font-bold text-gray-800">Basic Information</h2>
+                <p className="text-sm text-gray-400">{selectedTypeObj?.label}</p>
               </div>
-            )}
-            <div>
-              <h2 className="text-lg font-bold text-gray-800">Basic Information</h2>
-              <p className="text-sm text-gray-400">{selectedTypeObj?.label}</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Report Number</label>
+                <input
+                  name="report_number"
+                  value={baseForm.report_number}
+                  readOnly
+                  className={inputClass + " bg-gray-50 text-gray-500 cursor-not-allowed font-mono"}
+                />
+                <p className="text-xs text-gray-400 mt-1">Auto-generated, cannot be changed</p>
+              </div>
+              <div>
+                <label className={labelClass}>Report Date *</label>
+                <input type="date" name="report_date" value={baseForm.report_date} onChange={handleBaseChange}
+                  className={inputClass} required />
+              </div>
+              <div>
+                <label className={labelClass}>Client Name *</label>
+                <input name="client_name" value={baseForm.client_name} onChange={handleBaseChange}
+                  placeholder="Client / Company name" className={inputClass} required />
+              </div>
+              <div>
+                <label className={labelClass}>Project Name *</label>
+                <input name="project_name" value={baseForm.project_name} onChange={handleBaseChange}
+                  placeholder="Project name" className={inputClass} required />
+              </div>
+              <div className="sm:col-span-2">
+                <label className={labelClass}>Assign Engineer</label>
+                <select name="engineer_id" value={baseForm.engineer_id} onChange={handleBaseChange} className={inputClass}>
+                  <option value="">— Select Engineer —</option>
+                  {engineers.map(e => (
+                    <option key={e.id} value={e.id}>{e.name} ({e.position || e.department || "Engineer"})</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className={labelClass}>Report Number</label>
-              <input
-                name="report_number"
-                value={baseForm.report_number}
-                readOnly
-                className={inputClass + " bg-gray-50 text-gray-500 cursor-not-allowed font-mono"}
-              />
-              <p className="text-xs text-gray-400 mt-1">Auto-generated, cannot be changed</p>
-            </div>
-            <div>
-              <label className={labelClass}>Report Date *</label>
-              <input type="date" name="report_date" value={baseForm.report_date} onChange={handleBaseChange}
-                className={inputClass} required />
-            </div>
-            <div>
-              <label className={labelClass}>Client Name *</label>
-              <input name="client_name" value={baseForm.client_name} onChange={handleBaseChange}
-                placeholder="Client / Company name" className={inputClass} required />
-            </div>
-            <div>
-              <label className={labelClass}>Project Name *</label>
-              <input name="project_name" value={baseForm.project_name} onChange={handleBaseChange}
-                placeholder="Project name" className={inputClass} required />
-            </div>
-            <div className="sm:col-span-2">
-              <label className={labelClass}>Assign Engineer</label>
-              <select name="engineer_id" value={baseForm.engineer_id} onChange={handleBaseChange} className={inputClass}>
-                <option value="">— Select Engineer —</option>
-                {engineers.map(e => (
-                  <option key={e.id} value={e.id}>{e.name} ({e.position || e.department || "Engineer"})</option>
-                ))}
-              </select>
+          {/* ── PDF Options Card ── */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4 flex items-center gap-2">
+              <span className="w-1.5 h-4 bg-[#0B3D91] rounded-full" />
+              PDF Options
+            </h3>
+            <div className="space-y-4">
+              {/* Language selector */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="flex items-center gap-2 min-w-[220px]">
+                  <Globe size={16} className="text-[#0B3D91]" />
+                  <span className="text-sm font-semibold text-gray-700">Report Language:</span>
+                </div>
+                <div className="flex gap-2">
+                  {LANG_OPTIONS.map(l => (
+                    <button
+                      key={l.id}
+                      type="button"
+                      onClick={() => setLang(l.id)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all
+                        ${lang === l.id
+                          ? "bg-[#0B3D91] text-white border-[#0B3D91] shadow-sm"
+                          : "bg-white text-gray-500 border-gray-200 hover:border-[#0B3D91]/40 hover:text-[#0B3D91]"}`}>
+                      <span>{l.flag}</span>
+                      {l.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Client signature toggle */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="flex items-center gap-2 min-w-[220px]">
+                  <PenLine size={16} className="text-[#0B3D91]" />
+                  <span className="text-sm font-semibold text-gray-700">Client Signature Block:</span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIncludeClientSignature(true)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all
+                      ${includeClientSignature
+                        ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                        : "bg-white text-gray-500 border-gray-200 hover:border-emerald-400 hover:text-emerald-600"}`}>
+                    <Eye size={14} />
+                    Include in PDF
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIncludeClientSignature(false)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all
+                      ${!includeClientSignature
+                        ? "bg-gray-500 text-white border-gray-500 shadow-sm"
+                        : "bg-white text-gray-500 border-gray-200 hover:border-gray-400 hover:text-gray-600"}`}>
+                    <EyeOff size={14} />
+                    Exclude from PDF
+                  </button>
+                </div>
+              </div>
+              {includeClientSignature ? (
+                <p className="text-xs text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2 flex items-center gap-2">
+                  <CheckCircle2 size={13} />
+                  PDF will include an empty signature block for the client to sign.
+                </p>
+              ) : (
+                <p className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2 flex items-center gap-2">
+                  <EyeOff size={13} />
+                  PDF will not include the client signature block — only the engineer's signature will appear.
+                </p>
+              )}
             </div>
           </div>
 
-          <div className="flex gap-3 mt-6">
+          <div className="flex gap-3">
             <button
               onClick={() => setStep(1)}
               className="px-6 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-colors flex items-center gap-2"
@@ -436,7 +649,7 @@ export default function CreateReport() {
                 }
                 setStep(3);
               }}
-              className="bg-primary text-white px-8 py-3 rounded-xl font-semibold hover:bg-secondary transition-colors flex items-center gap-2"
+              className="bg-[#0B3D91] text-white px-8 py-3 rounded-xl font-semibold hover:bg-[#1E5CC6] transition-colors flex items-center gap-2"
             >
               Continue
               <ChevronRight size={16} strokeWidth={2.5} />
@@ -448,24 +661,40 @@ export default function CreateReport() {
       {/* ── Step 3: Report-specific fields ─────────────────────── */}
       {step === 3 && (
         <div>
-          <div className="flex items-center gap-3 mb-4">
-            {selectedTypeObj && (
-              <div className="p-2.5 rounded-xl bg-primary/10">
-                <selectedTypeObj.icon size={22} className="text-primary" strokeWidth={1.75} />
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3">
+              {selectedTypeObj && (
+                <div className="p-2.5 rounded-xl bg-[#0B3D91]/10">
+                  <selectedTypeObj.icon size={22} className="text-[#0B3D91]" strokeWidth={1.75} />
+                </div>
+              )}
+              <div>
+                <h2 className="text-lg font-bold text-gray-800">Report Details</h2>
+                <p className="text-sm text-gray-400">{selectedTypeObj?.label}</p>
               </div>
-            )}
-            <div>
-              <h2 className="text-lg font-bold text-gray-800">Report Details</h2>
-              <p className="text-sm text-gray-400">{selectedTypeObj?.label}</p>
+            </div>
+            {/* Language & signature badge recap */}
+            <div className="flex gap-2 flex-shrink-0">
+              <span className="hidden sm:flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-[#0B3D91]/10 text-[#0B3D91] border border-[#0B3D91]/20">
+                <Globe size={11} />
+                {LANG_OPTIONS.find(l => l.id === lang)?.flag} {LANG_OPTIONS.find(l => l.id === lang)?.label}
+              </span>
+              <span className={`hidden sm:flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border
+                ${includeClientSignature
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  : "bg-gray-100 text-gray-500 border-gray-200"}`}>
+                {includeClientSignature ? <><PenLine size={11} /> Client Sig. ✓</> : <><EyeOff size={11} /> No Client Sig.</>}
+              </span>
             </div>
           </div>
 
-          {/* Info hint for toggles + multi-line note */}
+          {/* Info hint */}
           <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-5 text-xs text-blue-700">
             <Info size={15} className="flex-shrink-0 mt-0.5" strokeWidth={2} />
             <span>
-              Use <strong>Show in PDF / Hide in PDF</strong> buttons to control what appears in the PDF.
-              {" "}Text areas in sections 2–4 support <strong>multi-line input</strong> — press <kbd className="bg-blue-100 px-1 py-0.5 rounded text-[10px] font-mono">Enter</kbd> for a new line, <kbd className="bg-blue-100 px-1 py-0.5 rounded text-[10px] font-mono">Shift+Enter</kbd> for a blank line.
+              Use <strong>Show in PDF / Hide in PDF</strong> to control what appears in the document.
+              {" "}Sections 2–4 support <strong>multi-line input</strong> — press{" "}
+              <kbd className="bg-blue-100 px-1 py-0.5 rounded text-[10px] font-mono">Enter</kbd> for a new line.
             </span>
           </div>
 
@@ -479,11 +708,10 @@ export default function CreateReport() {
                   included ? "bg-white border-gray-100" : "bg-gray-50 border-gray-200 opacity-60"
                 }`}
               >
-                {/* Section header */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-primary uppercase tracking-wider flex items-center gap-2">
-                      <span className="w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-xs">{si + 1}</span>
+                    <h3 className="text-sm font-bold text-[#0B3D91] uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-6 h-6 bg-[#0B3D91] text-white rounded-full flex items-center justify-center text-xs">{si + 1}</span>
                       {section.section}
                     </h3>
                     {isMultilineSection && included && (
@@ -502,25 +730,17 @@ export default function CreateReport() {
                     }`}
                   >
                     {included ? (
-                      <>
-                        <Eye size={13} strokeWidth={2} />
-                        Show in PDF
-                      </>
+                      <><Eye size={13} strokeWidth={2} /> Show in PDF</>
                     ) : (
-                      <>
-                        <EyeOff size={13} strokeWidth={2} />
-                        Hide in PDF
-                      </>
+                      <><EyeOff size={13} strokeWidth={2} /> Hide in PDF</>
                     )}
                   </button>
                 </div>
 
-                {/* Collapsed placeholder */}
                 {!included && (
-                  <p className="text-xs text-gray-400 italic">This section will not be displayed in the PDF. Click the button above to enable it.</p>
+                  <p className="text-xs text-gray-400 italic">This section will not be displayed in the PDF.</p>
                 )}
 
-                {/* Fields */}
                 {included && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {section.fields.map((field) => (
@@ -534,7 +754,7 @@ export default function CreateReport() {
                             value={dataForm[field.name] || ""}
                             onChange={handleDataChange}
                             rows={getTextareaRows(si)}
-                            placeholder={`Enter ${field.label.toLowerCase()}...`}
+                            placeholder={`${field.label}...`}
                             className={inputClass + " resize-y leading-relaxed"}
                             style={{ minHeight: isMultilineSection ? "120px" : "80px" }}
                           />
@@ -544,7 +764,7 @@ export default function CreateReport() {
                             name={field.name}
                             value={dataForm[field.name] || ""}
                             onChange={handleDataChange}
-                            placeholder={field.type !== "date" && field.type !== "datetime-local" ? `Enter ${field.label.toLowerCase()}...` : ""}
+                            placeholder={field.type !== "date" && field.type !== "datetime-local" ? `${field.label}...` : ""}
                             className={inputClass}
                           />
                         )}
@@ -567,18 +787,12 @@ export default function CreateReport() {
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="bg-primary text-white px-8 py-3 rounded-xl font-semibold hover:bg-secondary transition-colors disabled:opacity-60 flex items-center gap-2"
+              className="bg-[#0B3D91] text-white px-8 py-3 rounded-xl font-semibold hover:bg-[#1E5CC6] transition-colors disabled:opacity-60 flex items-center gap-2"
             >
               {loading ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  Creating...
-                </>
+                <><Loader2 size={16} className="animate-spin" /> Creating...</>
               ) : (
-                <>
-                  <ClipboardCheck size={16} strokeWidth={2} />
-                  Create Report
-                </>
+                <><ClipboardCheck size={16} strokeWidth={2} /> Create Report</>
               )}
             </button>
           </div>

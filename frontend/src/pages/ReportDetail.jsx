@@ -13,27 +13,30 @@ import {
   Check,
   Camera,
   FileText,
-  ChevronDown,
   Image as ImageIcon,
   Loader2,
-  AlertTriangle,
   EyeOff,
   Zap,
   Info,
+  Globe,
+  PenLine,
+  CheckCircle2,
 } from "lucide-react";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
-
-// ─── Which section indices use multi-line textareas with taller rows ─────────
-// Section 0 = "header/info" — short inputs. Sections 1,2,3 get tall textareas.
 const MULTILINE_SECTION_THRESHOLD = 1;
-
 function getTextareaRows(sectionIndex) {
   return sectionIndex >= MULTILINE_SECTION_THRESHOLD ? 6 : 3;
 }
 
-/* ─── Field definitions (synced between Create & Edit) ─────────────────────── */
-const COMMISSIONING_FIELDS = [
+// ─── Language Options ─────────────────────────────────────────────────────────
+const LANG_OPTIONS = [
+  { id: "en", label: "English", flag: "🇬🇧" },
+  { id: "id", label: "Bahasa Indonesia", flag: "🇮🇩" },
+];
+
+// ─── English Field Definitions ───────────────────────────────────────────────
+const COMMISSIONING_FIELDS_EN = [
   { section: "Site & Equipment Information", fields: [
     { name: "site_location", label: "Site Location", type: "text" },
     { name: "equipment_name", label: "Equipment Name", type: "text" },
@@ -60,10 +63,9 @@ const COMMISSIONING_FIELDS = [
     { name: "client_acceptance", label: "Client Acceptance / Notes", type: "textarea" },
   ]},
 ];
-
-const INVESTIGATION_FIELDS = [
+const INVESTIGATION_FIELDS_EN = [
   { section: "Incident Information", fields: [
-    { name: "incident_date", label: "Incident Date", type: "datetime-local" },
+    { name: "incident_date", label: "Incident Date & Time", type: "datetime-local" },
     { name: "incident_location", label: "Incident Location", type: "text" },
     { name: "equipment_involved", label: "Equipment / System Involved", type: "text" },
     { name: "reported_by", label: "Reported By", type: "text" },
@@ -87,8 +89,7 @@ const INVESTIGATION_FIELDS = [
     { name: "conclusion", label: "Conclusion", type: "textarea" },
   ]},
 ];
-
-const TROUBLESHOOTING_FIELDS = [
+const TROUBLESHOOTING_FIELDS_EN = [
   { section: "Problem Identification", fields: [
     { name: "equipment_system", label: "Equipment / System", type: "text" },
     { name: "location", label: "Location", type: "text" },
@@ -111,9 +112,7 @@ const TROUBLESHOOTING_FIELDS = [
     { name: "recommendations", label: "Recommendations for Future", type: "textarea" },
   ]},
 ];
-
-// ─── SERVICE FIELDS — fully synced with CreateReport.jsx & report.py ─────────
-const SERVICE_FIELDS = [
+const SERVICE_FIELDS_EN = [
   { section: "Service Information", fields: [
     { name: "equipment_asset", label: "Equipment / Asset Name", type: "text" },
     { name: "asset_id", label: "Asset ID / Tag Number", type: "text" },
@@ -142,11 +141,125 @@ const SERVICE_FIELDS = [
   ]},
 ];
 
+// ─── Bahasa Indonesia Field Definitions ──────────────────────────────────────
+const COMMISSIONING_FIELDS_ID = [
+  { section: "Informasi Lokasi & Peralatan", fields: [
+    { name: "site_location", label: "Lokasi Site", type: "text" },
+    { name: "equipment_name", label: "Nama Peralatan", type: "text" },
+    { name: "equipment_model", label: "Model / Tipe Peralatan", type: "text" },
+    { name: "serial_number", label: "Nomor Seri", type: "text" },
+    { name: "manufacturer", label: "Pabrikan / Manufaktur", type: "text" },
+    { name: "installation_date", label: "Tanggal Instalasi", type: "date" },
+  ]},
+  { section: "Pemeriksaan Pra-Komisioning", fields: [
+    { name: "visual_inspection", label: "Hasil Inspeksi Visual", type: "textarea" },
+    { name: "safety_checks", label: "Pemeriksaan Keselamatan yang Dilakukan", type: "textarea" },
+    { name: "electrical_checks", label: "Pemeriksaan Kelistrikan", type: "textarea" },
+    { name: "mechanical_checks", label: "Pemeriksaan Mekanikal", type: "textarea" },
+  ]},
+  { section: "Hasil Pengujian Komisioning", fields: [
+    { name: "test_procedures", label: "Prosedur Pengujian yang Dilakukan", type: "textarea" },
+    { name: "performance_parameters", label: "Parameter Kinerja (setpoint, nilai)", type: "textarea" },
+    { name: "test_results", label: "Hasil Pengujian & Pengukuran", type: "textarea" },
+  ]},
+  { section: "Status Akhir", fields: [
+    { name: "commissioning_result", label: "Hasil Komisioning (Lulus/Gagal/Bersyarat)", type: "text" },
+    { name: "issues_found", label: "Temuan Masalah (jika ada)", type: "textarea" },
+    { name: "recommendations", label: "Rekomendasi", type: "textarea" },
+    { name: "client_acceptance", label: "Penerimaan / Catatan Klien", type: "textarea" },
+  ]},
+];
+const INVESTIGATION_FIELDS_ID = [
+  { section: "Informasi Insiden", fields: [
+    { name: "incident_date", label: "Tanggal & Waktu Insiden", type: "datetime-local" },
+    { name: "incident_location", label: "Lokasi Insiden", type: "text" },
+    { name: "equipment_involved", label: "Peralatan / Sistem yang Terlibat", type: "text" },
+    { name: "reported_by", label: "Dilaporkan Oleh", type: "text" },
+  ]},
+  { section: "Deskripsi Masalah", fields: [
+    { name: "incident_description", label: "Deskripsi Insiden", type: "textarea" },
+    { name: "symptoms_observed", label: "Gejala yang Teramati", type: "textarea" },
+    { name: "impact_severity", label: "Dampak & Tingkat Keparahan", type: "textarea" },
+  ]},
+  { section: "Temuan Investigasi", fields: [
+    { name: "investigation_method", label: "Metode Investigasi yang Digunakan", type: "textarea" },
+    { name: "root_cause", label: "Analisis Akar Penyebab (Root Cause Analysis)", type: "textarea" },
+    { name: "contributing_factors", label: "Faktor-faktor Penyebab", type: "textarea" },
+    { name: "evidence_data", label: "Bukti & Data Pendukung", type: "textarea" },
+  ]},
+  { section: "Tindakan Korektif", fields: [
+    { name: "immediate_actions", label: "Tindakan Segera yang Diambil", type: "textarea" },
+    { name: "long_term_actions", label: "Tindakan Korektif Jangka Panjang", type: "textarea" },
+    { name: "preventive_measures", label: "Langkah Pencegahan", type: "textarea" },
+    { name: "follow_up", label: "Tindak Lanjut yang Diperlukan", type: "textarea" },
+    { name: "conclusion", label: "Kesimpulan", type: "textarea" },
+  ]},
+];
+const TROUBLESHOOTING_FIELDS_ID = [
+  { section: "Identifikasi Masalah", fields: [
+    { name: "equipment_system", label: "Peralatan / Sistem", type: "text" },
+    { name: "location", label: "Lokasi", type: "text" },
+    { name: "problem_reported_by", label: "Masalah Dilaporkan Oleh", type: "text" },
+    { name: "problem_date", label: "Tanggal Masalah Terjadi", type: "date" },
+    { name: "problem_description", label: "Deskripsi Masalah", type: "textarea" },
+  ]},
+  { section: "Proses Diagnosa", fields: [
+    { name: "symptoms", label: "Gejala yang Teramati", type: "textarea" },
+    { name: "initial_assessment", label: "Penilaian Awal", type: "textarea" },
+    { name: "diagnostic_steps", label: "Langkah-langkah Diagnosa", type: "textarea" },
+    { name: "tests_measurements", label: "Pengujian & Pengukuran yang Dilakukan", type: "textarea" },
+    { name: "fault_found", label: "Kerusakan / Akar Penyebab yang Ditemukan", type: "textarea" },
+  ]},
+  { section: "Penyelesaian", fields: [
+    { name: "solution_applied", label: "Solusi yang Diterapkan", type: "textarea" },
+    { name: "parts_replaced", label: "Suku Cadang / Komponen yang Diganti", type: "textarea" },
+    { name: "verification_tests", label: "Pengujian Verifikasi Setelah Perbaikan", type: "textarea" },
+    { name: "result_after_fix", label: "Hasil Setelah Perbaikan", type: "text" },
+    { name: "recommendations", label: "Rekomendasi untuk ke Depan", type: "textarea" },
+  ]},
+];
+const SERVICE_FIELDS_ID = [
+  { section: "Informasi Servis", fields: [
+    { name: "equipment_asset", label: "Nama Peralatan / Aset", type: "text" },
+    { name: "asset_id", label: "ID Aset / Nomor Tag", type: "text" },
+    { name: "location", label: "Lokasi", type: "text" },
+    { name: "service_type", label: "Jenis Servis (Preventif / Korektif / Berkala)", type: "text" },
+    { name: "last_service_date", label: "Tanggal Servis Terakhir", type: "date" },
+  ]},
+  { section: "Pekerjaan Servis", fields: [
+    { name: "work_description", label: "Deskripsi Pekerjaan", type: "textarea" },
+    { name: "activities_performed", label: "Kegiatan yang Dilakukan (Detail)", type: "textarea" },
+    { name: "parts_used", label: "Suku Cadang / Material yang Digunakan", type: "textarea" },
+    { name: "calibration_data", label: "Data Kalibrasi / Pengukuran", type: "textarea" },
+    { name: "service_duration", label: "Durasi Servis (jam)", type: "text" },
+  ]},
+  { section: "Temuan & Observasi", fields: [
+    { name: "condition_before", label: "Kondisi Sebelum Servis", type: "textarea" },
+    { name: "issues_found", label: "Masalah / Anomali yang Ditemukan", type: "textarea" },
+    { name: "condition_after", label: "Kondisi Setelah Servis", type: "textarea" },
+  ]},
+  { section: "Hasil Servis", fields: [
+    { name: "service_result", label: "Hasil Servis (Lulus / Gagal / Bersyarat)", type: "text" },
+    { name: "next_service_date", label: "Tanggal Servis Berikutnya yang Direkomendasikan", type: "date" },
+    { name: "recommendations", label: "Rekomendasi", type: "textarea" },
+    { name: "client_notes", label: "Catatan Klien / Tanda Tangan", type: "textarea" },
+    { name: "follow_up", label: "Tindak Lanjut yang Diperlukan", type: "textarea" },
+  ]},
+];
+
 const FIELD_MAP = {
-  commissioning: COMMISSIONING_FIELDS,
-  investigation: INVESTIGATION_FIELDS,
-  troubleshooting: TROUBLESHOOTING_FIELDS,
-  service: SERVICE_FIELDS,
+  en: {
+    commissioning: COMMISSIONING_FIELDS_EN,
+    investigation: INVESTIGATION_FIELDS_EN,
+    troubleshooting: TROUBLESHOOTING_FIELDS_EN,
+    service: SERVICE_FIELDS_EN,
+  },
+  id: {
+    commissioning: COMMISSIONING_FIELDS_ID,
+    investigation: INVESTIGATION_FIELDS_ID,
+    troubleshooting: TROUBLESHOOTING_FIELDS_ID,
+    service: SERVICE_FIELDS_ID,
+  },
 };
 
 const STATUS_BADGES = {
@@ -162,7 +275,7 @@ const TYPE_BADGES = {
   service: "bg-green-100 text-green-700",
 };
 
-/* ─── Delete Confirmation Dialog ────────────────────────────────── */
+// ─── Delete Dialog ────────────────────────────────────────────────────────────
 function DeleteDialog({ title, description, onConfirm, onCancel, loading }) {
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
@@ -181,9 +294,7 @@ function DeleteDialog({ title, description, onConfirm, onCancel, loading }) {
           </button>
           <button onClick={onConfirm} disabled={loading}
             className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-60">
-            {loading
-              ? <Loader2 className="w-4 h-4 animate-spin" />
-              : <Trash2 className="w-4 h-4" />}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
             Delete
           </button>
         </div>
@@ -192,7 +303,7 @@ function DeleteDialog({ title, description, onConfirm, onCancel, loading }) {
   );
 }
 
-/* ─── PDF Preview Modal ─────────────────────────────────────────── */
+// ─── PDF Preview Modal ────────────────────────────────────────────────────────
 function PDFPreviewModal({ url, reportNumber, reportType, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex flex-col">
@@ -216,7 +327,7 @@ function PDFPreviewModal({ url, reportNumber, reportType, onClose }) {
   );
 }
 
-/* ─── Data Section (view mode) ─────────────────────────────────── */
+// ─── Data Section (view mode) ─────────────────────────────────────────────────
 function DataSection({ title, data, keys }) {
   const hasContent = keys.some(({ key }) => data?.[key]);
   if (!hasContent) return null;
@@ -232,7 +343,6 @@ function DataSection({ title, data, keys }) {
           return (
             <div key={key}>
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">{label}</p>
-              {/* preserve newlines entered by the user */}
               <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{val}</p>
             </div>
           );
@@ -242,28 +352,28 @@ function DataSection({ title, data, keys }) {
   );
 }
 
-/* ─── Image Card ────────────────────────────────────────────────── */
+// ─── Image Card ───────────────────────────────────────────────────────────────
 function ImageCard({ img, onDelete, onCaptionSave }) {
   const [editingCaption, setEditingCaption] = useState(false);
-  const [caption, setCaption]               = useState(img.caption || "");
-  const [saving, setSaving]                 = useState(false);
-  const [deleteDialog, setDeleteDialog]     = useState(false);
-  const [deleting, setDeleting]             = useState(false);
+  const [caption, setCaption] = useState(img.caption || "");
+  const [saving, setSaving] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const inputRef = useRef(null);
 
   const filename = (img.file_path || "").split(/[\/\\]/).pop();
-  const imgUrl   = `${BASE_URL}/uploads/${filename}`;
+  const imgUrl = `${BASE_URL}/uploads/${filename}`;
 
   const handleSaveCaption = async () => {
     setSaving(true);
-    try   { await onCaptionSave(img.id, caption); setEditingCaption(false); }
+    try { await onCaptionSave(img.id, caption); setEditingCaption(false); }
     catch { toast.error("Failed to save caption"); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async () => {
     setDeleting(true);
-    try   { await onDelete(img.id); }
+    try { await onDelete(img.id); }
     catch { toast.error("Failed to delete"); setDeleting(false); setDeleteDialog(false); }
   };
 
@@ -294,11 +404,11 @@ function ImageCard({ img, onDelete, onCaptionSave }) {
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-end justify-between p-2">
-            <button onClick={() => setEditingCaption(true)} title="Edit caption"
+            <button onClick={() => setEditingCaption(true)}
               className="w-7 h-7 bg-white/90 text-[#0B3D91] rounded-lg flex items-center justify-center hover:bg-white transition-colors shadow">
               <Pencil className="w-3.5 h-3.5" />
             </button>
-            <button onClick={() => setDeleteDialog(true)} title="Delete photo"
+            <button onClick={() => setDeleteDialog(true)}
               className="w-7 h-7 bg-white/90 text-red-500 rounded-lg flex items-center justify-center hover:bg-white transition-colors shadow">
               <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -310,7 +420,7 @@ function ImageCard({ img, onDelete, onCaptionSave }) {
               <input ref={inputRef} value={caption}
                 onChange={e => setCaption(e.target.value)}
                 onKeyDown={e => {
-                  if (e.key === "Enter")  handleSaveCaption();
+                  if (e.key === "Enter") handleSaveCaption();
                   if (e.key === "Escape") { setCaption(img.caption || ""); setEditingCaption(false); }
                 }}
                 placeholder="Caption…"
@@ -319,9 +429,7 @@ function ImageCard({ img, onDelete, onCaptionSave }) {
               <div className="flex gap-1">
                 <button onClick={handleSaveCaption} disabled={saving}
                   className="flex-1 py-1 bg-[#0B3D91] text-white text-xs rounded-lg font-semibold disabled:opacity-60 flex items-center justify-center gap-1">
-                  {saving
-                    ? <Loader2 className="w-3 h-3 animate-spin" />
-                    : <Check className="w-3 h-3" />}
+                  {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                   Save
                 </button>
                 <button onClick={() => { setCaption(img.caption || ""); setEditingCaption(false); }}
@@ -342,14 +450,13 @@ function ImageCard({ img, onDelete, onCaptionSave }) {
   );
 }
 
-/* ─── Compression Progress Toast ────────────────────────────────── */
+// ─── Compression Status ───────────────────────────────────────────────────────
 function CompressionStatus({ items }) {
   if (!items.length) return null;
-  const done    = items.filter(i => i.done).length;
-  const total   = items.length;
-  const pct     = Math.round((done / total) * 100);
+  const done = items.filter(i => i.done).length;
+  const total = items.length;
+  const pct = Math.round((done / total) * 100);
   const savings = items.reduce((acc, i) => acc + (i.savedBytes || 0), 0);
-
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between text-xs mb-0.5">
@@ -357,10 +464,7 @@ function CompressionStatus({ items }) {
         <span className="text-gray-400">{done}/{total}</span>
       </div>
       <div className="h-1.5 bg-blue-100 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-[#0B3D91] rounded-full transition-all duration-300"
-          style={{ width: `${pct}%` }}
-        />
+        <div className="h-full bg-[#0B3D91] rounded-full transition-all duration-300" style={{ width: `${pct}%` }} />
       </div>
       {savings > 0 && (
         <p className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
@@ -371,32 +475,33 @@ function CompressionStatus({ items }) {
   );
 }
 
-/* ─── Main Component ────────────────────────────────────────────── */
+// ─── Main Component ───────────────────────────────────────────────────────────
 export default function ReportDetail() {
-  const { id }     = useParams();
-  const navigate   = useNavigate();
-  const [report,   setReport]   = useState(null);
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [report, setReport] = useState(null);
   const [engineers, setEngineers] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  const [pdfLoading,     setPdfLoading]     = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewUrl,     setPreviewUrl]     = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
-  // Compression progress state
-  const [compressItems,  setCompressItems]  = useState([]);
-  const [compressing,    setCompressing]    = useState(false);
+  const [compressItems, setCompressItems] = useState([]);
+  const [compressing, setCompressing] = useState(false);
 
   // Edit mode
-  const [editMode,         setEditMode]         = useState(false);
-  const [editBase,         setEditBase]         = useState({});
-  const [editData,         setEditData]         = useState({});
-  const [saving,           setSaving]           = useState(false);
-  const [editSectionVis,   setEditSectionVis]   = useState({});
+  const [editMode, setEditMode] = useState(false);
+  const [editBase, setEditBase] = useState({});
+  const [editData, setEditData] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [editSectionVis, setEditSectionVis] = useState({});
+  const [editLang, setEditLang] = useState("en");
+  const [editIncludeClientSig, setEditIncludeClientSig] = useState(true);
 
-  // Delete report dialog
+  // Delete
   const [deleteDialog, setDeleteDialog] = useState(false);
-  const [deleting,     setDeleting]     = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchReport = useCallback(async () => {
     try {
@@ -409,20 +514,24 @@ export default function ReportDetail() {
   useEffect(() => { API.get("/engineer/").then(r => setEngineers(r.data)).catch(() => {}); }, []);
 
   const openEdit = () => {
+    const savedLang = report.data_json?._lang || "en";
+    const savedClientSig = report.data_json?._include_client_signature ?? true;
     setEditBase({
       report_number: report.report_number || "",
-      client_name:   report.client_name   || "",
-      project_name:  report.project_name  || "",
-      report_date:   report.report_date   || "",
-      engineer_id:   report.engineer?.id  || "",
-      status:        report.status        || "draft",
+      client_name: report.client_name || "",
+      project_name: report.project_name || "",
+      report_date: report.report_date || "",
+      engineer_id: report.engineer?.id || "",
+      status: report.status || "draft",
     });
     setEditData({ ...(report.data_json || {}) });
     setEditSectionVis(report.data_json?._section_visibility || {});
+    setEditLang(savedLang);
+    setEditIncludeClientSig(savedClientSig);
     setEditMode(true);
   };
 
-  const toggleEditSection     = (si) => setEditSectionVis(prev => ({ ...prev, [si]: !(prev[si] ?? true) }));
+  const toggleEditSection = (si) => setEditSectionVis(prev => ({ ...prev, [si]: !(prev[si] ?? true) }));
   const isEditSectionIncluded = (si) => editSectionVis[si] ?? true;
 
   const handleSave = async () => {
@@ -431,7 +540,12 @@ export default function ReportDetail() {
       await API.put(`/report/update/${id}`, {
         ...editBase,
         engineer_id: editBase.engineer_id ? parseInt(editBase.engineer_id) : null,
-        data_json: { ...editData, _section_visibility: editSectionVis },
+        data_json: {
+          ...editData,
+          _section_visibility: editSectionVis,
+          _lang: editLang,
+          _include_client_signature: editIncludeClientSig,
+        },
       });
       toast.success("Report successfully updated! ✅");
       setEditMode(false);
@@ -449,21 +563,12 @@ export default function ReportDetail() {
     } catch { toast.error("Failed to delete report"); setDeleting(false); setDeleteDialog(false); }
   };
 
-  /* ── Image upload with client-side compression ─────────────── */
   const handleFiles = async (files) => {
     const fileArr = Array.from(files).filter(f => f.type.startsWith("image/"));
     if (!fileArr.length) return;
-
     setCompressing(true);
-    const progressItems = fileArr.map((f, idx) => ({
-      idx,
-      name: f.name,
-      originalSize: f.size,
-      done: false,
-      savedBytes: 0,
-    }));
+    const progressItems = fileArr.map((f, idx) => ({ idx, name: f.name, originalSize: f.size, done: false, savedBytes: 0 }));
     setCompressItems(progressItems);
-
     const compressed = [];
     for (let i = 0; i < fileArr.length; i++) {
       const original = fileArr[i];
@@ -471,48 +576,30 @@ export default function ReportDetail() {
         const { compressImage } = await import("../utils/imageCompressor");
         const result = await compressImage(original);
         compressed.push(result);
-        setCompressItems(prev =>
-          prev.map(item =>
-            item.idx === i
-              ? { ...item, done: true, savedBytes: Math.max(0, original.size - result.size) }
-              : item,
-          ),
-        );
+        setCompressItems(prev => prev.map(item => item.idx === i ? { ...item, done: true, savedBytes: Math.max(0, original.size - result.size) } : item));
       } catch {
         compressed.push(original);
-        setCompressItems(prev =>
-          prev.map(item => item.idx === i ? { ...item, done: true, savedBytes: 0 } : item),
-        );
+        setCompressItems(prev => prev.map(item => item.idx === i ? { ...item, done: true, savedBytes: 0 } : item));
       }
     }
-
     setCompressing(false);
-
-    const originalTotal   = fileArr.reduce((s, f) => s + f.size, 0);
+    const originalTotal = fileArr.reduce((s, f) => s + f.size, 0);
     const compressedTotal = compressed.reduce((s, f) => s + f.size, 0);
-    const savedTotal      = originalTotal - compressedTotal;
-    const savedPct        = originalTotal > 0 ? Math.round((savedTotal / originalTotal) * 100) : 0;
-
+    const savedTotal = originalTotal - compressedTotal;
+    const savedPct = originalTotal > 0 ? Math.round((savedTotal / originalTotal) * 100) : 0;
     const fd = new FormData();
     compressed.forEach(f => fd.append("images", f));
     setUploading(true);
     try {
       await API.post(`/report/upload/${id}`, fd, { headers: { "Content-Type": "multipart/form-data" } });
       if (savedTotal > 0) {
-        toast.success(
-          `${fileArr.length} photo uploaded ✅\nCompressed: saved ${formatBytes(savedTotal)} (${savedPct}% smaller)`,
-          { duration: 4000 },
-        );
+        toast.success(`${fileArr.length} photo uploaded ✅\nCompressed: saved ${formatBytes(savedTotal)} (${savedPct}% smaller)`, { duration: 4000 });
       } else {
         toast.success(`${fileArr.length} photo uploaded successfully!`);
       }
       fetchReport();
-    } catch {
-      toast.error("Upload failed");
-    } finally {
-      setUploading(false);
-      setCompressItems([]);
-    }
+    } catch { toast.error("Upload failed"); }
+    finally { setUploading(false); setCompressItems([]); }
   };
 
   const deleteImage = async (imgId) => {
@@ -523,10 +610,7 @@ export default function ReportDetail() {
 
   const saveCaption = async (imgId, caption) => {
     await API.put(`/report/image/caption/${imgId}`, { caption });
-    setReport(prev => ({
-      ...prev,
-      images: prev.images.map(i => i.id === imgId ? { ...i, caption } : i),
-    }));
+    setReport(prev => ({ ...prev, images: prev.images.map(i => i.id === imgId ? { ...i, caption } : i) }));
   };
 
   const previewPDF = async () => {
@@ -543,10 +627,7 @@ export default function ReportDetail() {
     try {
       const res = await API.get(`/report/pdf/${id}`, { responseType: "blob" });
       const url = URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
-      Object.assign(document.createElement("a"), {
-        href: url,
-        download: `${report.report_number}_${report.report_type}.pdf`,
-      }).click();
+      Object.assign(document.createElement("a"), { href: url, download: `${report.report_number}_${report.report_type}.pdf` }).click();
       setTimeout(() => URL.revokeObjectURL(url), 5000);
       toast.success("PDF downloaded!");
     } catch { toast.error("Failed to generate PDF"); }
@@ -559,7 +640,14 @@ export default function ReportDetail() {
     </div>
   );
 
-  const sections   = FIELD_MAP[report.report_type] || [];
+  // Use language stored in report, or "en" as default
+  const viewLang = report.data_json?._lang || "en";
+  const includeClientSig = report.data_json?._include_client_signature ?? true;
+  const sections = (FIELD_MAP[viewLang]?.[report.report_type]) || (FIELD_MAP["en"]?.[report.report_type]) || [];
+
+  // For edit mode, use editLang to determine sections shown
+  const editSections = (FIELD_MAP[editLang]?.[report.report_type]) || (FIELD_MAP["en"]?.[report.report_type]) || [];
+
   const inputClass = "w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91] bg-white";
   const labelClass = "block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5";
 
@@ -600,6 +688,17 @@ export default function ReportDetail() {
               </span>
               <span className={`text-xs font-bold px-3 py-1 rounded-full ${STATUS_BADGES[report.status] || "bg-gray-100 text-gray-600"}`}>
                 {report.status}
+              </span>
+              {/* Language badge */}
+              <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#0B3D91]/10 text-[#0B3D91] flex items-center gap-1">
+                <Globe size={10} />
+                {LANG_OPTIONS.find(l => l.id === viewLang)?.flag} {LANG_OPTIONS.find(l => l.id === viewLang)?.label || "English"}
+              </span>
+              {/* Client signature badge */}
+              <span className={`text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1
+                ${includeClientSig ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
+                <PenLine size={10} />
+                {includeClientSig ? "Client Sig. Included" : "No Client Sig."}
               </span>
             </div>
             <h1 className="text-2xl font-black text-[#0B3D91]">{report.report_number}</h1>
@@ -643,7 +742,7 @@ export default function ReportDetail() {
         </div>
       </div>
 
-      {/* ── EDIT MODE ─────────────────────────────────────────── */}
+      {/* ── EDIT MODE ─────────────────────────────────────────────────────── */}
       {editMode && (
         <div className="bg-white rounded-2xl border border-amber-200 shadow-sm p-6 mb-4">
           <div className="flex items-center justify-between mb-5">
@@ -659,10 +758,75 @@ export default function ReportDetail() {
           <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-5 text-xs text-blue-700">
             <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
             <span>
-              Text areas in sections 2–4 support <strong>multi-line input</strong>.
-              Press <kbd className="bg-blue-100 px-1 py-0.5 rounded text-[10px] font-mono">Enter</kbd> for a new line,{" "}
-              <kbd className="bg-blue-100 px-1 py-0.5 rounded text-[10px] font-mono">Shift+Enter</kbd> for a blank line.
+              Changing the language will update the field labels displayed in the form. The actual content you've entered is preserved.
             </span>
+          </div>
+
+          {/* PDF Options */}
+          <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 mb-5 space-y-4">
+            <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">PDF Options</p>
+
+            {/* Language */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-center gap-2 min-w-[200px]">
+                <Globe size={15} className="text-[#0B3D91]" />
+                <span className="text-sm font-semibold text-gray-700">Report Language:</span>
+              </div>
+              <div className="flex gap-2">
+                {LANG_OPTIONS.map(l => (
+                  <button
+                    key={l.id}
+                    type="button"
+                    onClick={() => setEditLang(l.id)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all
+                      ${editLang === l.id
+                        ? "bg-[#0B3D91] text-white border-[#0B3D91] shadow-sm"
+                        : "bg-white text-gray-500 border-gray-200 hover:border-[#0B3D91]/40 hover:text-[#0B3D91]"}`}>
+                    <span>{l.flag}</span>
+                    {l.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Client Signature */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-center gap-2 min-w-[200px]">
+                <PenLine size={15} className="text-[#0B3D91]" />
+                <span className="text-sm font-semibold text-gray-700">Client Signature:</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditIncludeClientSig(true)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all
+                    ${editIncludeClientSig
+                      ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                      : "bg-white text-gray-500 border-gray-200 hover:border-emerald-400 hover:text-emerald-600"}`}>
+                  <Eye size={14} />
+                  Include in PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditIncludeClientSig(false)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all
+                    ${!editIncludeClientSig
+                      ? "bg-gray-500 text-white border-gray-500 shadow-sm"
+                      : "bg-white text-gray-500 border-gray-200 hover:border-gray-400 hover:text-gray-600"}`}>
+                  <EyeOff size={14} />
+                  Exclude from PDF
+                </button>
+              </div>
+            </div>
+            {editIncludeClientSig ? (
+              <p className="text-xs text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2 flex items-center gap-2">
+                <CheckCircle2 size={13} /> PDF will include an empty signature block for the client to sign.
+              </p>
+            ) : (
+              <p className="text-xs text-gray-500 bg-white border border-gray-200 rounded-lg px-3 py-2 flex items-center gap-2">
+                <EyeOff size={13} /> Only the engineer's signature block will appear in the PDF.
+              </p>
+            )}
           </div>
 
           {/* Base fields */}
@@ -712,10 +876,10 @@ export default function ReportDetail() {
             </div>
           </div>
 
-          {/* Dynamic fields per report type */}
-          {sections.map((sec, si) => {
-            const included         = isEditSectionIncluded(si);
-            const isMultiline      = si >= MULTILINE_SECTION_THRESHOLD;
+          {/* Dynamic fields per report type — keyed to editLang */}
+          {editSections.map((sec, si) => {
+            const included = isEditSectionIncluded(si);
+            const isMultiline = si >= MULTILINE_SECTION_THRESHOLD;
             return (
               <div key={si} className={`mb-4 rounded-xl border p-4 transition-all ${
                 included ? "bg-white border-gray-100" : "bg-gray-50 border-gray-200 opacity-60"
@@ -727,9 +891,7 @@ export default function ReportDetail() {
                       {sec.section}
                     </h4>
                     {isMultiline && included && (
-                      <span className="text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-0.5 rounded-full font-semibold">
-                        Multi-line
-                      </span>
+                      <span className="text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-0.5 rounded-full font-semibold">Multi-line</span>
                     )}
                   </div>
                   <button
@@ -740,17 +902,7 @@ export default function ReportDetail() {
                         ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
                         : "bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200"
                     }`}>
-                    {included ? (
-                      <>
-                        <Eye className="w-3.5 h-3.5" />
-                        Show in PDF
-                      </>
-                    ) : (
-                      <>
-                        <EyeOff className="w-3.5 h-3.5" />
-                        Hide in PDF
-                      </>
-                    )}
+                    {included ? <><Eye className="w-3.5 h-3.5" /> Show in PDF</> : <><EyeOff className="w-3.5 h-3.5" /> Hide in PDF</>}
                   </button>
                 </div>
 
@@ -802,7 +954,7 @@ export default function ReportDetail() {
         </div>
       )}
 
-      {/* ── VIEW MODE — Report Data ──────────────────────────── */}
+      {/* ── VIEW MODE — Report Data ──────────────────────────────────────── */}
       {!editMode && sections.map((sec, i) => (
         <DataSection
           key={i}
@@ -814,7 +966,7 @@ export default function ReportDetail() {
       {!editMode && sections.length === 0 && report.data_json && Object.keys(report.data_json).length > 0 && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
           <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4">Report Data</h3>
-          {Object.entries(report.data_json).map(([k, v]) => v ? (
+          {Object.entries(report.data_json).map(([k, v]) => v && !k.startsWith("_") ? (
             <div key={k} className="mb-3">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">{k.replace(/_/g, " ")}</p>
               <p className="text-sm text-gray-800 whitespace-pre-wrap">{String(v)}</p>
@@ -823,7 +975,7 @@ export default function ReportDetail() {
         </div>
       )}
 
-      {/* ── IMAGES ──────────────────────────────────────────────── */}
+      {/* ── IMAGES ──────────────────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider flex items-center gap-2">
@@ -850,9 +1002,8 @@ export default function ReportDetail() {
           </div>
         )}
 
-        {/* Drag & Drop Zone */}
         <div
-          onDragOver={e  => { e.preventDefault(); setDragActive(true); }}
+          onDragOver={e => { e.preventDefault(); setDragActive(true); }}
           onDragLeave={() => setDragActive(false)}
           onDrop={e => { e.preventDefault(); setDragActive(false); handleFiles(e.dataTransfer.files); }}
           className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all mb-4
@@ -860,9 +1011,7 @@ export default function ReportDetail() {
           onClick={() => !compressing && !uploading && document.getElementById("fileInput").click()}
         >
           {compressing && compressItems.length > 0 ? (
-            <div className="px-2 py-1">
-              <CompressionStatus items={compressItems} />
-            </div>
+            <div className="px-2 py-1"><CompressionStatus items={compressItems} /></div>
           ) : uploading ? (
             <div className="flex items-center justify-center gap-3">
               <Loader2 className="h-6 w-6 animate-spin text-[#0B3D91]" />
@@ -880,14 +1029,8 @@ export default function ReportDetail() {
           )}
         </div>
 
-        <input
-          id="fileInput"
-          type="file"
-          multiple
-          accept="image/*"
-          className="hidden"
-          onChange={e => handleFiles(e.target.files)}
-        />
+        <input id="fileInput" type="file" multiple accept="image/*" className="hidden"
+          onChange={e => handleFiles(e.target.files)} />
 
         {report.images?.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
