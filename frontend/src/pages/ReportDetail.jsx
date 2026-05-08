@@ -21,6 +21,9 @@ import {
   Globe,
   PenLine,
   CheckCircle2,
+  UserCheck,
+  User,
+  Settings2,
 } from "lucide-react";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
@@ -274,6 +277,87 @@ const TYPE_BADGES = {
   troubleshooting: "bg-orange-100 text-orange-700",
   service: "bg-green-100 text-green-700",
 };
+
+/* ─── Compact PDF Settings Bar ─────────────────────────────── */
+function PDFSettingsBar({ pdfLanguage, onLangChange, inclSig, onSigChange, onClose, readOnly }) {
+  const pill = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition-all duration-150 select-none";
+  const on   = "bg-[#0B3D91] text-white border-[#0B3D91]";
+  const off  = "bg-white text-gray-500 border-gray-200 hover:border-[#0B3D91]/50 hover:text-[#0B3D91]";
+  const readOnlyPill = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold select-none";
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 mb-4">
+      <div className="flex items-center justify-between mb-2.5">
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+          <Settings2 className="w-3 h-3" />
+          PDF Report Settings
+        </p>
+        {onClose && (
+          <button onClick={onClose} className="text-gray-300 hover:text-gray-500 transition-colors">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        {/* Language */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400 font-medium">Language</span>
+          <div className="flex gap-1">
+            {readOnly ? (
+              <>
+                <span className={`${readOnlyPill} ${pdfLanguage === "en" ? on : "bg-white text-gray-400 border-gray-200"}`}>🇬🇧 English</span>
+                <span className={`${readOnlyPill} ${pdfLanguage === "id" ? on : "bg-white text-gray-400 border-gray-200"}`}>🇮🇩 Bahasa</span>
+              </>
+            ) : (
+              <>
+                <button type="button" onClick={() => onLangChange("en")} className={`${pill} ${pdfLanguage === "en" ? on : off}`}>🇬🇧 English</button>
+                <button type="button" onClick={() => onLangChange("id")} className={`${pill} ${pdfLanguage === "id" ? on : off}`}>🇮🇩 Bahasa</button>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="hidden sm:block w-px h-5 bg-gray-200" />
+
+        {/* Signature */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400 font-medium">Signature on PDF</span>
+          <div className="flex gap-1">
+            {readOnly ? (
+              <>
+                <span className={`${readOnlyPill} ${inclSig ? on : "bg-white text-gray-400 border-gray-200"}`}>
+                  <UserCheck className="w-3 h-3" /> Include Signature
+                </span>
+                <span className={`${readOnlyPill} ${!inclSig ? on : "bg-white text-gray-400 border-gray-200"}`}>
+                  <User className="w-3 h-3" /> Reported By Only
+                </span>
+              </>
+            ) : (
+              <>
+                <button type="button" onClick={() => onSigChange(true)} className={`${pill} ${inclSig ? on : off}`}>
+                  <UserCheck className="w-3 h-3" /> Include Signature
+                </button>
+                <button type="button" onClick={() => onSigChange(false)} className={`${pill} ${!inclSig ? on : off}`}>
+                  <User className="w-3 h-3" /> Reported By Only
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <p className={`mt-2.5 text-xs px-3 py-1.5 rounded-lg flex items-start gap-1.5 transition-all
+        ${inclSig ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"}`}>
+        <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+        {inclSig
+          ? "PDF will include an empty signature block for the client to sign."
+          : <><em className="font-semibold not-italic">"Reported by"</em> section only — engineer name, position, and signature.</>
+        }
+      </p>
+    </div>
+  );
+}
 
 // ─── Delete Dialog ────────────────────────────────────────────────────────────
 function DeleteDialog({ title, description, onConfirm, onCancel, loading }) {
@@ -640,12 +724,9 @@ export default function ReportDetail() {
     </div>
   );
 
-  // Use language stored in report, or "en" as default
   const viewLang = report.data_json?._lang || "en";
   const includeClientSig = report.data_json?._include_client_signature ?? true;
   const sections = (FIELD_MAP[viewLang]?.[report.report_type]) || (FIELD_MAP["en"]?.[report.report_type]) || [];
-
-  // For edit mode, use editLang to determine sections shown
   const editSections = (FIELD_MAP[editLang]?.[report.report_type]) || (FIELD_MAP["en"]?.[report.report_type]) || [];
 
   const inputClass = "w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91] bg-white";
@@ -688,17 +769,6 @@ export default function ReportDetail() {
               </span>
               <span className={`text-xs font-bold px-3 py-1 rounded-full ${STATUS_BADGES[report.status] || "bg-gray-100 text-gray-600"}`}>
                 {report.status}
-              </span>
-              {/* Language badge */}
-              <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#0B3D91]/10 text-[#0B3D91] flex items-center gap-1">
-                <Globe size={10} />
-                {LANG_OPTIONS.find(l => l.id === viewLang)?.flag} {LANG_OPTIONS.find(l => l.id === viewLang)?.label || "English"}
-              </span>
-              {/* Client signature badge */}
-              <span className={`text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1
-                ${includeClientSig ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
-                <PenLine size={10} />
-                {includeClientSig ? "Client Sig. Included" : "No Client Sig."}
               </span>
             </div>
             <h1 className="text-2xl font-black text-[#0B3D91]">{report.report_number}</h1>
@@ -744,144 +814,89 @@ export default function ReportDetail() {
 
       {/* ── EDIT MODE ─────────────────────────────────────────────────────── */}
       {editMode && (
-        <div className="bg-white rounded-2xl border border-amber-200 shadow-sm p-6 mb-4">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-sm font-bold text-amber-700 uppercase tracking-wider flex items-center gap-2">
-              <span className="w-1.5 h-4 bg-amber-400 rounded-full" /> Edit Mode
-            </h3>
-            <button onClick={() => setEditMode(false)} className="text-gray-400 hover:text-gray-600">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+        <div className="space-y-4 mb-4">
 
-          {/* Info hint */}
-          <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-5 text-xs text-blue-700">
-            <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            <span>
-              Changing the language will update the field labels displayed in the form. The actual content you've entered is preserved.
-            </span>
-          </div>
+          {/* Compact PDF Settings Bar in edit mode */}
+          <PDFSettingsBar
+            pdfLanguage={editLang}
+            onLangChange={setEditLang}
+            inclSig={editIncludeClientSig}
+            onSigChange={setEditIncludeClientSig}
+            onClose={() => setEditMode(false)}
+          />
 
-          {/* PDF Options */}
-          <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 mb-5 space-y-4">
-            <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">PDF Options</p>
+          <div className="bg-white rounded-2xl border border-amber-200 shadow-sm p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-sm font-bold text-amber-700 uppercase tracking-wider flex items-center gap-2">
+                <span className="w-1.5 h-4 bg-amber-400 rounded-full" /> Edit Mode — Report Information
+              </h3>
+              <button onClick={() => setEditMode(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-            {/* Language */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <div className="flex items-center gap-2 min-w-[200px]">
-                <Globe size={15} className="text-[#0B3D91]" />
-                <span className="text-sm font-semibold text-gray-700">Report Language:</span>
+            {/* Info hint */}
+            <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-5 text-xs text-blue-700">
+              <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>
+                Changing the language will update the field labels displayed in the form. The actual content you've entered is preserved.
+              </span>
+            </div>
+
+            {/* Base fields */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+              <div>
+                <label className={labelClass}>Report Number</label>
+                <input value={editBase.report_number}
+                  onChange={e => setEditBase({ ...editBase, report_number: e.target.value })}
+                  className={inputClass} />
               </div>
-              <div className="flex gap-2">
-                {LANG_OPTIONS.map(l => (
-                  <button
-                    key={l.id}
-                    type="button"
-                    onClick={() => setEditLang(l.id)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all
-                      ${editLang === l.id
-                        ? "bg-[#0B3D91] text-white border-[#0B3D91] shadow-sm"
-                        : "bg-white text-gray-500 border-gray-200 hover:border-[#0B3D91]/40 hover:text-[#0B3D91]"}`}>
-                    <span>{l.flag}</span>
-                    {l.label}
-                  </button>
-                ))}
+              <div>
+                <label className={labelClass}>Report Date</label>
+                <input type="date" value={editBase.report_date}
+                  onChange={e => setEditBase({ ...editBase, report_date: e.target.value })}
+                  className={inputClass} />
               </div>
-            </div>
-
-            {/* Client Signature */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <div className="flex items-center gap-2 min-w-[200px]">
-                <PenLine size={15} className="text-[#0B3D91]" />
-                <span className="text-sm font-semibold text-gray-700">Client Signature:</span>
+              <div>
+                <label className={labelClass}>Client Name</label>
+                <input value={editBase.client_name}
+                  onChange={e => setEditBase({ ...editBase, client_name: e.target.value })}
+                  className={inputClass} />
               </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setEditIncludeClientSig(true)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all
-                    ${editIncludeClientSig
-                      ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-                      : "bg-white text-gray-500 border-gray-200 hover:border-emerald-400 hover:text-emerald-600"}`}>
-                  <Eye size={14} />
-                  Include in PDF
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditIncludeClientSig(false)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all
-                    ${!editIncludeClientSig
-                      ? "bg-gray-500 text-white border-gray-500 shadow-sm"
-                      : "bg-white text-gray-500 border-gray-200 hover:border-gray-400 hover:text-gray-600"}`}>
-                  <EyeOff size={14} />
-                  Exclude from PDF
-                </button>
+              <div>
+                <label className={labelClass}>Project Name</label>
+                <input value={editBase.project_name}
+                  onChange={e => setEditBase({ ...editBase, project_name: e.target.value })}
+                  className={inputClass} />
               </div>
-            </div>
-            {editIncludeClientSig ? (
-              <p className="text-xs text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2 flex items-center gap-2">
-                <CheckCircle2 size={13} /> PDF will include an empty signature block for the client to sign.
-              </p>
-            ) : (
-              <p className="text-xs text-gray-500 bg-white border border-gray-200 rounded-lg px-3 py-2 flex items-center gap-2">
-                <EyeOff size={13} /> Only the engineer's signature block will appear in the PDF.
-              </p>
-            )}
-          </div>
-
-          {/* Base fields */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-            <div>
-              <label className={labelClass}>Report Number</label>
-              <input value={editBase.report_number}
-                onChange={e => setEditBase({ ...editBase, report_number: e.target.value })}
-                className={inputClass} />
-            </div>
-            <div>
-              <label className={labelClass}>Report Date</label>
-              <input type="date" value={editBase.report_date}
-                onChange={e => setEditBase({ ...editBase, report_date: e.target.value })}
-                className={inputClass} />
-            </div>
-            <div>
-              <label className={labelClass}>Client Name</label>
-              <input value={editBase.client_name}
-                onChange={e => setEditBase({ ...editBase, client_name: e.target.value })}
-                className={inputClass} />
-            </div>
-            <div>
-              <label className={labelClass}>Project Name</label>
-              <input value={editBase.project_name}
-                onChange={e => setEditBase({ ...editBase, project_name: e.target.value })}
-                className={inputClass} />
-            </div>
-            <div>
-              <label className={labelClass}>Engineer</label>
-              <select value={editBase.engineer_id}
-                onChange={e => setEditBase({ ...editBase, engineer_id: e.target.value })}
-                className={inputClass}>
-                <option value="">— Select Engineer —</option>
-                {engineers.map(eng => <option key={eng.id} value={eng.id}>{eng.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>Status</label>
-              <select value={editBase.status}
-                onChange={e => setEditBase({ ...editBase, status: e.target.value })}
-                className={inputClass}>
-                {["draft", "in-progress", "completed", "approved"].map(s =>
-                  <option key={s} value={s}>{s}</option>
-                )}
-              </select>
+              <div>
+                <label className={labelClass}>Engineer</label>
+                <select value={editBase.engineer_id}
+                  onChange={e => setEditBase({ ...editBase, engineer_id: e.target.value })}
+                  className={inputClass}>
+                  <option value="">— Select Engineer —</option>
+                  {engineers.map(eng => <option key={eng.id} value={eng.id}>{eng.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Status</label>
+                <select value={editBase.status}
+                  onChange={e => setEditBase({ ...editBase, status: e.target.value })}
+                  className={inputClass}>
+                  {["draft", "in-progress", "completed", "approved"].map(s =>
+                    <option key={s} value={s}>{s}</option>
+                  )}
+                </select>
+              </div>
             </div>
           </div>
 
-          {/* Dynamic fields per report type — keyed to editLang */}
+          {/* Dynamic fields per report type */}
           {editSections.map((sec, si) => {
             const included = isEditSectionIncluded(si);
             const isMultiline = si >= MULTILINE_SECTION_THRESHOLD;
             return (
-              <div key={si} className={`mb-4 rounded-xl border p-4 transition-all ${
+              <div key={si} className={`rounded-xl border p-4 transition-all ${
                 included ? "bg-white border-gray-100" : "bg-gray-50 border-gray-200 opacity-60"
               }`}>
                 <div className="flex items-center justify-between mb-3">
@@ -939,7 +954,7 @@ export default function ReportDetail() {
             );
           })}
 
-          <div className="flex gap-3 pt-2 border-t border-gray-100 mt-4">
+          <div className="flex gap-3 pt-2">
             <button onClick={() => setEditMode(false)}
               className="px-5 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50 flex items-center gap-2">
               <X className="w-4 h-4" /> Cancel
@@ -954,25 +969,39 @@ export default function ReportDetail() {
         </div>
       )}
 
-      {/* ── VIEW MODE — Report Data ──────────────────────────────────────── */}
-      {!editMode && sections.map((sec, i) => (
-        <DataSection
-          key={i}
-          title={sec.section}
-          data={report.data_json}
-          keys={sec.fields.map(f => ({ key: f.name, label: f.label }))}
-        />
-      ))}
-      {!editMode && sections.length === 0 && report.data_json && Object.keys(report.data_json).length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
-          <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4">Report Data</h3>
-          {Object.entries(report.data_json).map(([k, v]) => v && !k.startsWith("_") ? (
-            <div key={k} className="mb-3">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">{k.replace(/_/g, " ")}</p>
-              <p className="text-sm text-gray-800 whitespace-pre-wrap">{String(v)}</p>
+      {/* ── VIEW MODE ─────────────────────────────────────────────── */}
+      {!editMode && (
+        <>
+          {/* Compact PDF Settings Bar — read-only, shows current settings */}
+          <PDFSettingsBar
+            pdfLanguage={viewLang}
+            onLangChange={() => openEdit()}
+            inclSig={includeClientSig}
+            onSigChange={() => openEdit()}
+            readOnly
+          />
+
+          {/* Report data sections */}
+          {sections.map((sec, i) => (
+            <DataSection
+              key={i}
+              title={sec.section}
+              data={report.data_json}
+              keys={sec.fields.map(f => ({ key: f.name, label: f.label }))}
+            />
+          ))}
+          {sections.length === 0 && report.data_json && Object.keys(report.data_json).length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-4">
+              <h3 className="text-xs font-bold text-[#0B3D91] uppercase tracking-wider mb-4">Report Data</h3>
+              {Object.entries(report.data_json).map(([k, v]) => v && !k.startsWith("_") ? (
+                <div key={k} className="mb-3">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">{k.replace(/_/g, " ")}</p>
+                  <p className="text-sm text-gray-800 whitespace-pre-wrap">{String(v)}</p>
+                </div>
+              ) : null)}
             </div>
-          ) : null)}
-        </div>
+          )}
+        </>
       )}
 
       {/* ── IMAGES ──────────────────────────────────────────────────────── */}

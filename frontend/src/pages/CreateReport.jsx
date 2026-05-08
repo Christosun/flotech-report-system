@@ -17,6 +17,9 @@ import {
   ClipboardCheck,
   Globe,
   PenLine,
+  FileText,
+  UserCheck,
+  User,
 } from "lucide-react";
 
 // ─── Language Templates ──────────────────────────────────────────────────────
@@ -306,6 +309,65 @@ function getTextareaRows(sectionIndex) {
   return sectionIndex >= MULTILINE_SECTION_THRESHOLD ? 6 : 3;
 }
 
+/* ─── Compact PDF Settings Bar ─────────────────────────────── */
+function PDFSettingsBar({ pdfLanguage, onLangChange, inclSig, onSigChange }) {
+  const pill = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition-all duration-150 select-none";
+  const on   = "bg-[#0B3D91] text-white border-[#0B3D91]";
+  const off  = "bg-white text-gray-500 border-gray-200 hover:border-[#0B3D91]/50 hover:text-[#0B3D91]";
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 mb-4">
+      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
+        <FileText className="w-3 h-3" />
+        PDF Report Settings
+      </p>
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        {/* Language */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400 font-medium">Language</span>
+          <div className="flex gap-1">
+            <button type="button" onClick={() => onLangChange("en")}
+              className={`${pill} ${pdfLanguage === "en" ? on : off}`}>
+              🇬🇧 English
+            </button>
+            <button type="button" onClick={() => onLangChange("id")}
+              className={`${pill} ${pdfLanguage === "id" ? on : off}`}>
+              🇮🇩 Bahasa
+            </button>
+          </div>
+        </div>
+
+        <div className="hidden sm:block w-px h-5 bg-gray-200" />
+
+        {/* Client Signature */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400 font-medium">Signature on PDF</span>
+          <div className="flex gap-1">
+            <button type="button" onClick={() => onSigChange(true)}
+              className={`${pill} ${inclSig ? on : off}`}>
+              <UserCheck className="w-3 h-3" /> Include Signature
+            </button>
+            <button type="button" onClick={() => onSigChange(false)}
+              className={`${pill} ${!inclSig ? on : off}`}>
+              <User className="w-3 h-3" /> Reported By Only
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <p className={`mt-2.5 text-xs px-3 py-1.5 rounded-lg flex items-start gap-1.5 transition-all
+        ${inclSig ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"}`}>
+        <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+        {inclSig
+          ? "PDF will include an empty signature block for the client to sign."
+          : <><em className="font-semibold not-italic">"Reported by"</em> section only — engineer name, position, and signature.</>
+        }
+      </p>
+    </div>
+  );
+}
+
 export default function CreateReport() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
@@ -313,7 +375,7 @@ export default function CreateReport() {
   const [engineers, setEngineers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sectionIncluded, setSectionIncluded] = useState({});
-  const [lang, setLang] = useState("en"); // "en" | "id"
+  const [lang, setLang] = useState("en");
   const [includeClientSignature, setIncludeClientSignature] = useState(true);
 
   const [baseForm, setBaseForm] = useState({
@@ -436,29 +498,11 @@ export default function CreateReport() {
         ))}
       </div>
 
-      {/* ── Step 1: Select Report Type ──────────────────────────── */}
+      {/* ── Step 1: Select Report Type ─────────────────────────────────────────
+          NOTE: Language selector removed from here — it's now in Step 2 PDF Settings
+      ── */}
       {step === 1 && (
         <div>
-          {/* Language selector */}
-          <div className="flex items-center gap-3 mb-6 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
-            <Globe size={16} className="text-[#0B3D91] flex-shrink-0" />
-            <span className="text-sm font-semibold text-gray-700">Template Language:</span>
-            <div className="flex gap-2">
-              {LANG_OPTIONS.map(l => (
-                <button
-                  key={l.id}
-                  onClick={() => setLang(l.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all
-                    ${lang === l.id
-                      ? "bg-[#0B3D91] text-white border-[#0B3D91] shadow-sm"
-                      : "bg-white text-gray-500 border-gray-200 hover:border-[#0B3D91]/40 hover:text-[#0B3D91]"}`}>
-                  <span>{l.flag}</span>
-                  {l.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
           <h2 className="text-lg font-semibold text-gray-700 mb-4">Select Report Type</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             {REPORT_TYPES.map((type) => {
@@ -509,6 +553,15 @@ export default function CreateReport() {
       {/* ── Step 2: Basic Info ──────────────────────────────────── */}
       {step === 2 && (
         <div className="space-y-4">
+
+          {/* ── Compact PDF Settings Bar (replaces the old PDF Options card) ── */}
+          <PDFSettingsBar
+            pdfLanguage={lang}
+            onLangChange={setLang}
+            inclSig={includeClientSignature}
+            onSigChange={setIncludeClientSignature}
+          />
+
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <div className="flex items-center gap-3 mb-6">
               {selectedTypeObj && (
@@ -560,79 +613,6 @@ export default function CreateReport() {
             </div>
           </div>
 
-          {/* ── PDF Options Card ── */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4 flex items-center gap-2">
-              <span className="w-1.5 h-4 bg-[#0B3D91] rounded-full" />
-              PDF Options
-            </h3>
-            <div className="space-y-4">
-              {/* Language selector */}
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <div className="flex items-center gap-2 min-w-[220px]">
-                  <Globe size={16} className="text-[#0B3D91]" />
-                  <span className="text-sm font-semibold text-gray-700">Report Language:</span>
-                </div>
-                <div className="flex gap-2">
-                  {LANG_OPTIONS.map(l => (
-                    <button
-                      key={l.id}
-                      type="button"
-                      onClick={() => setLang(l.id)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all
-                        ${lang === l.id
-                          ? "bg-[#0B3D91] text-white border-[#0B3D91] shadow-sm"
-                          : "bg-white text-gray-500 border-gray-200 hover:border-[#0B3D91]/40 hover:text-[#0B3D91]"}`}>
-                      <span>{l.flag}</span>
-                      {l.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Client signature toggle */}
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <div className="flex items-center gap-2 min-w-[220px]">
-                  <PenLine size={16} className="text-[#0B3D91]" />
-                  <span className="text-sm font-semibold text-gray-700">Client Signature Block:</span>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIncludeClientSignature(true)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all
-                      ${includeClientSignature
-                        ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-                        : "bg-white text-gray-500 border-gray-200 hover:border-emerald-400 hover:text-emerald-600"}`}>
-                    <Eye size={14} />
-                    Include in PDF
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIncludeClientSignature(false)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all
-                      ${!includeClientSignature
-                        ? "bg-gray-500 text-white border-gray-500 shadow-sm"
-                        : "bg-white text-gray-500 border-gray-200 hover:border-gray-400 hover:text-gray-600"}`}>
-                    <EyeOff size={14} />
-                    Exclude from PDF
-                  </button>
-                </div>
-              </div>
-              {includeClientSignature ? (
-                <p className="text-xs text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2 flex items-center gap-2">
-                  <CheckCircle2 size={13} />
-                  PDF will include an empty signature block for the client to sign.
-                </p>
-              ) : (
-                <p className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2 flex items-center gap-2">
-                  <EyeOff size={13} />
-                  PDF will not include the client signature block — only the engineer's signature will appear.
-                </p>
-              )}
-            </div>
-          </div>
-
           <div className="flex gap-3">
             <button
               onClick={() => setStep(1)}
@@ -673,7 +653,7 @@ export default function CreateReport() {
                 <p className="text-sm text-gray-400">{selectedTypeObj?.label}</p>
               </div>
             </div>
-            {/* Language & signature badge recap */}
+            {/* PDF settings recap badges */}
             <div className="flex gap-2 flex-shrink-0">
               <span className="hidden sm:flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-[#0B3D91]/10 text-[#0B3D91] border border-[#0B3D91]/20">
                 <Globe size={11} />
@@ -682,8 +662,10 @@ export default function CreateReport() {
               <span className={`hidden sm:flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border
                 ${includeClientSignature
                   ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                  : "bg-gray-100 text-gray-500 border-gray-200"}`}>
-                {includeClientSignature ? <><PenLine size={11} /> Client Sig. ✓</> : <><EyeOff size={11} /> No Client Sig.</>}
+                  : "bg-amber-50 text-amber-700 border-amber-200"}`}>
+                {includeClientSignature
+                  ? <><UserCheck size={11} /> Client Sig. ✓</>
+                  : <><User size={11} /> Reported By Only</>}
               </span>
             </div>
           </div>
